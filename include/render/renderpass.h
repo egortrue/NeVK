@@ -4,6 +4,7 @@
 #include <vector>
 #include <array>
 #include <resourcemanager.h>
+#include "paramblock.h"
 
 namespace nevk
 {
@@ -19,7 +20,6 @@ private:
     VkPipeline mPipeline;
     VkPipelineLayout mPipelineLayout;
     VkRenderPass mRenderPass;
-    VkDescriptorSetLayout mDescriptorSetLayout;
     VkDevice mDevice;
 
     VkShaderModule mVS, mPS;
@@ -39,7 +39,10 @@ private:
 
     void createUniformBuffers();
 
+    VkDescriptorSetLayout mDescriptorSetLayout;
     std::vector<VkDescriptorSet> mDescriptorSets;
+
+    std::vector<VkDescriptorSet> mParamDescSet;
 
     std::vector<VkFramebuffer> mFrameBuffers;
 

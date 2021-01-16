@@ -78,6 +78,7 @@ set(RENDER_SOURCES
 	include/render/vertex.h
 	include/render/render.h
 	include/render/renderpass.h
+	include/render/paramblock.h
     src/render/render.cpp
     src/render/renderpass.cpp
 )

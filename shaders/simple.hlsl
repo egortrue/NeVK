@@ -1,3 +1,5 @@
+#include "simpleparams.h"
+
 static const float2 positions[3] = {
     float2(0.0, -0.5),
     float2(0.5, 0.5),
@@ -16,13 +18,7 @@ struct AssembledVertex
     float2  uv;
 };
 
-cbuffer ubo
-{
-    float4x4 modelViewProj;
-}
-
-Texture2D tex;
-SamplerState gSampler;
+ParameterBlock<Simple> gSimpleParams;
 
 struct PS_INPUT
 {
@@ -36,7 +32,7 @@ PS_INPUT vertexMain(AssembledVertex av)
 {
     PS_INPUT out;
 
-    out.pos = mul(modelViewProj, float4(av.position, 1.0f));
+    out.pos = mul(gSimpleParams.modelViewProj, float4(av.position, 1.0f));
     out.color = float4(av.color.rgb, 1.0f);
     out.uv = av.uv;
 
@@ -47,5 +43,5 @@ PS_INPUT vertexMain(AssembledVertex av)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-    return inp.color * tex.Sample(gSampler, inp.uv);
+    return inp.color * gSimpleParams.tex.Sample(gSimpleParams.gSampler, inp.uv);
 }
