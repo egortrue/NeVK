@@ -229,28 +229,20 @@ void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)
         memcpy(&wd.ClearValue.color.float32[0], &clear_color, 4 * sizeof(float));
     }
 
-    {
-        VkRenderPassBeginInfo info = {};
-        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        info.renderPass = wd.RenderPass;
-        info.framebuffer = mFrameBuffers[imageIndex];
-        info.renderArea.extent.width = wd.Width;
-        info.renderArea.extent.height = wd.Height;
-        info.clearValueCount = 1;
-        info.pClearValues = &wd.ClearValue;
-        vkCmdBeginRenderPass(commandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
-    }
+    VkRenderPassBeginInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    info.renderPass = wd.RenderPass;
+    info.framebuffer = mFrameBuffers[imageIndex];
+    info.renderArea.extent.width = wd.Width;
+    info.renderArea.extent.height = wd.Height;
+    info.clearValueCount = 1;
+    info.pClearValues = &wd.ClearValue;
+    vkCmdBeginRenderPass(commandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
 
     // Record dear imgui primitives into command buffer
     ImGui_ImplVulkan_RenderDrawData(draw_data, commandBuffer);
 
-    // Submit command buffer
     vkCmdEndRenderPass(commandBuffer);
-
-    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to record command buffer!");
-    }
 }
 
 void Ui::createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat)

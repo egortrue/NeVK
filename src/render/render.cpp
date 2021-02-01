@@ -814,7 +814,7 @@ void Render::drawFrame()
     {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
-  
+
     static auto prevTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
@@ -839,6 +839,11 @@ void Render::drawFrame()
     vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
 
     recordCommandBuffer(cmdBuff, imageIndex);
+
+    if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to record command buffer!");
+    }
 
     if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
     {
