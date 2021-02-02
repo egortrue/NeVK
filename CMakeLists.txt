@@ -65,7 +65,7 @@ set(UI_SOURCES
         include/ui/ui.h
         src/ui/ui.cpp
 
-        #		 Imgui
+        # Imgui
         external/imgui/include
         external/imgui/src/imgui.cpp
         external/imgui/src/imgui_demo.cpp
@@ -99,7 +99,6 @@ target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 
 # Render lib
 set(RENDER_SOURCES
-        include/render/vertex.h
         include/render/render.h
         include/render/renderpass.h
         include/render/paramblock.h

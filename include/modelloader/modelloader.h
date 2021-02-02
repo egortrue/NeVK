@@ -17,14 +17,13 @@
 
 #include "scene/scene.h"
 
-
 namespace nevk
 {
 
 class Model
 {
 private:
-    std::vector<Scene::Vertex> _vertices;
+    std::vector<Vertex> _vertices;
     std::vector<uint32_t> _indices;
 
 public:
@@ -32,7 +31,7 @@ public:
 
     bool loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene);
 
-    std::vector<Scene::Vertex> getVertices()
+    std::vector<Vertex> getVertices()
     {
         return _vertices;
     }

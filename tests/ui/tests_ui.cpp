@@ -1,5 +1,3 @@
-#define protected public
-#define private public
 #include <render/render.h>
 #include <ui/ui.h>
 

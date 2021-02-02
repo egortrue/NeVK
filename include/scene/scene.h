@@ -10,6 +10,18 @@
 namespace nevk
 {
 
+struct Vertex
+{
+    glm::float3 pos;
+    glm::float3 normal;
+    glm::float2 uv;
+
+    bool operator==(const Vertex& other) const
+    {
+        return pos == other.pos && normal == other.normal && uv == other.uv;
+    }
+};
+
 struct Mesh
 {
     uint32_t mIndex; // Index of 1st index in index buffer
@@ -41,13 +53,6 @@ private:
     std::set<uint32_t> mDirtyInstances;
 
 public:
-    struct Vertex
-    {
-        glm::float3 pos;
-        glm::float3 normal;
-        glm::float2 uv;
-    };
-
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
 

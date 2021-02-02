@@ -39,7 +39,7 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
             }
             for (size_t v = 0; v < fv; v++)
             {
-                Scene::Vertex vertex{};
+                Vertex vertex{};
                 auto idx = shapes[s].mesh.indices[index_offset + v];
                 vertex.pos = {
                     attrib.vertices[3 * idx.vertex_index + 0],

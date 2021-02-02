@@ -602,18 +602,8 @@ void Render::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, u
 
 void Render::createVertexBuffer()
 {
-    std::vector<nevk::Scene::Vertex>& sceneVertices = mScene.getVertices();
-    // convert to render's vertices
-    vertices.resize(sceneVertices.size());
-
-    for (int i = 0; i < sceneVertices.size(); ++i)
-    {
-        vertices[i].pos = sceneVertices[i].pos;
-        vertices[i].normal = sceneVertices[i].normal;
-        vertices[i].uv = sceneVertices[i].uv;
-    }
-
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+    const std::vector<nevk::Vertex>& sceneVertices = mScene.getVertices();
+    VkDeviceSize bufferSize = sizeof(nevk::Vertex) * sceneVertices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -621,7 +611,7 @@ void Render::createVertexBuffer()
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices.data(), (size_t)bufferSize);
+    memcpy(data, sceneVertices.data(), (size_t)bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
@@ -634,15 +624,8 @@ void Render::createVertexBuffer()
 
 void Render::createIndexBuffer()
 {
-    std::vector<uint32_t>& sceneIndices = mScene.getIndices();
-    indices.resize(sceneIndices.size());
-
-    for (int i = 0; i < sceneIndices.size(); ++i)
-    {
-        indices[i] = sceneIndices[i];
-    }
-
-    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+    const std::vector<uint32_t>& sceneIndices = mScene.getIndices();
+    VkDeviceSize bufferSize = sizeof(uint32_t) * sceneIndices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -650,7 +633,7 @@ void Render::createIndexBuffer()
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices.data(), (size_t)bufferSize);
+    memcpy(data, sceneIndices.data(), (size_t)bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
@@ -755,7 +738,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    mPass.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
 

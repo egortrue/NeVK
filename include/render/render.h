@@ -29,7 +29,6 @@
 #include <unordered_map>
 
 #include <shadermanager/ShaderManager.h>
-#include "vertex.h"
 #include "renderpass.h"
 #include <scene/scene.h>
 #include <modelloader/modelloader.h>
@@ -42,6 +41,7 @@ const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
 const std::string TEXTURE_PATH = "misc/white.jpg";
+//const std::string MODEL_PATH = "misc/cube.obj";
 const std::string MTL_PATH = "misc/San_Miguel";
 
 const std::vector<const char*> validationLayers = {
@@ -144,12 +144,13 @@ private:
 
     nevk::RenderPass mPass;
 
-    std::vector<nevk::Vertex> vertices;
-    std::vector<uint32_t> indices;
+    //std::vector<nevk::Vertex> vertices;
+    //std::vector<uint32_t> indices;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
+    uint32_t indicesCount = 0;
 
     VkDescriptorPool descriptorPool;
 
@@ -367,22 +368,10 @@ private:
 
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
-    std::vector<nevk::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
-    {
-        std::vector<nevk::Vertex> ret(params.size());
-        std::transform(params.begin(), params.end(), ret.begin(),
-                       [](auto& value) {
-                           return nevk::Vertex{ value.pos, value.normal, value.uv };
-                       });
-        return ret;
-    }
-
     void loadModel()
     {
         nevk::Model testmodel;
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
-        //vertices = convertVerticesToRender(testmodel.getVertices());
-        //indices = testmodel.getIndices();
 
         Camera& camera = mScene.getCamera();
         camera.type = Camera::CameraType::firstperson;
