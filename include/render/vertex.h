@@ -9,15 +9,12 @@ namespace nevk
 struct Vertex
 {
     glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec3 ka;
-    glm::vec3 kd;
-    glm::vec3 ks;
-    glm::vec2 texCoord;
+    glm::vec3 normal;
+    glm::vec2 uv;
 
     bool operator==(const Vertex& other) const
     {
-        return pos == other.pos && color == other.color && texCoord == other.texCoord;
+        return pos == other.pos && normal == other.normal && uv == other.uv;
     }
 };
 } // namespace nevk

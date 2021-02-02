@@ -44,10 +44,7 @@ public:
     struct Vertex
     {
         glm::float3 pos;
-        glm::float3 color;
-        glm::float3 ka;
-        glm::float3 kd;
-        glm::float3 ks;
+        glm::float3 normal;
         glm::float2 uv;
     };
 

@@ -609,8 +609,8 @@ void Render::createVertexBuffer()
     for (int i = 0; i < sceneVertices.size(); ++i)
     {
         vertices[i].pos = sceneVertices[i].pos;
-        vertices[i].texCoord = sceneVertices[i].uv;
-        vertices[i].color = sceneVertices[i].color;
+        vertices[i].normal = sceneVertices[i].normal;
+        vertices[i].uv = sceneVertices[i].uv;
     }
 
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();

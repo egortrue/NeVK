@@ -40,9 +40,9 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "misc/cube.obj";
+const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
 const std::string TEXTURE_PATH = "misc/white.jpg";
-const std::string MTL_PATH = "misc/";
+const std::string MTL_PATH = "misc/San_Miguel";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -372,7 +372,7 @@ private:
         std::vector<nevk::Vertex> ret(params.size());
         std::transform(params.begin(), params.end(), ret.begin(),
                        [](auto& value) {
-                           return nevk::Vertex{ value.pos, value.color, value.ka, value.kd, value.ks, value.uv };
+                           return nevk::Vertex{ value.pos, value.normal, value.uv };
                        });
         return ret;
     }
@@ -381,8 +381,8 @@ private:
     {
         nevk::Model testmodel;
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
-        vertices = convertVerticesToRender(testmodel.getVertices());
-        indices = testmodel.getIndices();
+        //vertices = convertVerticesToRender(testmodel.getVertices());
+        //indices = testmodel.getIndices();
 
         Camera& camera = mScene.getCamera();
         camera.type = Camera::CameraType::firstperson;

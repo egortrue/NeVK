@@ -1,23 +1,10 @@
 #include "simpleparams.h"
 
-static const float2 positions[3] = {
-    float2(0.0, -0.5),
-    float2(0.5, 0.5),
-    float2(-0.5, 0.5)
-};
-
-static const float3 colors[3] = {
-    float3(1.0, 0.0, 0.0),
-    float3(0.0, 1.0, 0.0),
-    float3(0.0, 0.0, 1.0)
-};
 struct AssembledVertex
 {
-    float3  position : POSITION;
-    float3  ka   : COLOR0;
-    float3  ks   : COLOR1;
-    float3  kd   : COLOR2;
-    float2  uv;
+    float3 position : POSITION;
+    float3 normal;
+    float2 uv;
 };
 
 ParameterBlock<Simple> gSimpleParams;
@@ -25,28 +12,24 @@ ParameterBlock<Simple> gSimpleParams;
 struct PS_INPUT
 {
     float4 pos : SV_POSITION;
-    float4 ka;
-    float4 ks;
-    float4 kd;
+    float3 normal;
     float2 uv;
 };
 
 [shader("vertex")]
 PS_INPUT vertexMain(AssembledVertex av)
 {
-    PS_INPUT out;
-    out.pos = mul(gSimpleParams.modelViewProj, float4(av.position, 1.0f));
-    out.ka = float4(av.ka.rgb, 1.0f);
-    out.ks = float4(av.ks.rgb, 1.0f);
-    out.kd = float4(av.kd.rgb, 1.0f);
-    out.uv = av.uv;
-
-    return out;
+    PS_INPUT ret;
+    ret.pos = mul(gSimpleParams.modelViewProj, float4(av.position, 1.0f));
+    ret.normal = av.normal;
+    ret.uv = av.uv;
+    return ret;
 }
 
-// Fragment Shader
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-    return inp.ka + (inp.ks + inp.kd) * gSimpleParams.tex.Sample(gSimpleParams.gSampler, inp.uv);
+    float dotNL = dot(inp.normal, normalize(float3(1, 1, 1)));
+    float3 color = saturate(dotNL * 0.5 + 0.5);
+    return float4(color, 1.0);
 }

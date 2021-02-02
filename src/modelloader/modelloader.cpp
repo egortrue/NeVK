@@ -9,11 +9,23 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str(), MTL_PATH.c_str(), false);
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str(), MTL_PATH.c_str(), true);
     if (!ret)
     {
         throw std::runtime_error(warn + err);
     }
+
+    printf("# of vertices  = %d\n", (int)(attrib.vertices.size()) / 3);
+    printf("# of normals   = %d\n", (int)(attrib.normals.size()) / 3);
+    printf("# of texcoords = %d\n", (int)(attrib.texcoords.size()) / 2);
+    printf("# of materials = %d\n", (int)materials.size());
+    printf("# of shapes    = %d\n", (int)shapes.size());
+
+    // for (size_t i = 0; i < materials.size(); i++)
+    // {
+    //     printf("material[%d].diffuse_texname = %s\n", int(i),
+    //            materials[i].diffuse_texname.c_str());
+    // }
 
     for (size_t s = 0; s < shapes.size(); s++)
     {
@@ -21,6 +33,10 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
         for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
         {
             int fv = shapes[s].mesh.num_face_vertices[f];
+            if (fv != 3)
+            {
+                printf("non 3\n");
+            }
             for (size_t v = 0; v < fv; v++)
             {
                 Scene::Vertex vertex{};
@@ -31,29 +47,20 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                     attrib.vertices[3 * idx.vertex_index + 2]
                 };
 
+                vertex.normal = {
+                    attrib.normals[3 * idx.normal_index + 0],
+                    attrib.normals[3 * idx.normal_index + 1],
+                    attrib.normals[3 * idx.normal_index + 2]
+                };
+
                 vertex.uv = {
                     attrib.texcoords[2 * idx.texcoord_index + 0],
                     1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]
                 };
 
-                vertex.color = { attrib.colors[3 * idx.vertex_index + 0],
-                                 attrib.colors[3 * idx.vertex_index + 1],
-                                 attrib.colors[3 * idx.vertex_index + 2] };
-
-                if (!MTL_PATH.empty())
-                {
-                    vertex.ka = { materials[shapes[s].mesh.material_ids[f]].ambient[0],
-                                  materials[shapes[s].mesh.material_ids[f]].ambient[1],
-                                  materials[shapes[s].mesh.material_ids[f]].ambient[2] };
-
-                    vertex.kd = { materials[shapes[s].mesh.material_ids[f]].diffuse[0],
-                                  materials[shapes[s].mesh.material_ids[f]].diffuse[1],
-                                  materials[shapes[s].mesh.material_ids[f]].diffuse[2] };
-
-                    vertex.ks = { materials[shapes[s].mesh.material_ids[f]].specular[0],
-                                  materials[shapes[s].mesh.material_ids[f]].specular[1],
-                                  materials[shapes[s].mesh.material_ids[f]].specular[2] };
-                }
+                // vertex.color = { attrib.colors[3 * idx.vertex_index + 0],
+                //                  attrib.colors[3 * idx.vertex_index + 1],
+                //                  attrib.colors[3 * idx.vertex_index + 2] };
 
                 _indices.push_back(static_cast<uint32_t>(_vertices.size()));
                 _vertices.push_back(vertex);
