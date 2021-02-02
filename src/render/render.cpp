@@ -626,6 +626,7 @@ void Render::createIndexBuffer()
 {
     const std::vector<uint32_t>& sceneIndices = mScene.getIndices();
     VkDeviceSize bufferSize = sizeof(uint32_t) * sceneIndices.size();
+    indicesCount = sceneIndices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
