@@ -160,7 +160,7 @@ void Render::recreateSwapChain()
     mPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(init_info, swapChainImageViews, width, height);
     Camera& camera = mScene.getCamera();
-    camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
+    camera.updateAspectRatio((float)swapChainExtent.width / (float)swapChainExtent.height);
 }
 
 void Render::createInstance()
