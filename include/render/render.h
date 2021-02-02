@@ -277,14 +277,14 @@ private:
         Camera& camera = scene.getCamera();
         const float dx = camera.mousePos.x - xpos;
         const float dy = camera.mousePos.y - ypos;
-        // Uncomment after Imgui merge
-        // ImGuiIO& io = ImGui::GetIO();
-        // bool handled = io.WantCaptureMouse;
-        // if (handled)
-        // {
-        //     mousePos = glm::vec2((float)x, (float)y);
-        //     return;
-        // }
+
+        ImGuiIO& io = ImGui::GetIO();
+        bool handled = io.WantCaptureMouse;
+        if (handled)
+        {
+            camera.mousePos = glm::vec2((float)xpos, (float)ypos);
+            return;
+        }
 
         if (camera.mouseButtons.left)
         {
