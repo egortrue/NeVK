@@ -20,14 +20,14 @@
 namespace nevk
 {
 
-class Model
+class ModelLoader
 {
 private:
     std::vector<Vertex> _vertices;
     std::vector<uint32_t> _indices;
 
 public:
-    Model() = default;
+    ModelLoader() = default;
 
     bool loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene);
 

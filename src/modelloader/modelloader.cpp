@@ -2,7 +2,7 @@
 
 namespace nevk
 {
-bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
+bool ModelLoader::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -27,16 +27,15 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     //            materials[i].diffuse_texname.c_str());
     // }
 
+    _vertices.reserve(attrib.vertices.size() / 3);
+    _indices.reserve(attrib.vertices.size());
+
     for (size_t s = 0; s < shapes.size(); s++)
     {
         size_t index_offset = 0;
         for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
         {
-            int fv = shapes[s].mesh.num_face_vertices[f];
-            if (fv != 3)
-            {
-                printf("non 3\n");
-            }
+            const int fv = shapes[s].mesh.num_face_vertices[f];
             for (size_t v = 0; v < fv; v++)
             {
                 Vertex vertex{};

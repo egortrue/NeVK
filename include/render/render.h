@@ -39,16 +39,18 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
+//const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
+//const std::string MTL_PATH = "misc/San_Miguel";
 const std::string TEXTURE_PATH = "misc/white.jpg";
-//const std::string MODEL_PATH = "misc/cube.obj";
-const std::string MTL_PATH = "misc/San_Miguel";
+const std::string MODEL_PATH = "misc/cube.obj";
+const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
 const std::vector<const char*> deviceExtensions = {
+    VK_KHR_maintenance1,
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
@@ -144,8 +146,6 @@ private:
 
     nevk::RenderPass mPass;
 
-    //std::vector<nevk::Vertex> vertices;
-    //std::vector<uint32_t> indices;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
     VkBuffer indexBuffer;
@@ -204,7 +204,6 @@ private:
         mScene.updateCameraParams(width, height);
     }
 
-
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
@@ -215,11 +214,11 @@ private:
         switch (key)
         {
         case GLFW_KEY_W: {
-            camera.keys.down = keyState;
+            camera.keys.forward = keyState;
             break;
         }
         case GLFW_KEY_S: {
-            camera.keys.up = keyState;
+            camera.keys.back = keyState;
             break;
         }
         case GLFW_KEY_A: {
@@ -231,11 +230,12 @@ private:
             break;
         }
         case GLFW_KEY_Q: {
-            camera.keys.forward = keyState;
+            camera.keys.up = keyState;
             break;
         }
         case GLFW_KEY_E: {
-            camera.keys.back = keyState;
+            camera.keys.down = keyState;
+            break;
         }
         default:
             break;
@@ -289,15 +289,11 @@ private:
 
         if (camera.mouseButtons.left)
         {
-            camera.rotate(glm::float3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
+            // reserve
         }
         if (camera.mouseButtons.right)
         {
-            camera.translate(glm::float3(-0.0f, 0.0f, dy * .005f * camera.movementSpeed));
-        }
-        if (camera.mouseButtons.middle)
-        {
-            camera.translate(glm::float3(-dx * 0.01f, -dy * 0.01f, 0.0f));
+            camera.onMouseMove(-dx, dy);
         }
         camera.mousePos = glm::float2((float)xpos, (float)ypos);
     }
@@ -307,14 +303,12 @@ private:
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
         nevk::Scene& mScene = app->getScene();
         Camera& mCamera = mScene.getCamera();
-
-        mCamera.translate(glm::vec3(0.0f, 0.0f,
-                                    -yoffset * mCamera.movementSpeed));
+        // TODO:
     }
 
     nevk::Scene& getScene()
     {
-        return this->mScene;
+        return mScene;
     }
 
     void initVulkan();
@@ -370,17 +364,16 @@ private:
 
     void loadModel()
     {
-        nevk::Model testmodel;
-        testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
+        nevk::ModelLoader modelLoader;
+        modelLoader.loadModel(MODEL_PATH, MTL_PATH, mScene);
 
         Camera& camera = mScene.getCamera();
-        camera.type = Camera::CameraType::firstperson;
 
-        camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
-        camera.rotationSpeed = 0.25f;
-        camera.movementSpeed = 1.0f;
+        camera.updateAspectRatio((float)swapChainExtent.width / (float)swapChainExtent.height);
+        camera.setFov(45.0f);
+        camera.rotationSpeed = 0.0025f;
+        camera.movementSpeed = 10.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
-        camera.setRotation({ 0.0f, 0.0f, 0.0f });
     }
 
     void createVertexBuffer();

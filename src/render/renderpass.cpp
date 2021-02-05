@@ -88,9 +88,9 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
 
     VkViewport viewport{};
     viewport.x = 0.0f;
-    viewport.y = 0.0f;
+    viewport.y = (float)height;
     viewport.width = (float)width;
-    viewport.height = (float)height;
+    viewport.height = -(float)height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
@@ -393,6 +393,15 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
 
+    VkViewport viewport{};
+    viewport.x = 0;
+    viewport.y = height;
+    viewport.width = (float)width;
+    viewport.height = -(float)height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+
     VkBuffer vertexBuffers[] = { vertexBuffer };
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
@@ -428,7 +437,7 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     auto proj = perspective;
     proj[1][1] *= -1;
 
-    ubo.modelViewProj = proj * view * model;
+    ubo.modelViewProj = proj * view;
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));

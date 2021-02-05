@@ -9,21 +9,46 @@
 class Camera
 {
 private:
-    float fov;
-    float znear, zfar;
+    glm::float3 mPosition = { 1.0f, 0.0f, 0.0f };
+    glm::quat mOrientation = { 1.0f, 0.0f, 0.0f, 0.0f };
 
-    void updateViewMatrix();
+    glm::float3 getFront()
+    {
+        return glm::conjugate(mOrientation) * glm::float3(0, 0, -1);
+    }
+
+    glm::float3 getUp()
+    {
+        return glm::conjugate(mOrientation) * glm::float3(0, 1, 0);
+    }
+
+    glm::float3 getRight()
+    {
+        return glm::conjugate(mOrientation) * glm::float3(1, 0, 0);
+    }
+
+    float fov = 45.0f;
+    float aspect = 1.0f;
+    float znear = 0.01f, zfar = 10000.0f;
 
 public:
-    enum CameraType
+    glm::float4x4 getView()
     {
-        lookat,
-        firstperson
-    };
-    CameraType type = CameraType::firstperson;
+        return glm::mat4_cast(mOrientation) * glm::translate(glm::float4x4(1.0f), -mPosition);
+    }
 
-    glm::float3 rotation;
-    glm::float3 position;
+    glm::float4x4 getPerspective()
+    {
+        return glm::perspective(fov, aspect, znear, zfar);
+    }
+
+    void onMouseMove(const float dx, const float dy)
+    {
+        glm::quat pitch = glm::angleAxis(dy * rotationSpeed, glm::float3(1, 0, 0));
+        glm::quat yaw = glm::angleAxis(dx * rotationSpeed, glm::float3(0, 1, 0));
+
+        mOrientation = glm::normalize(pitch * mOrientation * yaw);
+    }
 
     float rotationSpeed;
     float movementSpeed;
@@ -37,13 +62,7 @@ public:
         bool middle = false;
     } mouseButtons;
 
-    glm::float2 mousePos;
-
-    struct
-    {
-        glm::float4x4 perspective;
-        glm::float4x4 view;
-    } matrices;
+    glm::float2 mousePos = { 0.0f, 0.0f };
 
     struct
     {
@@ -58,13 +77,11 @@ public:
     bool moving();
     float getNearClip();
     float getFarClip();
-    void setPerspective(float fov, float aspect, float znear, float zfar);
     void updateAspectRatio(float aspect);
+    void setFov(float fov)
+    {
+        this->fov = fov;
+    }
     void setPosition(glm::float3 position);
-    void setRotation(glm::float3 rotation);
-    void rotate(glm::float3 delta);
-    void setTranslation(glm::float3 translation);
-    void translate(glm::float3 delta);
     void update(float deltaTime);
-    bool updatePad(glm::float2 axisLeft, glm::float2 axisRight, float deltaTime);
 };

@@ -80,7 +80,7 @@ public:
     }
     void updateCameraParams(int width, int height)
     {
-        mCamera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
+        mCamera.updateAspectRatio((float)width / (float)height);
     }
     /// <summary>
     /// Create Mesh geometry
