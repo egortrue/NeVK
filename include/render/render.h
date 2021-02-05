@@ -152,6 +152,11 @@ private:
     VkDeviceMemory indexBufferMemory;
     uint32_t indicesCount = 0;
 
+    VkBuffer materialBuffer;
+    uint32_t materialCount = 0;
+
+    VkDeviceMemory materialBufferMemory;
+
     VkDescriptorPool descriptorPool;
 
     struct FrameData
@@ -379,6 +384,8 @@ private:
     void createVertexBuffer();
 
     void createIndexBuffer();
+
+    void createMaterialBuffer();
 
     void createDescriptorPool();
 

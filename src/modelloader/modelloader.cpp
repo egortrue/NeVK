@@ -21,11 +21,19 @@ bool ModelLoader::loadModel(const std::string& MODEL_PATH, const std::string& MT
     printf("# of materials = %d\n", (int)materials.size());
     printf("# of shapes    = %d\n", (int)shapes.size());
 
-    // for (size_t i = 0; i < materials.size(); i++)
-    // {
-    //     printf("material[%d].diffuse_texname = %s\n", int(i),
-    //            materials[i].diffuse_texname.c_str());
-    // }
+    std::set<std::string> uniqMat;
+
+    for (size_t i = 0; i < materials.size(); i++)
+    {
+        uniqMat.insert(materials[i].name);
+        glm::float4 diffuse = {
+            materials[i].diffuse[0],
+            materials[i].diffuse[1],
+            materials[i].diffuse[2],
+            1.0f
+        };
+        uint32_t matId = mScene.createMaterial(diffuse);
+    }
 
     _vertices.reserve(attrib.vertices.size() / 3);
     _indices.reserve(attrib.vertices.size());
@@ -36,6 +44,7 @@ bool ModelLoader::loadModel(const std::string& MODEL_PATH, const std::string& MT
         for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
         {
             const int fv = shapes[s].mesh.num_face_vertices[f];
+            const int matIdx = shapes[s].mesh.material_ids[f];
             for (size_t v = 0; v < fv; v++)
             {
                 Vertex vertex{};
@@ -57,9 +66,7 @@ bool ModelLoader::loadModel(const std::string& MODEL_PATH, const std::string& MT
                     1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]
                 };
 
-                // vertex.color = { attrib.colors[3 * idx.vertex_index + 0],
-                //                  attrib.colors[3 * idx.vertex_index + 1],
-                //                  attrib.colors[3 * idx.vertex_index + 2] };
+                vertex.materialId = matIdx;
 
                 _indices.push_back(static_cast<uint32_t>(_vertices.size()));
                 _vertices.push_back(vertex);

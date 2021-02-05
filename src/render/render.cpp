@@ -35,6 +35,11 @@ void Render::initVulkan()
     createTextureImageView();
     createTextureSampler();
 
+    loadModel();
+    createVertexBuffer();
+    createIndexBuffer();
+    createMaterialBuffer();
+
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
 
     //    ImGui_ImplVulkan_InitInfo init_info{};
@@ -54,14 +59,11 @@ void Render::initVulkan()
     mPass.setDepthBufferFormat(findDepthFormat());
     mPass.setTextureImageView(textureImageView);
     mPass.setTextureSampler(textureSampler);
+    mPass.setMaterialBuffer(materialBuffer, materialCount);
 
     mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
     mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
-
-    loadModel();
-    createVertexBuffer();
-    createIndexBuffer();
 }
 
 void Render::mainLoop()
@@ -640,6 +642,29 @@ void Render::createIndexBuffer()
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
     copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+void Render::createMaterialBuffer()
+{
+    const std::vector<nevk::Material>& materials = mScene.getMaterials();
+    VkDeviceSize bufferSize = sizeof(nevk::Material) * materials.size();
+    materialCount = materials.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, materials.data(), (size_t)bufferSize);
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, materialBuffer, materialBufferMemory);
+
+    copyBuffer(stagingBuffer, materialBuffer, bufferSize);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);

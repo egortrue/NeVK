@@ -15,10 +15,11 @@ struct Vertex
     glm::float3 pos;
     glm::float3 normal;
     glm::float2 uv;
+    glm::int32_t materialId;
 
     bool operator==(const Vertex& other) const
     {
-        return pos == other.pos && normal == other.normal && uv == other.uv;
+        return pos == other.pos && normal == other.normal && uv == other.uv && materialId == other.materialId;
     }
 };
 
@@ -73,6 +74,10 @@ public:
     std::vector<uint32_t>& getIndices()
     {
         return mIndices;
+    }
+    std::vector<Material>& getMaterials()
+    {
+        return mMaterials;
     }
     Camera& getCamera()
     {

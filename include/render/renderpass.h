@@ -31,6 +31,8 @@ private:
 
     VkImageView mTextureImageView;
     VkSampler mTextureSampler;
+    VkBuffer mMaterialBuffer;
+    uint32_t mMaterialCount = 0;
 
     void createRenderPass();
 
@@ -51,7 +53,7 @@ private:
     uint32_t mWidth, mHeight;
 
     VkVertexInputBindingDescription getBindingDescription();
-    std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
+    std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions();
 
     VkShaderModule createShaderModule(const char* code, const uint32_t codeSize);
 
@@ -72,6 +74,12 @@ public:
 
     void setTextureImageView(VkImageView textureImageView);
     void setTextureSampler(VkSampler textureSampler);
+
+    void setMaterialBuffer(VkBuffer buff, uint32_t count)
+    {
+        mMaterialBuffer = buff;
+        mMaterialCount = count;
+    }
 
     void init(VkDevice& device, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
     {
