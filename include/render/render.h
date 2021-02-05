@@ -39,11 +39,11 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-//const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
-//const std::string MTL_PATH = "misc/San_Miguel";
+const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
+const std::string MTL_PATH = "misc/San_Miguel";
 const std::string TEXTURE_PATH = "misc/white.jpg";
-const std::string MODEL_PATH = "misc/cube.obj";
-const std::string MTL_PATH = "misc/";
+//const std::string MODEL_PATH = "misc/cube.obj";
+//const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -230,11 +230,11 @@ private:
             break;
         }
         case GLFW_KEY_Q: {
-            camera.keys.up = keyState;
+            camera.keys.down = keyState;
             break;
         }
         case GLFW_KEY_E: {
-            camera.keys.down = keyState;
+            camera.keys.up = keyState;
             break;
         }
         default:
@@ -293,7 +293,7 @@ private:
         }
         if (camera.mouseButtons.right)
         {
-            camera.onMouseMove(-dx, dy);
+            camera.onMouseMove(-dx, -dy);
         }
         camera.mousePos = glm::float2((float)xpos, (float)ypos);
     }

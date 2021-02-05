@@ -435,7 +435,6 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     UniformBufferObject ubo{};
     auto model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     auto proj = perspective;
-    proj[1][1] *= -1;
 
     ubo.modelViewProj = proj * view;
     void* data;
