@@ -31,7 +31,9 @@ struct Mesh
 
 struct Material
 {
-    glm::float4 color;
+    glm::float4 ambient;
+    glm::float4 diffuse;
+    glm::float4 specular;
 };
 
 struct Instance
