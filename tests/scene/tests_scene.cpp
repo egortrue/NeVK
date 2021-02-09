@@ -20,7 +20,7 @@ TEST_CASE("test checkBeginFrameDirty")
 TEST_CASE("test createMesh")
 {
     nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<nevk::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
     CHECK(meshId != -1);
@@ -29,7 +29,7 @@ TEST_CASE("test createMesh")
 TEST_CASE("test createMesh complex")
 {
     nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<nevk::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshIdFst = scene.createMesh(vb, ib);
     uint32_t meshIdSnd = scene.createMesh(vb, ib);
@@ -42,7 +42,7 @@ TEST_CASE("test createMesh complex")
 TEST_CASE("test createInstance")
 {
     nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<nevk::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
     uint32_t matId = scene.createMaterial(glm::float4(1.0));
@@ -55,7 +55,7 @@ TEST_CASE("test createInstance")
 TEST_CASE("test createInstance complex")
 {
     nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<nevk::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
     uint32_t matId = scene.createMaterial(glm::float4(1.0));
@@ -92,7 +92,7 @@ TEST_CASE("test createMaterial complex")
 TEST_CASE("test checkMesh")
 {
     nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<nevk::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
     CHECK(meshId == 0);
@@ -102,7 +102,7 @@ TEST_CASE("test checkMesh")
 TEST_CASE("test checkInstance")
 {
     nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<nevk::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
     uint32_t matId = scene.createMaterial(glm::float4(1.0));

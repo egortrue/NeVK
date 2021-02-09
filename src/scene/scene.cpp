@@ -23,12 +23,12 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     mesh->mIndex = mIndices.size(); // Index of 1st index in index buffer
     mesh->mCount = ib.size(); // amount of indices in mesh
 
-    const uint32_t ibOffset = mIndices.size();  // adjust indices for global index buffer
+    const uint32_t ibOffset = mIndices.size(); // adjust indices for global index buffer
     for (int i = 0; i < ib.size(); ++i)
     {
         mIndices.push_back(ibOffset + ib[i]);
     }
-    mVertices.insert(mVertices.end(), vb.begin(), vb.end());  // copy vertices
+    mVertices.insert(mVertices.end(), vb.begin(), vb.end()); // copy vertices
     return meshId;
 }
 
@@ -38,7 +38,7 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     uint32_t instId = -1;
     if (mDelInstances.empty())
     {
-        instId = mInstances.size();  // add instance to storage
+        instId = mInstances.size(); // add instance to storage
         mInstances.push_back({});
         inst = &mInstances.back();
     }
@@ -71,7 +71,7 @@ uint32_t Scene::createMaterial(const glm::float4& color)
         mDelMaterial.pop(); // del taken index from stack
         material = &mMaterials[materialId];
     }
-    material->color = color;
+    material->diffuse = color;
     return materialId;
 }
 
