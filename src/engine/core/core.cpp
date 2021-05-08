@@ -7,12 +7,16 @@ void Core::init() {
 
 void Core::configure() {
   choosePhysicalDevice();
-  createLogicalDevice();
+  createDevice();
+  createSwapchain();
 }
 
 void Core::destroy() {
-  destroyInstance();
+  destroySwapchain();
+  destroySurface();
+  destroyDevice();
   destroyDebugMessenger();
+  destroyInstance();
 }
 
 //=============================================================================
@@ -42,13 +46,18 @@ void Core::setExtensions(const std::vector<const char*>& requiredExtensions) {
   this->instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 }
 
+void Core::setSurface(VkSurfaceKHR surface, uint32_t width, uint32_t height) {
+  this->surface = surface;
+  this->surfaceWidth = width;
+  this->surfaceHeight = height;
+}
+
 //=============================================================================
 
 void Core::createInstance() {
   // Validation request
-  if (enableValidationLayers && !checkValidationLayerSupport()) {
+  if (enableValidationLayers && !checkValidationLayerSupport())
     throw std::runtime_error("ERROR: Validation layers requested, but not available!");
-  }
 
   // Application description
   VkApplicationInfo appInfo{};
@@ -96,14 +105,19 @@ void Core::createDebugMessenger() {
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
   populateDebugMessengerCreateInfo(createInfo);
 
-  if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+  if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to set up debug messenger!");
-  }
 }
 
 void Core::destroyDebugMessenger() {
   if (!enableValidationLayers) return;
   DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+}
+
+//=============================================================================
+
+void Core::destroySurface() {
+  vkDestroySurfaceKHR(instance, surface, nullptr);
 }
 
 //=============================================================================
@@ -130,9 +144,8 @@ void Core::choosePhysicalDevice() {
     }
   }
 
-  if (this->physicalDevice == VK_NULL_HANDLE) {
+  if (this->physicalDevice == VK_NULL_HANDLE)
     throw std::runtime_error("ERROR: Failed to find a suitable GPU!");
-  }
 }
 
 bool Core::isDeviceSuitable(VkPhysicalDevice device) {
@@ -140,16 +153,16 @@ bool Core::isDeviceSuitable(VkPhysicalDevice device) {
 
   bool extensionsSupported = checkDeviceExtensionSupport(device);
 
-  bool swapChainAdequate = false;
+  bool swapchainAdequate = false;
   if (extensionsSupported) {
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
-    swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+    SwapchainSupportDetails swapchainSupport = querySwapchainSupport(device);
+    swapchainAdequate = !swapchainSupport.formats.empty() && !swapchainSupport.presentModes.empty();
   }
 
   VkPhysicalDeviceFeatures supportedFeatures;
   vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-  return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+  return indices.isComplete() && extensionsSupported && swapchainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
 bool Core::checkDeviceExtensionSupport(VkPhysicalDevice device) {
@@ -200,7 +213,7 @@ Core::QueueFamilyIndices Core::findQueueFamilies(VkPhysicalDevice device) {
 
 //=============================================================================
 
-void Core::createLogicalDevice() {
+void Core::createDevice() {
   QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -259,18 +272,75 @@ void Core::createLogicalDevice() {
     createInfo.enabledLayerCount = 0;
   }
 
-  if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
+  if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create logical device!");
-  }
 
   vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
   vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 
+void Core::destroyDevice() {
+  vkDestroyDevice(device, nullptr);
+}
+
 //=============================================================================
 
-Core::SwapChainSupportDetails Core::querySwapChainSupport(VkPhysicalDevice device) {
-  SwapChainSupportDetails details;
+void Core::createSwapchain() {
+  SwapchainSupportDetails swapchainSupport = querySwapchainSupport(physicalDevice);
+
+  VkSurfaceFormatKHR surfaceFormat = chooseSwapchainSurfaceFormat(swapchainSupport.formats);
+  VkPresentModeKHR presentMode = chooseSwapchainPresentMode(swapchainSupport.presentModes);
+  VkExtent2D extent = chooseSwapchainExtent(swapchainSupport.capabilities);
+
+  uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
+  if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount) {
+    imageCount = swapchainSupport.capabilities.maxImageCount;
+  }
+
+  VkSwapchainCreateInfoKHR createInfo{};
+  createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+  createInfo.surface = surface;
+
+  createInfo.minImageCount = imageCount;
+  createInfo.imageFormat = surfaceFormat.format;
+  createInfo.imageColorSpace = surfaceFormat.colorSpace;
+  createInfo.imageExtent = extent;
+  createInfo.imageArrayLayers = 1;
+  createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+  QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+  uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+
+  if (indices.graphicsFamily != indices.presentFamily) {
+    createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+    createInfo.queueFamilyIndexCount = 2;
+    createInfo.pQueueFamilyIndices = queueFamilyIndices;
+  } else {
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  }
+
+  createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
+  createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  createInfo.presentMode = presentMode;
+  createInfo.clipped = VK_TRUE;
+
+  if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain) != VK_SUCCESS)
+    throw std::runtime_error("ERROR: Failed to create swap chain!");
+
+  vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
+  swapchainImages.resize(imageCount);
+  vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data());
+
+  swapchainImageFormat = surfaceFormat.format;
+  swapchainExtent = extent;
+}
+
+void Core::destroySwapchain() {
+  vkDestroySwapchainKHR(device, swapchain, nullptr);
+}
+
+Core::SwapchainSupportDetails Core::querySwapchainSupport(VkPhysicalDevice device) {
+  SwapchainSupportDetails details;
 
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
@@ -285,4 +355,31 @@ Core::SwapChainSupportDetails Core::querySwapChainSupport(VkPhysicalDevice devic
   vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
 
   return details;
+}
+
+VkSurfaceFormatKHR Core::chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+  for (const auto& availableFormat : availableFormats)
+    if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+      return availableFormat;
+
+  return availableFormats[0];
+}
+
+VkPresentModeKHR Core::chooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+  for (const auto& availablePresentMode : availablePresentModes)
+    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+      return availablePresentMode;
+
+  return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D Core::chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+  if (capabilities.currentExtent.width != UINT32_MAX) {
+    return capabilities.currentExtent;
+  } else {
+    VkExtent2D actualExtent;
+    actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, surfaceWidth));
+    actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, surfaceHeight));
+    return actualExtent;
+  }
 }

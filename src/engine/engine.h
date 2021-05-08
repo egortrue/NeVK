@@ -7,8 +7,9 @@
 
 class Engine {
  private:
-  GLFWwindow* window;
   Core* core;
+
+  GLFWwindow* window;
 
  public:
   Engine(GLFWwindow* window);
@@ -17,4 +18,5 @@ class Engine {
  private:
   void initCore();
   void destroyCore();
+
 };

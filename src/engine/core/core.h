@@ -15,28 +15,40 @@ class Core {
  public:
   VkInstance instance;
   VkDevice device;
-  VkSurfaceKHR surface;
+  VkPhysicalDevice physicalDevice;
+
+  std::vector<VkImage> swapchainImages;
+  VkFormat swapchainImageFormat;
+  VkExtent2D swapchainExtent;
 
  private:
+  VkSurfaceKHR surface;
+  uint32_t surfaceWidth;
+  uint32_t surfaceHeight;
+
+  VkSwapchainKHR swapchain;
+
+  // Extensions
   std::vector<const char*> instanceExtensions;
   const std::vector<const char*> deviceExtensions = {
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
   };
 
-  VkPhysicalDevice physicalDevice;
+  // Device options
   VkPhysicalDeviceProperties physicalDeviceProperties;
   VkPhysicalDeviceFeatures physicalDeviceFeatures;
-
   VkQueue graphicsQueue;
   VkQueue presentQueue;
 
+  // Debug
   VkDebugUtilsMessengerEXT debugMessenger;
 
  public:
   void init();
   void configure();
   void destroy();
-  void setExtensions(const std::vector<const char*>& requiredExtensions);
+  void setExtensions(const std::vector<const char*>&);
+  void setSurface(VkSurfaceKHR, uint32_t width, uint32_t height);
 
  private:
   void createInstance();
@@ -45,12 +57,15 @@ class Core {
   void createDebugMessenger();
   void destroyDebugMessenger();
 
+  void destroySurface();
+
   //===============================
   // Device configuration:
 
+  void createDevice();
+  void destroyDevice();
+
   void choosePhysicalDevice();
-  void createLogicalDevice();
-  void destroyLogicalDevice();
   bool isDeviceSuitable(VkPhysicalDevice);
   bool checkDeviceExtensionSupport(VkPhysicalDevice);
   struct QueueFamilyIndices {
@@ -67,10 +82,16 @@ class Core {
   //===============================
   // SwapChain configuration:
 
-  struct SwapChainSupportDetails {
+  void createSwapchain();
+  void destroySwapchain();
+
+  VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+  VkPresentModeKHR chooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+  VkExtent2D chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+  struct SwapchainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
   };
-  SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+  SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice);
 };

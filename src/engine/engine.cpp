@@ -22,10 +22,13 @@ void Engine::initCore() {
   core->init();
 
   // GLFW Rendering Surface
-  if (glfwCreateWindowSurface(core->instance, window, nullptr, &core->surface) != VK_SUCCESS) {
+  VkSurfaceKHR surface;
+  if (glfwCreateWindowSurface(core->instance, window, nullptr, &surface) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create window surface!");
-  }
+  int width, height;
+  glfwGetFramebufferSize(window, &width, &height);
 
+  core->setSurface(surface, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
   core->configure();
 }
 
