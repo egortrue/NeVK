@@ -18,5 +18,4 @@ class Engine {
  private:
   void initCore();
   void destroyCore();
-
 };

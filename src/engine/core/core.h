@@ -13,34 +13,40 @@
 
 class Core {
  public:
+  // Хранилище состояний Vulkan (Экземпляр)
   VkInstance instance;
-  VkDevice device;
-  VkPhysicalDevice physicalDevice;
 
+  // Обработчики устройства
+  VkDevice device;                  // Логическое утсройство (Интерфейс)
+  VkPhysicalDevice physicalDevice;  // Физическое устройство (GPU)
+  VkPhysicalDeviceProperties physicalDeviceProperties;
+  VkPhysicalDeviceFeatures physicalDeviceFeatures;
+
+  // Очереди задач
+  VkQueue graphicsQueue;  // Очередь работы с графическими командами
+  VkQueue presentQueue;   // Очередь работы с поверхностями вывода
+
+  // Конечные изображения для показа (список показа)
+  // Требует расширения VK_KHR_swapchain
   std::vector<VkImage> swapchainImages;
-  VkFormat swapchainImageFormat;
+  VkSwapchainKHR swapchain;
   VkExtent2D swapchainExtent;
+  VkFormat swapchainFormat;
 
- private:
+  // Поверхность для отрисовки
+  // Требует расширения VK_KHR_surface
   VkSurfaceKHR surface;
   uint32_t surfaceWidth;
   uint32_t surfaceHeight;
 
-  VkSwapchainKHR swapchain;
-
-  // Extensions
+ private:
+  // Расширения
   std::vector<const char*> instanceExtensions;
   const std::vector<const char*> deviceExtensions = {
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
   };
 
-  // Device options
-  VkPhysicalDeviceProperties physicalDeviceProperties;
-  VkPhysicalDeviceFeatures physicalDeviceFeatures;
-  VkQueue graphicsQueue;
-  VkQueue presentQueue;
-
-  // Debug
+  // Устройство для вывода дебаг-информации
   VkDebugUtilsMessengerEXT debugMessenger;
 
  public:
@@ -60,7 +66,7 @@ class Core {
   void destroySurface();
 
   //===============================
-  // Device configuration:
+  // Конфигурация устройства
 
   void createDevice();
   void destroyDevice();
@@ -69,7 +75,7 @@ class Core {
   bool isDeviceSuitable(VkPhysicalDevice);
   bool checkDeviceExtensionSupport(VkPhysicalDevice);
   struct QueueFamilyIndices {
-    // Make variables without value at all using std::optional
+    // Объявление переманных без значения, используя std::optional
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
 
@@ -80,7 +86,7 @@ class Core {
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice);
 
   //===============================
-  // SwapChain configuration:
+  // Конфигурация списка показа
 
   void createSwapchain();
   void destroySwapchain();

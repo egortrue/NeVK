@@ -22,28 +22,27 @@ void Core::destroy() {
 //=============================================================================
 
 void Core::setExtensions(const std::vector<const char*>& requiredExtensions) {
-  // Get available extensions
+  // Получим доступные расширения экземпляра
   uint32_t count = 0;
   vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
   std::vector<VkExtensionProperties> instanceExtensionsAvailable(count);
   vkEnumerateInstanceExtensionProperties(nullptr, &count, instanceExtensionsAvailable.data());
 
-  // Output available extensions
-  std::cout << instanceExtensionsAvailable.size() << " available extensions:" << std::endl;
+  // Вывод доступных расширений экземпляра
+  std::cout << instanceExtensionsAvailable.size() << " available instance extensions:" << std::endl;
   for (const auto& extension : instanceExtensionsAvailable)
     std::cout << '\t' << extension.extensionName << std::endl;
 
-  // Output required extensions
-  std::cout << requiredExtensions.size() << " required extnesions:" << std::endl;
-  for (const auto& extension : requiredExtensions)
-    std::cout << '\t' << extension << std::endl;
-
-  // TODO: Here should be the intersection of sets "availableExtensions" and "requiredExtensions"
+  // Инициализация расширений экземпляра
   this->instanceExtensions = requiredExtensions;
-
+  this->instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
   if (enableValidationLayers)
     this->instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  this->instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+
+  // Вывод подключаемых расширений экземпляра
+  std::cout << instanceExtensions.size() << " enabled instance extnesions:" << std::endl;
+  for (const auto& extension : instanceExtensions)
+    std::cout << '\t' << extension << std::endl;
 }
 
 void Core::setSurface(VkSurfaceKHR surface, uint32_t width, uint32_t height) {
@@ -55,11 +54,10 @@ void Core::setSurface(VkSurfaceKHR surface, uint32_t width, uint32_t height) {
 //=============================================================================
 
 void Core::createInstance() {
-  // Validation request
   if (enableValidationLayers && !checkValidationLayerSupport())
     throw std::runtime_error("ERROR: Validation layers requested, but not available!");
 
-  // Application description
+  // Описание приложения
   VkApplicationInfo appInfo{};
   appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
   appInfo.apiVersion = VK_API_VERSION_1_2;
@@ -67,27 +65,30 @@ void Core::createInstance() {
   appInfo.pEngineName = "NeVK";
   appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 
-  appInfo.pApplicationName = "NeVK Exanmple";
+  appInfo.pApplicationName = "NeVK Example";
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 
-  // Set instance info
+  // Описание экземпляра
   VkInstanceCreateInfo instanceInfo{};
   instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   instanceInfo.pApplicationInfo = &appInfo;
+
+  // Подключение расширений экземпляра
   instanceInfo.enabledExtensionCount = instanceExtensions.size();
   instanceInfo.ppEnabledExtensionNames = instanceExtensions.data();
 
-  // Debug messages of instance creation
+  // Режим отладки при работе с экземпляром
   if (enableValidationLayers) {
     instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
     instanceInfo.ppEnabledLayerNames = validationLayers.data();
 
+    // Вывод дебаг-информации о создании экземпляра
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
     populateDebugMessengerCreateInfo(debugCreateInfo);
     instanceInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
   }
 
-  // Create instance
+  // Создание экземпляра
   if (vkCreateInstance(&instanceInfo, nullptr, &instance) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create instance!");
 }
@@ -104,7 +105,6 @@ void Core::createDebugMessenger() {
 
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
   populateDebugMessengerCreateInfo(createInfo);
-
   if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to set up debug messenger!");
 }
@@ -123,17 +123,15 @@ void Core::destroySurface() {
 //=============================================================================
 
 void Core::choosePhysicalDevice() {
-  // Find the count of GPUs
+  // Поиск устройств с поддержкой Vulkan
   uint32_t deviceCount = 0;
   vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
   if (deviceCount == 0)
     throw std::runtime_error("ERROR: Failed to find GPUs with Vulkan support!");
-
-  // Find all the GPUs
   std::vector<VkPhysicalDevice> devices(deviceCount);
   vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-  // Choose the GPU
+  // Выбор подходящего устройства
   for (const auto& currentDevice : devices) {
     if (isDeviceSuitable(currentDevice)) {
       this->physicalDevice = currentDevice;
@@ -149,30 +147,41 @@ void Core::choosePhysicalDevice() {
 }
 
 bool Core::isDeviceSuitable(VkPhysicalDevice device) {
+  // Поддержка определенных очередей задач
   QueueFamilyIndices indices = findQueueFamilies(device);
+  if (!indices.isComplete()) return false;
 
+  // Поддержка расширений
   bool extensionsSupported = checkDeviceExtensionSupport(device);
+  if (!extensionsSupported) return false;
 
-  bool swapchainAdequate = false;
-  if (extensionsSupported) {
-    SwapchainSupportDetails swapchainSupport = querySwapchainSupport(device);
-    swapchainAdequate = !swapchainSupport.formats.empty() && !swapchainSupport.presentModes.empty();
-  }
+  // Поддержка работы с поверхностями
+  SwapchainSupportDetails swapchainSupport = querySwapchainSupport(device);
+  bool swapchainSupported = !swapchainSupport.formats.empty() && !swapchainSupport.presentModes.empty();
+  if (!swapchainSupported) return false;
 
+  // Поддержка анизатропной фильтрации
   VkPhysicalDeviceFeatures supportedFeatures;
   vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+  if (!supportedFeatures.samplerAnisotropy) return false;
 
-  return indices.isComplete() && extensionsSupported && swapchainAdequate && supportedFeatures.samplerAnisotropy;
+  return true;
 }
 
 bool Core::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+  // Получим доступные расширения устройства
   uint32_t count;
   vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);
   std::vector<VkExtensionProperties> deviceExtensionsAvailable(count);
   vkEnumerateDeviceExtensionProperties(device, nullptr, &count, deviceExtensionsAvailable.data());
 
-  std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+  // Вывод доступных расширений устройства
+  std::cout << deviceExtensionsAvailable.size() << " available device extensions:" << std::endl;
+  for (const auto& extension : deviceExtensionsAvailable)
+    std::cout << '\t' << extension.extensionName << std::endl;
 
+  // Проверка поддержки требуемых расширений устройства
+  std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
   for (const auto& extension : deviceExtensionsAvailable) {
     requiredExtensions.erase(extension.extensionName);
   }
@@ -183,28 +192,28 @@ bool Core::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 Core::QueueFamilyIndices Core::findQueueFamilies(VkPhysicalDevice device) {
   QueueFamilyIndices indices;
 
+  // Получение семейств очередей
   uint32_t queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
   std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
   vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
-  // Find queue families index with certain capability
+  // Поиск семейств очередей с поддержкой определенных функций
   uint32_t graphicsFamilyIndex = 0;
   for (const auto& queueFamily : queueFamilies) {
-    // Check for VK_QUEUE_GRAPHICS_BIT support
-    if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+    // Поиск семейства с поддержкой графических команд
+    if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
       indices.graphicsFamily = graphicsFamilyIndex;
-    }
 
-    // Check for SURFACE_PRESENT_BIT support
+    // Поиск семейства с поддержкой работы с поверхностями вывода
     VkBool32 presentSupport = false;
     vkGetPhysicalDeviceSurfaceSupportKHR(device, graphicsFamilyIndex, surface, &presentSupport);
-    if (presentSupport) {
+    if (presentSupport)
       indices.presentFamily = graphicsFamilyIndex;
-    }
 
-    if (indices.isComplete()) break;
+    if (indices.isComplete())
+      break;
+
     graphicsFamilyIndex++;
   }
 
@@ -216,9 +225,9 @@ Core::QueueFamilyIndices Core::findQueueFamilies(VkPhysicalDevice device) {
 void Core::createDevice() {
   QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
+  // Описание очередей задач
   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
   std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-
   float queuePriority = 1.0f;
   for (uint32_t queueFamily : uniqueQueueFamilies) {
     VkDeviceQueueCreateInfo queueCreateInfo{};
@@ -238,12 +247,9 @@ void Core::createDevice() {
     deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     deviceFeatures.pNext = &indexingFeatures;
     vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
-
-    if (indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray) {
-      // all set to use unbound arrays of textures
-    }
   }
 
+  // Описание особенностей логического устройства
   VkPhysicalDeviceFeatures deviceFeatures{};
   deviceFeatures.samplerAnisotropy = VK_TRUE;
   deviceFeatures.shaderSampledImageArrayDynamicIndexing = VK_TRUE;
@@ -254,27 +260,29 @@ void Core::createDevice() {
   indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
   indexingFeatures.runtimeDescriptorArray = VK_TRUE;
 
+  // Описание логического устройства
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   createInfo.pNext = &indexingFeatures;
   createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
   createInfo.pQueueCreateInfos = queueCreateInfos.data();
-
   createInfo.pEnabledFeatures = &deviceFeatures;
 
+  // Подключение расширений логического устройства
   createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
+  // Режим отладки при работе с логическим устройством
   if (enableValidationLayers) {
     createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
     createInfo.ppEnabledLayerNames = validationLayers.data();
-  } else {
-    createInfo.enabledLayerCount = 0;
   }
 
+  // Создание логического устройства
   if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create logical device!");
 
+  // Получение очередей задач от логического устройства
   vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
   vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
@@ -297,10 +305,12 @@ void Core::createSwapchain() {
     imageCount = swapchainSupport.capabilities.maxImageCount;
   }
 
+  // Описание списка показа
   VkSwapchainCreateInfoKHR createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
   createInfo.surface = surface;
 
+  // Описание изображений в списке показа
   createInfo.minImageCount = imageCount;
   createInfo.imageFormat = surfaceFormat.format;
   createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -308,9 +318,14 @@ void Core::createSwapchain() {
   createInfo.imageArrayLayers = 1;
   createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
+  createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
+  createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  createInfo.presentMode = presentMode;
+  createInfo.clipped = VK_TRUE;
+
+  // Настройка очередей
   QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
   uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-
   if (indices.graphicsFamily != indices.presentFamily) {
     createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
     createInfo.queueFamilyIndexCount = 2;
@@ -319,19 +334,17 @@ void Core::createSwapchain() {
     createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
   }
 
-  createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
-  createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-  createInfo.presentMode = presentMode;
-  createInfo.clipped = VK_TRUE;
-
+  // Создание списка показа
   if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create swap chain!");
 
+  // Получение списка изображений, черещ которые будет проводится показ
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
   swapchainImages.resize(imageCount);
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data());
 
-  swapchainImageFormat = surfaceFormat.format;
+  // Созраним формат и размер изображений
+  swapchainFormat = surfaceFormat.format;
   swapchainExtent = extent;
 }
 
@@ -341,7 +354,6 @@ void Core::destroySwapchain() {
 
 Core::SwapchainSupportDetails Core::querySwapchainSupport(VkPhysicalDevice device) {
   SwapchainSupportDetails details;
-
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
   uint32_t formatCount;

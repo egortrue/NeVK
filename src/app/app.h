@@ -26,20 +26,22 @@ class Application {
 
   void run() {
     while (!glfwWindowShouldClose(this->window)) {
-      glfwPollEvents();  // Check keyboard and mouse events
+      glfwPollEvents();  // Проверка нажатий клавиатуры/мыши
     }
   }
 
  private:
   void initWindow() {
-    // GLFW: Initialize and configure
+    // Инициализация GLFW
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    // Monitor
-    GLFWmonitor* monitor = nullptr;  // use glfwGetPrimaryMonitor() for fullscreen
+    // Монитор
+    // nullptr - оконный режим
+    // glfwGetPrimaryMonitor() - полноэкранный режим
+    GLFWmonitor* monitor = nullptr;
 
-    // Window
+    // Создание окна
     this->window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", monitor, nullptr);
     if (this->window == nullptr) {
       glfwTerminate();

@@ -2,24 +2,24 @@ cmake_minimum_required(VERSION 3.20)
 project(nevk)
 
 #================================================================
-# Common variables and options
+# Переменные общего назначения
 
-# Set required C++ standard
+# Требуемый стандарт C++
 set(CMAKE_CXX_STANDARD 20)
 
-# Set output directory for executable files
+# Конечная директория для исполняемых файлов
 set(OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
 
 #================================================================
-# Requirements
+# Требования
 
-find_package(Vulkan REQUIRED) # There should be Vulkan SDK on local computer
+find_package(Vulkan REQUIRED) # Vulkan SDK на локальном ПК
 
 #================================================================
-# Internal libraries
+# Внутренние библиотеки
 
 # CORE
 set(LIBRARY_CORE_NAME core)
@@ -45,7 +45,7 @@ target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_ENGINE_PATH})
 target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_CORE_NAME})
 
 #================================================================
-# External libraries
+# Внешние библиотеки
 
 # GLFW
 target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC external/glfw/include)
@@ -59,9 +59,8 @@ elseif (APPLE)
     target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC glfw)
 endif ()
 
-
 #================================================================
-# Application
+# Приложение
 
 add_executable(${PROJECT_NAME} src/app/app.cpp src/app/app.h)
 target_include_directories(${PROJECT_NAME} PUBLIC src/)

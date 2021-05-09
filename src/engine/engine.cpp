@@ -11,7 +11,7 @@ Engine::~Engine() {
 void Engine::initCore() {
   this->core = new Core();
 
-  // GLFW Extensions
+  // GLFW расширения экземпляра
   std::vector<const char*> requiredExtensions;
   uint32_t extensionsCount = 0;
   const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
@@ -21,7 +21,7 @@ void Engine::initCore() {
   core->setExtensions(requiredExtensions);
   core->init();
 
-  // GLFW Rendering Surface
+  // GLFW поверхность вывода изображений
   VkSurfaceKHR surface;
   if (glfwCreateWindowSurface(core->instance, window, nullptr, &surface) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create window surface!");
