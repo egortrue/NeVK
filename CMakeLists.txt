@@ -21,20 +21,28 @@ find_package(Vulkan REQUIRED) # There should be Vulkan SDK on local computer
 #================================================================
 # Internal libraries
 
+# CORE
+set(LIBRARY_CORE_NAME core)
+set(LIBRARY_CORE_PATH src/engine/core)
+set(LIBRARY_CORE_SOURCES
+    ${LIBRARY_CORE_PATH}/validation.h
+    ${LIBRARY_CORE_PATH}/core.h
+    ${LIBRARY_CORE_PATH}/core.cpp
+)
+add_library(${LIBRARY_CORE_NAME} OBJECT ${LIBRARY_CORE_SOURCES})
+target_include_directories(${LIBRARY_CORE_NAME} PUBLIC ${LIBRARY_CORE_PATH})
+target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC Vulkan::Vulkan)
+
 # ENGINE
 set(LIBRARY_ENGINE_NAME engine)
 set(LIBRARY_ENGINE_PATH src/engine)
 set(LIBRARY_ENGINE_SOURCES
-    ${LIBRARY_ENGINE_PATH}/core/validation.h
-    ${LIBRARY_ENGINE_PATH}/core/core.h
-    ${LIBRARY_ENGINE_PATH}/core/core.cpp
-
     ${LIBRARY_ENGINE_PATH}/engine.h
     ${LIBRARY_ENGINE_PATH}/engine.cpp
 )
 add_library(${LIBRARY_ENGINE_NAME} OBJECT ${LIBRARY_ENGINE_SOURCES})
 target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_ENGINE_PATH})
-target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_CORE_NAME})
 
 #================================================================
 # External libraries
@@ -59,4 +67,5 @@ add_executable(${PROJECT_NAME} src/app/app.cpp src/app/app.h)
 target_include_directories(${PROJECT_NAME} PUBLIC src/)
 target_link_libraries(${PROJECT_NAME} PUBLIC 
     ${LIBRARY_ENGINE_NAME}
+    ${LIBRARY_CORE_NAME}
 )
