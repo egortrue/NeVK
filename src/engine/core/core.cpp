@@ -29,9 +29,9 @@ void Core::setExtensions(const std::vector<const char*>& requiredExtensions) {
   vkEnumerateInstanceExtensionProperties(nullptr, &count, instanceExtensionsAvailable.data());
 
   // Вывод доступных расширений экземпляра
-  std::cout << instanceExtensionsAvailable.size() << " available instance extensions:" << std::endl;
-  for (const auto& extension : instanceExtensionsAvailable)
-    std::cout << '\t' << extension.extensionName << std::endl;
+  // std::cout << instanceExtensionsAvailable.size() << " available instance extensions:" << std::endl;
+  // for (const auto& extension : instanceExtensionsAvailable)
+  //   std::cout << '\t' << extension.extensionName << std::endl;
 
   // Инициализация расширений экземпляра
   this->instanceExtensions = requiredExtensions;
@@ -40,7 +40,7 @@ void Core::setExtensions(const std::vector<const char*>& requiredExtensions) {
     this->instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
   // Вывод подключаемых расширений экземпляра
-  std::cout << instanceExtensions.size() << " enabled instance extnesions:" << std::endl;
+  std::cout << instanceExtensions.size() << " enabled instance extensions:" << std::endl;
   for (const auto& extension : instanceExtensions)
     std::cout << '\t' << extension << std::endl;
 }
@@ -94,8 +94,8 @@ void Core::createInstance() {
 }
 
 void Core::destroyInstance() {
-  if (this->instance != VK_NULL_HANDLE)
-    vkDestroyInstance(this->instance, nullptr);
+  if (instance != VK_NULL_HANDLE)
+    vkDestroyInstance(instance, nullptr);
 }
 
 //=============================================================================
@@ -110,14 +110,16 @@ void Core::createDebugMessenger() {
 }
 
 void Core::destroyDebugMessenger() {
-  if (!enableValidationLayers) return;
-  DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+  if (enableValidationLayers && debugMessenger != VK_NULL_HANDLE)
+    DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 }
 
 //=============================================================================
 
+// Поверхность вывода создается сторонней оконной библиотекой
 void Core::destroySurface() {
-  vkDestroySurfaceKHR(instance, surface, nullptr);
+  if (surface != VK_NULL_HANDLE)
+    vkDestroySurfaceKHR(instance, surface, nullptr);
 }
 
 //=============================================================================
@@ -176,9 +178,9 @@ bool Core::checkDeviceExtensionSupport(VkPhysicalDevice device) {
   vkEnumerateDeviceExtensionProperties(device, nullptr, &count, deviceExtensionsAvailable.data());
 
   // Вывод доступных расширений устройства
-  std::cout << deviceExtensionsAvailable.size() << " available device extensions:" << std::endl;
-  for (const auto& extension : deviceExtensionsAvailable)
-    std::cout << '\t' << extension.extensionName << std::endl;
+  // std::cout << deviceExtensionsAvailable.size() << " available device extensions:" << std::endl;
+  // for (const auto& extension : deviceExtensionsAvailable)
+  //   std::cout << '\t' << extension.extensionName << std::endl;
 
   // Проверка поддержки требуемых расширений устройства
   std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
@@ -186,7 +188,15 @@ bool Core::checkDeviceExtensionSupport(VkPhysicalDevice device) {
     requiredExtensions.erase(extension.extensionName);
   }
 
-  return requiredExtensions.empty();
+  if (requiredExtensions.empty()) {
+    // Вывод подключаемых расширений устройства
+    std::cout << deviceExtensions.size() << " enabled device extensions:" << std::endl;
+    for (const auto& extension : deviceExtensions)
+      std::cout << '\t' << extension << std::endl;
+    return true;
+  }
+
+  return false;
 }
 
 Core::QueueFamilyIndices Core::findQueueFamilies(VkPhysicalDevice device) {
@@ -199,22 +209,22 @@ Core::QueueFamilyIndices Core::findQueueFamilies(VkPhysicalDevice device) {
   vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
   // Поиск семейств очередей с поддержкой определенных функций
-  uint32_t graphicsFamilyIndex = 0;
+  uint32_t familyIndex = 0;
   for (const auto& queueFamily : queueFamilies) {
     // Поиск семейства с поддержкой графических команд
     if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-      indices.graphicsFamily = graphicsFamilyIndex;
+      indices.graphicsFamily = familyIndex;
 
     // Поиск семейства с поддержкой работы с поверхностями вывода
     VkBool32 presentSupport = false;
-    vkGetPhysicalDeviceSurfaceSupportKHR(device, graphicsFamilyIndex, surface, &presentSupport);
+    vkGetPhysicalDeviceSurfaceSupportKHR(device, familyIndex, surface, &presentSupport);
     if (presentSupport)
-      indices.presentFamily = graphicsFamilyIndex;
+      indices.presentFamily = familyIndex;
 
     if (indices.isComplete())
       break;
 
-    graphicsFamilyIndex++;
+    familyIndex++;
   }
 
   return indices;
@@ -288,7 +298,8 @@ void Core::createDevice() {
 }
 
 void Core::destroyDevice() {
-  vkDestroyDevice(device, nullptr);
+  if (device != VK_NULL_HANDLE)
+    vkDestroyDevice(device, nullptr);
 }
 
 //=============================================================================
@@ -309,6 +320,10 @@ void Core::createSwapchain() {
   VkSwapchainCreateInfoKHR createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
   createInfo.surface = surface;
+  createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
+  createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  createInfo.presentMode = presentMode;
+  createInfo.clipped = VK_TRUE;
 
   // Описание изображений в списке показа
   createInfo.minImageCount = imageCount;
@@ -317,11 +332,6 @@ void Core::createSwapchain() {
   createInfo.imageExtent = extent;
   createInfo.imageArrayLayers = 1;
   createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-  createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
-  createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-  createInfo.presentMode = presentMode;
-  createInfo.clipped = VK_TRUE;
 
   // Настройка очередей
   QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
@@ -338,18 +348,19 @@ void Core::createSwapchain() {
   if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create swap chain!");
 
-  // Получение списка изображений, черещ которые будет проводится показ
+  // Получение списка изображений, через которые будет проводится показ
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
   swapchainImages.resize(imageCount);
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data());
 
-  // Созраним формат и размер изображений
+  // Сохраним формат и размер изображений
   swapchainFormat = surfaceFormat.format;
   swapchainExtent = extent;
 }
 
 void Core::destroySwapchain() {
-  vkDestroySwapchainKHR(device, swapchain, nullptr);
+  if (swapchain != VK_NULL_HANDLE)
+    vkDestroySwapchainKHR(device, swapchain, nullptr);
 }
 
 Core::SwapchainSupportDetails Core::querySwapchainSupport(VkPhysicalDevice device) {

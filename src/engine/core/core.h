@@ -26,18 +26,18 @@ class Core {
   VkQueue graphicsQueue;  // Очередь работы с графическими командами
   VkQueue presentQueue;   // Очередь работы с поверхностями вывода
 
+  // Поверхность для отрисовки
+  // Требует расширения VK_KHR_surface
+  VkSurfaceKHR surface;
+  uint32_t surfaceWidth;
+  uint32_t surfaceHeight;
+
   // Конечные изображения для показа (список показа)
   // Требует расширения VK_KHR_swapchain
   std::vector<VkImage> swapchainImages;
   VkSwapchainKHR swapchain;
   VkExtent2D swapchainExtent;
   VkFormat swapchainFormat;
-
-  // Поверхность для отрисовки
-  // Требует расширения VK_KHR_surface
-  VkSurfaceKHR surface;
-  uint32_t surfaceWidth;
-  uint32_t surfaceHeight;
 
  private:
   // Расширения
@@ -53,6 +53,7 @@ class Core {
   void init();
   void configure();
   void destroy();
+
   void setExtensions(const std::vector<const char*>&);
   void setSurface(VkSurfaceKHR, uint32_t width, uint32_t height);
 
@@ -63,6 +64,7 @@ class Core {
   void createDebugMessenger();
   void destroyDebugMessenger();
 
+  // Поверхность создаётся вне ядра (сторонним API)
   void destroySurface();
 
   //===============================
@@ -74,6 +76,10 @@ class Core {
   void choosePhysicalDevice();
   bool isDeviceSuitable(VkPhysicalDevice);
   bool checkDeviceExtensionSupport(VkPhysicalDevice);
+
+  //===============================
+  // Получение семейств очередей задач
+
   struct QueueFamilyIndices {
     // Объявление переманных без значения, используя std::optional
     std::optional<uint32_t> graphicsFamily;

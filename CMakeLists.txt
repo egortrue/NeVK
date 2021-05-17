@@ -16,7 +16,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
 #================================================================
 # Требования
 
-find_package(Vulkan REQUIRED) # Vulkan SDK на локальном ПК
+find_package(Vulkan REQUIRED) # Необходим Vulkan SDK на локальном ПК
 
 #================================================================
 # Внутренние библиотеки

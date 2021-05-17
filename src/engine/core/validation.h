@@ -6,7 +6,11 @@
 static const bool enableValidationLayers = true;
 
 static const std::vector<const char*> validationLayers = {
+    // Логирование создания и уничтожения практически всех ресурсов
     "VK_LAYER_KHRONOS_validation",
+
+    // Логирование вызовов функций API с параметрами и возвращаемыми значениями
+    "VK_LAYER_LUNARG_api_dump",
 };
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
@@ -41,23 +45,19 @@ static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT&
 static bool checkValidationLayerSupport() {
   uint32_t layerCount;
   vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
   std::vector<VkLayerProperties> availableLayers(layerCount);
   vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
   for (const char* layerName : validationLayers) {
     bool layerFound = false;
 
-    for (const auto& layerProperties : availableLayers) {
+    for (const auto& layerProperties : availableLayers)
       if (strcmp(layerName, layerProperties.layerName) == 0) {
         layerFound = true;
         break;
       }
-    }
 
-    if (!layerFound) {
-      return false;
-    }
+    if (!layerFound) return false;
   }
 
   return true;
