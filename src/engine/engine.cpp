@@ -18,7 +18,7 @@ void Engine::initCore() {
   for (uint32_t i = 0; i < extensionsCount; i++)
     requiredExtensions.push_back(glfwExtensions[i]);
 
-  core->setExtensions(requiredExtensions);
+  core->setInstanceExtensions(requiredExtensions);
   core->init();
 
   // GLFW поверхность вывода изображений

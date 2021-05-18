@@ -13,63 +13,38 @@
 
 class Core {
  public:
-  // Хранилище состояний Vulkan (Экземпляр)
-  VkInstance instance;
-
-  // Обработчики устройства
-  VkDevice device;                  // Логическое утсройство (Интерфейс)
-  VkPhysicalDevice physicalDevice;  // Физическое устройство (GPU)
-  VkPhysicalDeviceProperties physicalDeviceProperties;
-  VkPhysicalDeviceFeatures physicalDeviceFeatures;
-
-  // Очереди задач
-  VkQueue graphicsQueue;  // Очередь работы с графическими командами
-  VkQueue presentQueue;   // Очередь работы с поверхностями вывода
-
-  // Поверхность для отрисовки
-  // Требует расширения VK_KHR_surface
-  VkSurfaceKHR surface;
-  uint32_t surfaceWidth;
-  uint32_t surfaceHeight;
-
-  // Конечные изображения для показа (список показа)
-  // Требует расширения VK_KHR_swapchain
-  std::vector<VkImage> swapchainImages;
-  VkSwapchainKHR swapchain;
-  VkExtent2D swapchainExtent;
-  VkFormat swapchainFormat;
-
- private:
-  // Расширения
-  std::vector<const char*> instanceExtensions;
-  const std::vector<const char*> deviceExtensions = {
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-  };
-
-  // Устройство для вывода дебаг-информации
-  VkDebugUtilsMessengerEXT debugMessenger;
-
- public:
   void init();
   void configure();
   void destroy();
 
-  void setExtensions(const std::vector<const char*>&);
-  void setSurface(VkSurfaceKHR, uint32_t width, uint32_t height);
+  //=========================================================================
+  // Хранилище состояний Vulkan (Экземпляр)
+
+ public:
+  VkInstance instance;
+  std::vector<const char*> instanceExtensions;
+  void setInstanceExtensions(const std::vector<const char*>&);
 
  private:
   void createInstance();
   void destroyInstance();
 
-  void createDebugMessenger();
-  void destroyDebugMessenger();
+  //=========================================================================
+  // Устройства
 
-  // Поверхность создаётся вне ядра (сторонним API)
-  void destroySurface();
+ public:
+  // Физическое устройство (GPU)
+  VkPhysicalDevice physicalDevice;
+  VkPhysicalDeviceProperties physicalDeviceProperties;
+  VkPhysicalDeviceFeatures physicalDeviceFeatures;
 
-  //===============================
-  // Конфигурация устройства
+  // Логическое устройство (Интерфейс)
+  VkDevice device;
+  std::vector<const char*> deviceExtensions = {
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+  };
 
+ private:
   void createDevice();
   void destroyDevice();
 
@@ -77,23 +52,48 @@ class Core {
   bool isDeviceSuitable(VkPhysicalDevice);
   bool checkDeviceExtensionSupport(VkPhysicalDevice);
 
-  //===============================
-  // Получение семейств очередей задач
+  //=========================================================================
+  // Очереди задач
 
+ public:
+  VkQueue graphicsQueue;  // Очередь работы с графическими командами
+  VkQueue presentQueue;   // Очередь работы с поверхностями вывода
   struct QueueFamilyIndices {
-    // Объявление переманных без значения, используя std::optional
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
 
     bool isComplete() {
       return graphicsFamily.has_value() && presentFamily.has_value();
     }
-  };
+  } queueFamily;
+
+ private:
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice);
 
-  //===============================
-  // Конфигурация списка показа
+  //=========================================================================
+  // Поверхность для отрисовки. Cоздаётся вне ядра (сторонним API)
+  // Требует расширения VK_KHR_surface
 
+ public:
+  VkSurfaceKHR surface;
+  uint32_t surfaceWidth;
+  uint32_t surfaceHeight;
+  void setSurface(VkSurfaceKHR, uint32_t width, uint32_t height);
+
+ private:
+  void destroySurface();
+
+  //=========================================================================
+  // Конечные изображения для показа (список показа)
+  // Требует расширения VK_KHR_swapchain
+
+ public:
+  VkSwapchainKHR swapchain;
+  std::vector<VkImage> swapchainImages;
+  VkExtent2D swapchainExtent;
+  VkFormat swapchainFormat;
+
+ private:
   void createSwapchain();
   void destroySwapchain();
 
@@ -106,4 +106,13 @@ class Core {
     std::vector<VkPresentModeKHR> presentModes;
   };
   SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice);
+
+  //=========================================================================
+  // Устройство для вывода отладочной информации
+ public:
+  VkDebugUtilsMessengerEXT debugMessenger;
+
+ private:
+  void createDebugMessenger();
+  void destroyDebugMessenger();
 };

@@ -21,7 +21,7 @@ void Core::destroy() {
 
 //=============================================================================
 
-void Core::setExtensions(const std::vector<const char*>& requiredExtensions) {
+void Core::setInstanceExtensions(const std::vector<const char*>& requiredExtensions) {
   // Получим доступные расширения экземпляра
   uint32_t count = 0;
   vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
@@ -233,16 +233,16 @@ Core::QueueFamilyIndices Core::findQueueFamilies(VkPhysicalDevice device) {
 //=============================================================================
 
 void Core::createDevice() {
-  QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+  queueFamily = findQueueFamilies(physicalDevice);
 
   // Описание очередей задач
   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-  std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+  std::set<uint32_t> uniqueQueueFamilies = {queueFamily.graphicsFamily.value(), queueFamily.presentFamily.value()};
   float queuePriority = 1.0f;
-  for (uint32_t queueFamily : uniqueQueueFamilies) {
+  for (uint32_t queueFamilyIndex : uniqueQueueFamilies) {
     VkDeviceQueueCreateInfo queueCreateInfo{};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = queueFamily;
+    queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &queuePriority;
     queueCreateInfos.push_back(queueCreateInfo);
@@ -293,8 +293,8 @@ void Core::createDevice() {
     throw std::runtime_error("ERROR: Failed to create logical device!");
 
   // Получение очередей задач от логического устройства
-  vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-  vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+  vkGetDeviceQueue(device, queueFamily.graphicsFamily.value(), 0, &graphicsQueue);
+  vkGetDeviceQueue(device, queueFamily.presentFamily.value(), 0, &presentQueue);
 }
 
 void Core::destroyDevice() {
@@ -334,9 +334,8 @@ void Core::createSwapchain() {
   createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
   // Настройка очередей
-  QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-  uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-  if (indices.graphicsFamily != indices.presentFamily) {
+  uint32_t queueFamilyIndices[] = {queueFamily.graphicsFamily.value(), queueFamily.presentFamily.value()};
+  if (queueFamily.graphicsFamily != queueFamily.presentFamily) {
     createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
     createInfo.queueFamilyIndexCount = 2;
     createInfo.pQueueFamilyIndices = queueFamilyIndices;
