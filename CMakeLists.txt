@@ -33,6 +33,17 @@ add_library(${LIBRARY_CORE_NAME} OBJECT ${LIBRARY_CORE_SOURCES})
 target_include_directories(${LIBRARY_CORE_NAME} PUBLIC ${LIBRARY_CORE_PATH})
 target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC Vulkan::Vulkan)
 
+# RESOURCES
+set(LIBRARY_RESOURCES_NAME resources)
+set(LIBRARY_RESOURCES_PATH src/engine/resources)
+set(LIBRARY_RESOURCES_SOURCES
+    ${LIBRARY_RESOURCES_PATH}/resources.h
+    ${LIBRARY_RESOURCES_PATH}/resources.cpp
+)
+add_library(${LIBRARY_RESOURCES_NAME} OBJECT ${LIBRARY_RESOURCES_SOURCES})
+target_include_directories(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_RESOURCES_PATH})
+target_link_libraries(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_CORE_NAME})
+
 # ENGINE
 set(LIBRARY_ENGINE_NAME engine)
 set(LIBRARY_ENGINE_PATH src/engine)
@@ -42,7 +53,10 @@ set(LIBRARY_ENGINE_SOURCES
 )
 add_library(${LIBRARY_ENGINE_NAME} OBJECT ${LIBRARY_ENGINE_SOURCES})
 target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_ENGINE_PATH})
-target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_CORE_NAME})
+target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC 
+    ${LIBRARY_CORE_NAME}
+    ${LIBRARY_RESOURCES_NAME}
+)
 
 #================================================================
 # Внешние библиотеки
