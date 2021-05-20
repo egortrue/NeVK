@@ -55,22 +55,16 @@ add_library(${LIBRARY_ENGINE_NAME} OBJECT ${LIBRARY_ENGINE_SOURCES})
 target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_ENGINE_PATH})
 target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC 
     ${LIBRARY_CORE_NAME}
-    ${LIBRARY_RESOURCES_NAME}
 )
 
 #================================================================
 # Внешние библиотеки
 
 # GLFW
-target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC external/glfw/include)
+target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC external/glfw/include) 
 if (MSVC)
-    target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
-elseif (MINGW)
-    target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/libglfw3.a")
-elseif (APPLE)
-    find_package(glfw3 3.3 REQUIRED)
-    include_directories(${glfw3_INCLUDE_DIRS})
-    target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC glfw)
+    target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC 
+        "${CMAKE_SOURCE_DIR}/external/glfw/glfw3.lib")
 endif ()
 
 #================================================================
