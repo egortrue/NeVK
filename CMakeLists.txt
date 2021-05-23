@@ -44,6 +44,18 @@ add_library(${LIBRARY_RESOURCES_NAME} OBJECT ${LIBRARY_RESOURCES_SOURCES})
 target_include_directories(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_RESOURCES_PATH})
 target_link_libraries(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_CORE_NAME})
 
+# RENDER
+set(LIBRARY_RENDER_NAME render)
+set(LIBRARY_RENDER_PATH src/engine/render)
+set(LIBRARY_RENDER_SOURCES
+    ${LIBRARY_RENDER_PATH}/commands.h
+    ${LIBRARY_RENDER_PATH}/commands.cpp
+)
+add_library(${LIBRARY_RENDER_NAME} OBJECT ${LIBRARY_RENDER_SOURCES})
+target_include_directories(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_RENDER_PATH})
+target_link_libraries(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_CORE_NAME})
+
+
 # ENGINE
 set(LIBRARY_ENGINE_NAME engine)
 set(LIBRARY_ENGINE_PATH src/engine)
@@ -55,6 +67,8 @@ add_library(${LIBRARY_ENGINE_NAME} OBJECT ${LIBRARY_ENGINE_SOURCES})
 target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_ENGINE_PATH})
 target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC 
     ${LIBRARY_CORE_NAME}
+    ${LIBRARY_RESOURCES_NAME}
+    ${LIBRARY_RENDER_NAME}
 )
 
 #================================================================
@@ -76,4 +90,5 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${LIBRARY_ENGINE_NAME}
     ${LIBRARY_CORE_NAME}
     ${LIBRARY_RESOURCES_NAME}
+    ${LIBRARY_RENDER_NAME}
 )

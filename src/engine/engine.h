@@ -7,6 +7,7 @@
 // Внутренние зависимости
 #include "core/core.h"
 #include "resources/resources.h"
+#include "render/commands.h"
 
 // Стандартные зависимости
 #include <array>
@@ -40,6 +41,10 @@ class Engine {
   Resources* resources;
   void initResources();
   void destroyResources();
+
+  Commands* commands;
+  void initCommands();
+  void destroyCommands();
 
   std::vector<Frame> frames;
   void initFrames();

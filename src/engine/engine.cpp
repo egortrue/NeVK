@@ -4,11 +4,13 @@ Engine::Engine(GLFWwindow* window) {
   initWindow(window);
   initCore();
   initResources();
+  initCommands();
   initFrames();
 }
 
 Engine::~Engine() {
   destroyFrames();
+  destroyCommands();
   destroyResources();
   destroyCore();
   destroyWindow();
@@ -61,17 +63,26 @@ void Engine::destroyResources() {
     delete resources;
 }
 
+void Engine::initCommands() {
+  commands = new Commands(core);
+}
+
+void Engine::destroyCommands() {
+  if (commands != nullptr)
+    delete commands;
+}
+
 void Engine::initFrames() {
   frames.resize(core->swapchainImages.size());
   frames.shrink_to_fit();
   for (auto& frame : frames) {
-    frame.cmdPool = resources->createCommandBufferPool();
-    frame.cmdBuffer = resources->createCommandBuffer(frame.cmdPool);
+    frame.cmdPool = commands->createCommandBufferPool();
+    frame.cmdBuffer = commands->createCommandBuffer(frame.cmdPool);
   }
 }
 
 void Engine::destroyFrames() {
   for (auto& frame : frames) {
-    resources->destroyCommandBufferPool(frame.cmdPool);
+    commands->destroyCommandBufferPool(frame.cmdPool);
   }
 }

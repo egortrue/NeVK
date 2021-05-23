@@ -1,107 +1,14 @@
 #include "resources.h"
 
 Resources::Resources(Core* core) {
-  this->core = core;
   vkGetPhysicalDeviceMemoryProperties(core->physicalDevice, &memoryProperties);
-  this->singleTimeCommandBufferPool = createCommandBufferPool(true);
+  this->core = core;
   this->descriptorPool = createDescriptorPool();
 };
 
 Resources::~Resources() {
   destroyDescriptorPool(this->descriptorPool);
-  destroyCommandBufferPool(this->singleTimeCommandBufferPool);
 }
-
-//=========================================================================
-
-VkCommandPool Resources::createCommandBufferPool(bool shortLived) {
-  VkCommandPoolCreateInfo cmdPoolInfo{};
-  cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-
-  // Все буферы из этого пула будут помещаться в очереди конкретного семейства
-  cmdPoolInfo.queueFamilyIndex = core->queueFamily.graphicsFamily.value();
-
-  if (shortLived) {
-    // Каждый буфер из этого пула будет не долговечным - может быть сброшен только весь пул
-    cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-  } else {
-    // Каждый буфер из этого пула будет долговечным - может быть сброшен или перезаписан
-    cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-  }
-
-  VkCommandPool cmdPool;
-  if (vkCreateCommandPool(core->device, &cmdPoolInfo, nullptr, &cmdPool) != VK_SUCCESS)
-    throw std::runtime_error("ERROR: Failed to create graphics command pool!");
-
-  return cmdPool;
-}
-
-void Resources::resetCommandBufferPool(VkCommandPool cmdPool) {
-  vkResetCommandPool(core->device, cmdPool, 0);
-}
-
-void Resources::freeCommandBufferPool(VkCommandPool cmdPool) {
-  vkResetCommandPool(core->device, cmdPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
-}
-
-void Resources::destroyCommandBufferPool(VkCommandPool cmdPool) {
-  vkDestroyCommandPool(core->device, cmdPool, nullptr);
-}
-
-VkCommandBuffer Resources::createCommandBuffer(VkCommandPool cmdPool) {
-  VkCommandBufferAllocateInfo cmdBufferInfo{};
-  cmdBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  cmdBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  cmdBufferInfo.commandPool = cmdPool;
-  cmdBufferInfo.commandBufferCount = 1;
-
-  VkCommandBuffer cmdBuffer;
-  if (vkAllocateCommandBuffers(core->device, &cmdBufferInfo, &cmdBuffer) != VK_SUCCESS)
-    throw std::runtime_error("ERROR: Failed to allocate command buffer!");
-
-  return cmdBuffer;
-}
-
-void Resources::resetCommandBuffer(VkCommandBuffer cmdBuffer) {
-  vkResetCommandBuffer(cmdBuffer, 0);
-}
-
-void Resources::freeCommandBuffer(VkCommandBuffer cmdBuffer) {
-  vkResetCommandBuffer(cmdBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-}
-
-void Resources::destroyCommandBuffer(VkCommandPool cmdPool, VkCommandBuffer cmdBuffer) {
-  vkFreeCommandBuffers(core->device, cmdPool, 1, &cmdBuffer);
-}
-
-VkCommandBuffer Resources::beginSingleTimeCommands() {
-  VkCommandBuffer cmdBuffer = createCommandBuffer(singleTimeCommandBufferPool);
-
-  VkCommandBufferBeginInfo cmdBufferBeginInfo{};
-  cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-  // Буфер будет записан, один раз выполнен и затем уничтожен
-  cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-  vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo);
-  return cmdBuffer;
-}
-
-void Resources::endSingleTimeCommands(VkCommandBuffer cmdBuffer) {
-  vkEndCommandBuffer(cmdBuffer);
-
-  VkSubmitInfo cmdBufferSubmitInfo{};
-  cmdBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  cmdBufferSubmitInfo.commandBufferCount = 1;
-  cmdBufferSubmitInfo.pCommandBuffers = &cmdBuffer;
-
-  vkQueueSubmit(core->graphicsQueue, 1, &cmdBufferSubmitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(core->graphicsQueue);
-
-  destroyCommandBuffer(singleTimeCommandBufferPool, cmdBuffer);
-}
-
-//=========================================================================
 
 uint32_t Resources::findMemoryTypeIndex(uint32_t type, VkMemoryPropertyFlags properties) {
   for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
