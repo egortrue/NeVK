@@ -311,6 +311,7 @@ void Core::createSwapchain() {
   VkPresentModeKHR presentMode = chooseSwapchainPresentMode(swapchainSupport.presentModes);
   VkExtent2D extent = chooseSwapchainExtent(swapchainSupport.capabilities);
 
+  // Количество изображений в списке показа / буферизация
   uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
   if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount) {
     imageCount = swapchainSupport.capabilities.maxImageCount;
@@ -351,6 +352,7 @@ void Core::createSwapchain() {
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
   swapchainImages.resize(imageCount);
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data());
+  swapchainImages.shrink_to_fit();
 
   // Сохраним формат и размер изображений
   swapchainFormat = surfaceFormat.format;

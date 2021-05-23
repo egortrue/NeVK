@@ -75,4 +75,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC src/)
 target_link_libraries(${PROJECT_NAME} PUBLIC 
     ${LIBRARY_ENGINE_NAME}
     ${LIBRARY_CORE_NAME}
+    ${LIBRARY_RESOURCES_NAME}
 )
