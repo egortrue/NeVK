@@ -1,40 +1,88 @@
 #include "engine.h"
 
-Engine::Engine(GLFWwindow* window) : window(window) {
+Engine::Engine(GLFWwindow* window) {
+  initWindow(window);
   initCore();
+  initResources();
+  initCommands();
+  initFrames();
 }
 
 Engine::~Engine() {
+  destroyFrames();
+  destroyCommands();
+  destroyResources();
   destroyCore();
+  destroyWindow();
+}
+
+void Engine::initWindow(GLFWwindow* window) {
+  this->window = new Window;
+  this->window->instance = window;
+}
+
+void Engine::destroyWindow() {
+  if (window != nullptr)
+    delete window;
 }
 
 void Engine::initCore() {
-  this->core = new Core();
+  core = new Core();
 
-  // GLFW расширения экземпляра
-  std::vector<const char*> requiredExtensions;
+  // GLFW - Расширения экземпляра
   uint32_t extensionsCount = 0;
   const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
   for (uint32_t i = 0; i < extensionsCount; i++)
-    requiredExtensions.push_back(glfwExtensions[i]);
+    window->extensions.push_back(glfwExtensions[i]);
 
-  core->setInstanceExtensions(requiredExtensions);
+  core->setInstanceExtensions(window->extensions);
   core->init();
 
-  // GLFW поверхность вывода изображений
-  VkSurfaceKHR surface;
-  if (glfwCreateWindowSurface(core->instance, window, nullptr, &surface) != VK_SUCCESS)
+  // GLFW - Поверхность вывода изображений
+  if (glfwCreateWindowSurface(core->instance, window->instance, nullptr, &window->surface) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create window surface!");
-  int width, height;
-  glfwGetFramebufferSize(window, &width, &height);
+  glfwGetFramebufferSize(window->instance, &window->width, &window->height);
 
-  core->setSurface(surface, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+  core->setSurface(window->surface, static_cast<uint32_t>(window->width), static_cast<uint32_t>(window->height));
   core->configure();
 }
 
 void Engine::destroyCore() {
-  if (this->core != nullptr) {
-    this->core->destroy();
-    delete this->core;
+  if (core != nullptr) {
+    core->destroy();
+    delete core;
+  }
+}
+
+void Engine::initResources() {
+  resources = new Resources(core);
+}
+
+void Engine::destroyResources() {
+  if (resources != nullptr)
+    delete resources;
+}
+
+void Engine::initCommands() {
+  commands = new Commands(core);
+}
+
+void Engine::destroyCommands() {
+  if (commands != nullptr)
+    delete commands;
+}
+
+void Engine::initFrames() {
+  frames.resize(core->swapchainImages.size());
+  frames.shrink_to_fit();
+  for (auto& frame : frames) {
+    frame.cmdPool = commands->createCommandBufferPool();
+    frame.cmdBuffer = commands->createCommandBuffer(frame.cmdPool);
+  }
+}
+
+void Engine::destroyFrames() {
+  for (auto& frame : frames) {
+    commands->destroyCommandBufferPool(frame.cmdPool);
   }
 }

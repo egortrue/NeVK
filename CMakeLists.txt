@@ -33,6 +33,29 @@ add_library(${LIBRARY_CORE_NAME} OBJECT ${LIBRARY_CORE_SOURCES})
 target_include_directories(${LIBRARY_CORE_NAME} PUBLIC ${LIBRARY_CORE_PATH})
 target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC Vulkan::Vulkan)
 
+# RESOURCES
+set(LIBRARY_RESOURCES_NAME resources)
+set(LIBRARY_RESOURCES_PATH src/engine/resources)
+set(LIBRARY_RESOURCES_SOURCES
+    ${LIBRARY_RESOURCES_PATH}/resources.h
+    ${LIBRARY_RESOURCES_PATH}/resources.cpp
+)
+add_library(${LIBRARY_RESOURCES_NAME} OBJECT ${LIBRARY_RESOURCES_SOURCES})
+target_include_directories(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_RESOURCES_PATH})
+target_link_libraries(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_CORE_NAME})
+
+# RENDER
+set(LIBRARY_RENDER_NAME render)
+set(LIBRARY_RENDER_PATH src/engine/render)
+set(LIBRARY_RENDER_SOURCES
+    ${LIBRARY_RENDER_PATH}/commands.h
+    ${LIBRARY_RENDER_PATH}/commands.cpp
+)
+add_library(${LIBRARY_RENDER_NAME} OBJECT ${LIBRARY_RENDER_SOURCES})
+target_include_directories(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_RENDER_PATH})
+target_link_libraries(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_CORE_NAME})
+
+
 # ENGINE
 set(LIBRARY_ENGINE_NAME engine)
 set(LIBRARY_ENGINE_PATH src/engine)
@@ -42,21 +65,20 @@ set(LIBRARY_ENGINE_SOURCES
 )
 add_library(${LIBRARY_ENGINE_NAME} OBJECT ${LIBRARY_ENGINE_SOURCES})
 target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_ENGINE_PATH})
-target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_CORE_NAME})
+target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC 
+    ${LIBRARY_CORE_NAME}
+    ${LIBRARY_RESOURCES_NAME}
+    ${LIBRARY_RENDER_NAME}
+)
 
 #================================================================
 # Внешние библиотеки
 
 # GLFW
-target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC external/glfw/include)
+target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC external/glfw/include) 
 if (MSVC)
-    target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
-elseif (MINGW)
-    target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/libglfw3.a")
-elseif (APPLE)
-    find_package(glfw3 3.3 REQUIRED)
-    include_directories(${glfw3_INCLUDE_DIRS})
-    target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC glfw)
+    target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC 
+        "${CMAKE_SOURCE_DIR}/external/glfw/glfw3.lib")
 endif ()
 
 #================================================================
@@ -67,4 +89,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC src/)
 target_link_libraries(${PROJECT_NAME} PUBLIC 
     ${LIBRARY_ENGINE_NAME}
     ${LIBRARY_CORE_NAME}
+    ${LIBRARY_RESOURCES_NAME}
+    ${LIBRARY_RENDER_NAME}
 )
