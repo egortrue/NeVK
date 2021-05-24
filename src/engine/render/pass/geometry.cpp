@@ -61,16 +61,16 @@ void GeometryPass::createGraphicsPipeline() {
   // Область вывода
   VkViewport viewport{};
   viewport.x = 0.0f;
-  viewport.y = (float)height;
-  viewport.width = (float)width;
-  viewport.height = -(float)height;
+  viewport.y = (float)imageHeight;
+  viewport.width = (float)imageWidth;
+  viewport.height = -(float)imageHeight;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
   // Область вывода для теста ножниц
   VkRect2D scissor{};
   scissor.offset = {0, 0};
-  scissor.extent = {width, height};
+  scissor.extent = {imageWidth, imageHeight};
 
   VkPipelineViewportStateCreateInfo viewportState{};
   viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -95,19 +95,18 @@ void GeometryPass::createGraphicsPipeline() {
   rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 
   // Толщина каждого отрезка в пикселах (только для каркасного режима)
-  // 1.0f - обязательно по умолчанию (для всех режимов)
-  rasterizer.lineWidth = 1.0f;
+  rasterizer.lineWidth = 1.0f;  // 1.0f - обязательно по умолчанию для всех режимов
 
   // Лицевая сторона полигона (треугольника)
-  // VK_FRONT_FACE_CLOCKWISE - если вершина отрисована по часовой
-  // VK_FRONT_FACE_COUNTER_CLOCKWISE - если вершина отрисована против часовой
+  // VK_FRONT_FACE_CLOCKWISE --- если вершина отрисована по часовой
+  // VK_FRONT_FACE_COUNTER_CLOCKWISE --- если вершина отрисована против часовой
   rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
   // Отброс сторон полигонов (треугольника)
-  // VK_CULL_MODE_NONE - ничего не отбрасывать
-  // VK_CULL_MODE_FRONT_BIT - отброс лицевых полигонов
-  // VK_CULL_MODE_BACK_BIT - отброс нелицевых полигонов
-  // VK_CULL_MODE_FRONT_AND_BACK - отброс обоих сторон полигонов
+  // VK_CULL_MODE_NONE --- ничего не отбрасывать
+  // VK_CULL_MODE_FRONT_BIT --- отброс лицевых полигонов
+  // VK_CULL_MODE_BACK_BIT --- отброс нелицевых полигонов
+  // VK_CULL_MODE_FRONT_AND_BACK --- отброс обоих сторон полигонов
   rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 
   // Опции глубины
@@ -293,4 +292,91 @@ void GeometryPass::createRenderPass() {
 
   if (vkCreateRenderPass(core->device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create render pass!");
+}
+
+void GeometryPass::createFramebuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView) {
+  framebuffers.resize(imageCount);
+  for (uint32_t i = 0; i < imageCount; ++i) {
+    std::vector<VkImageView> attachment = {
+        imageViews[i],
+        depthImageView,
+    };
+    createFramebuffer(attachment, i);
+  }
+}
+
+void GeometryPass::createDescriptorSetLayout() {
+  VkDescriptorSetLayoutBinding uboLayoutBinding{};
+  uboLayoutBinding.binding = 0;
+  uboLayoutBinding.descriptorCount = 1;
+  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  uboLayoutBinding.pImmutableSamplers = nullptr;
+  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  VkDescriptorSetLayoutBinding texLayoutBinding{};
+  texLayoutBinding.binding = 1;
+  texLayoutBinding.descriptorCount = 1;
+  texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+  texLayoutBinding.pImmutableSamplers = nullptr;
+  texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+  samplerLayoutBinding.binding = 2;
+  samplerLayoutBinding.descriptorCount = 1;
+  samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+  samplerLayoutBinding.pImmutableSamplers = nullptr;
+  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, texLayoutBinding, samplerLayoutBinding};
+  VkDescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+  layoutInfo.pBindings = bindings.data();
+
+  if (vkCreateDescriptorSetLayout(core->device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+    throw std::runtime_error("ERROR: Failed to create descriptor set layout!");
+}
+
+void GeometryPass::updateDescriptorSets() {
+  for (size_t i = 0; i < imageCount; ++i) {
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = uniformBuffers[i];
+    bufferInfo.offset = 0;
+    bufferInfo.range = 0;  //sizeof(UniformBufferObject);
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = textureImageView;
+
+    VkDescriptorImageInfo samplerInfo{};
+    samplerInfo.sampler = textureSampler;
+
+    std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+
+    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[0].dstSet = descriptorSets[i];
+    descriptorWrites[0].dstBinding = 0;
+    descriptorWrites[0].dstArrayElement = 0;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[0].descriptorCount = 1;
+    descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[1].dstSet = descriptorSets[i];
+    descriptorWrites[1].dstBinding = 1;
+    descriptorWrites[1].dstArrayElement = 0;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    descriptorWrites[1].descriptorCount = 1;
+    descriptorWrites[1].pImageInfo = &imageInfo;
+
+    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[2].dstSet = descriptorSets[i];
+    descriptorWrites[2].dstBinding = 2;
+    descriptorWrites[2].dstArrayElement = 0;
+    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    descriptorWrites[2].descriptorCount = 1;
+    descriptorWrites[2].pImageInfo = &samplerInfo;
+
+    vkUpdateDescriptorSets(core->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+  }
 }

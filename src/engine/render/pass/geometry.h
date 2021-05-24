@@ -16,28 +16,28 @@ class GeometryPass : public RenderPass {
   // Выделенные ресурсы, привязанные к конвейеру
 
  public:
-  VkImageView textureImageView;
-  VkSampler textureSampler;
   void updateDescriptorSets() override;
+  //void updateUniformBuffer(uint32_t imageIndex, const glm::float4x4& perspective, const glm::float4x4& view);
 
- private:
-  void createDescriptorSetLayout() override;
-
-  //=========================================================================
-  // Uniform-буферы - ресурсы, привязанные к конвейеру
-
+  // Описание ресурсов
   //   struct UniformBufferObject {
   //     alignas(16) glm::mat4 modelViewProj;
   //     alignas(16) glm::mat4 worldToView;
   //     alignas(16) glm::mat4 inverseWorldToView;
   //   };
+  VkImageView textureImageView;
+  VkSampler textureSampler;
+
+ private:
   std::vector<VkBuffer> uniformBuffers;
   std::vector<VkDeviceMemory> uniformBuffersMemory;
-  //void updateUniformBuffer(uint32_t imageIndex, const glm::float4x4& perspective, const glm::float4x4& view);
+
+  void createDescriptorSetLayout() override;
   void createUniformBuffers();
 
   //=========================================================================
   // Наборы изображений, в которые будет идти результат
+
  public:
   VkFormat depthBufferFormat;
 

@@ -58,7 +58,8 @@ class RenderPass {
   // Наборы изображений, в которые будет идти результат
 
  public:
-  uint32_t width, height;
+  uint32_t imageCount;
+  uint32_t imageWidth, imageHeight;
   VkFormat framebufferFormat;
 
  protected:
