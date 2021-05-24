@@ -7,7 +7,7 @@
 // Внутренние зависимости
 #include "core/core.h"
 #include "resources/resources.h"
-#include "render/commands.h"
+#include "render/commands/commands.h"
 
 // Стандартные зависимости
 #include <array>

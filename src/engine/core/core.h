@@ -89,9 +89,12 @@ class Core {
 
  public:
   VkSwapchainKHR swapchain;
-  std::vector<VkImage> swapchainImages;
   VkExtent2D swapchainExtent;
   VkFormat swapchainFormat;
+
+  // Буферы изображений
+  std::vector<VkImage> swapchainImages;
+  uint32_t swapchainImagesCount;
 
  private:
   void createSwapchain();

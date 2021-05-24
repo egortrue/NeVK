@@ -349,9 +349,9 @@ void Core::createSwapchain() {
     throw std::runtime_error("ERROR: Failed to create swap chain!");
 
   // Получение списка изображений, через которые будет проводится показ
-  vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
-  swapchainImages.resize(imageCount);
-  vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data());
+  vkGetSwapchainImagesKHR(device, swapchain, &swapchainImagesCount, nullptr);
+  swapchainImages.resize(swapchainImagesCount);
+  vkGetSwapchainImagesKHR(device, swapchain, &swapchainImagesCount, swapchainImages.data());
   swapchainImages.shrink_to_fit();
 
   // Сохраним формат и размер изображений
