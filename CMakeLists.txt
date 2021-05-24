@@ -62,6 +62,8 @@ set(LIBRARY_RENDER_SOURCES
     ${LIBRARY_RENDER_PATH}/commands/commands.cpp
     ${LIBRARY_RENDER_PATH}/pass/pass.h
     ${LIBRARY_RENDER_PATH}/pass/pass.cpp
+    ${LIBRARY_RENDER_PATH}/pass/geometry.h
+    ${LIBRARY_RENDER_PATH}/pass/geometry.cpp
 )
 add_library(${LIBRARY_RENDER_NAME} OBJECT ${LIBRARY_RENDER_SOURCES})
 target_include_directories(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_RENDER_PATH})
@@ -109,3 +111,15 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${LIBRARY_RENDER_NAME}
     ${LIBRARY_SHADERS_NAME}
 )
+
+# Copy slang dlls to final directory after building
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
+        "${OUTPUT_DIRECTORY}"
+        )
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
+        "${OUTPUT_DIRECTORY}"
+        )
