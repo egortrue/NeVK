@@ -93,8 +93,8 @@ class Core {
   VkFormat swapchainFormat;
 
   // Буферы изображений
+  uint32_t swapchainImageCount;
   std::vector<VkImage> swapchainImages;
-  uint32_t swapchainImagesCount;
 
  private:
   void createSwapchain();

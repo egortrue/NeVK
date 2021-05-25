@@ -57,10 +57,10 @@ class RenderPass {
   // Наборы изображений, в которые будет идти результат
 
  public:
-  uint32_t imageCount;
-  uint32_t imageWidth, imageHeight;
-  std::vector<VkImageView> imageViews;
-  VkFormat imageFormat;
+  uint32_t targetImageCount;
+  uint32_t targetImageWidth, targetImageHeight;
+  VkFormat targetImageFormat;
+  std::vector<VkImageView> targetImageViews;
 
  protected:
   std::vector<VkFramebuffer> framebuffers;

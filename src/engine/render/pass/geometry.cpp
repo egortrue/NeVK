@@ -1,9 +1,11 @@
 #include "geometry.h"
 
 void GeometryPass::init() {
+  createTextureImage();
+  createDepthImage();
   createShaderModules();
-  //createUniformBuffers();
 
+  //createUniformBuffers();
   createDescriptorSetLayout();
   createDescriptorSets();
   updateDescriptorSets();
@@ -11,41 +13,6 @@ void GeometryPass::init() {
   createRenderPass();
   createGraphicsPipeline();
   createFramebuffers();
-}
-
-void GeometryPass::record(RecordData& data) {
-  //   std::array<VkClearValue, 2> clearValues{};
-  //   clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-  //   clearValues[1].depthStencil = {1.0f, 0};
-
-  VkRenderPassBeginInfo renderPassInfo{};
-  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass = renderPass;
-  renderPassInfo.framebuffer = framebuffers[data.imageIndex];
-  renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent = {imageWidth, imageHeight};
-  //   renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-  //   renderPassInfo.pClearValues = clearValues.data();
-
-  VkViewport viewport{};
-  viewport.x = 0;
-  viewport.y = (float)imageHeight;
-  viewport.width = (float)imageWidth;
-  viewport.height = -(float)imageHeight;
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
-
-  vkCmdBeginRenderPass(data.cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-  vkCmdBindPipeline(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-  vkCmdSetViewport(data.cmd, 0, 1, &viewport);
-  //vkCmdSetLineWidth(data.cmd, 1.0f);
-
-  vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
-
-  vkCmdDraw(data.cmd, 3, 1, 0, 0);
-
-  vkCmdEndRenderPass(data.cmd);
 }
 
 void GeometryPass::resize() {
@@ -62,10 +29,137 @@ void GeometryPass::resize() {
 
 void GeometryPass::destroy() {
   RenderPass::destroy();
+  destroyDepthImage();
+  destroyTextureImage();
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void GeometryPass::record(RecordData& data) {
+  VkRenderPassBeginInfo renderPassInfo{};
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.renderPass = renderPass;
+  renderPassInfo.framebuffer = framebuffers[data.imageIndex];
+  renderPassInfo.renderArea.offset = {0, 0};
+  renderPassInfo.renderArea.extent = {targetImageWidth, targetImageHeight};
+
+  // Заливка цвета вне всех примитивов
+  std::array<VkClearValue, 2> clearValues{};
+  clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+  clearValues[1].depthStencil = {1.0f, 0};
+  renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+  renderPassInfo.pClearValues = clearValues.data();
+
+  // Новое разрешение вывода
+  VkViewport viewport{};
+  viewport.x = 0;
+  viewport.y = (float)targetImageHeight;
+  viewport.width = (float)targetImageWidth;
+  viewport.height = -(float)targetImageHeight;
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+
+  vkCmdBeginRenderPass(data.cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+  // Подключение конвейера и настройка его динамических частей
+  vkCmdBindPipeline(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+  vkCmdSetViewport(data.cmd, 0, 1, &viewport);
+  vkCmdSetLineWidth(data.cmd, 1.0f);
+
+  // Подключение множества ресурсов, используемых в конвейере
+  vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
+
+  // Операция рендера
+  vkCmdDraw(data.cmd, 3, 1, 0, 0);
+
+  vkCmdEndRenderPass(data.cmd);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void GeometryPass::createTextureImage() {
+  resources->createImage(
+      core->swapchainExtent.width, core->swapchainExtent.height,
+      VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+      textureImage, textureImageMemory);
+
+  textureImageView = resources->createImageView(
+      textureImage,
+      VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_ASPECT_COLOR_BIT);
+
+  VkSamplerCreateInfo samplerInfo{};
+  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+  samplerInfo.magFilter = VK_FILTER_LINEAR;
+  samplerInfo.minFilter = VK_FILTER_LINEAR;
+  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.anisotropyEnable = VK_TRUE;
+  samplerInfo.maxAnisotropy = core->physicalDeviceProperties.limits.maxSamplerAnisotropy;
+  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+  samplerInfo.unnormalizedCoordinates = VK_FALSE;
+  samplerInfo.compareEnable = VK_FALSE;
+  samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  if (vkCreateSampler(core->device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
+    throw std::runtime_error("ERROR: Failed to create texture sampler!");
+}
+
+void GeometryPass::destroyTextureImage() {
+  vkDestroySampler(core->device, textureSampler, nullptr);
+  resources->destroyImageView(textureImageView);
+  resources->destroyImage(textureImage, textureImageMemory);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void GeometryPass::createDepthImage() {
+  depthImageFormat = resources->findSupportedFormat(
+      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+  resources->createImage(
+      core->swapchainExtent.width,
+      core->swapchainExtent.height,
+      depthImageFormat,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+      depthImage, depthImageMemory);
+
+  depthImageView = resources->createImageView(
+      depthImage,
+      depthImageFormat,
+      VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
+void GeometryPass::destroyDepthImage() {
+  resources->destroyImageView(depthImageView);
+  resources->destroyImage(depthImage, depthImageMemory);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void GeometryPass::createFramebuffers() {
+  framebuffers.resize(targetImageCount);
+  for (uint32_t i = 0; i < targetImageCount; ++i) {
+    std::vector<VkImageView> attachment = {
+        targetImageViews[i],
+        //depthImageView,
+    };
+    createFramebuffer(attachment, i);
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void GeometryPass::createGraphicsPipeline() {
-  //=====================================================================================================
+  //=================================================================================
   // Используемые шейдеры
   // - обязательны хотя бы один вершинный и один фрагментный шейдеры
 
@@ -85,7 +179,7 @@ void GeometryPass::createGraphicsPipeline() {
 
   VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-  //=====================================================================================================
+  //=================================================================================
   // Размещение геометрических данных в памяти
 
   struct vertex {
@@ -112,7 +206,7 @@ void GeometryPass::createGraphicsPipeline() {
   vertexInputInfo.vertexAttributeDescriptionCount = 0;
   vertexInputInfo.pVertexAttributeDescriptions = &attributeDescription;
 
-  //=====================================================================================================
+  //=================================================================================
   // Входная сборка - группирование вершин в примитивы
 
   VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -120,22 +214,22 @@ void GeometryPass::createGraphicsPipeline() {
   inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;  // Вершины группируются в тройки -> треугольник
   inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-  //=====================================================================================================
+  //=================================================================================
   // Преобразование области вывода
 
   // Область вывода
   VkViewport viewport{};
   viewport.x = 0.0f;
-  viewport.y = (float)imageHeight;
-  viewport.width = (float)imageWidth;
-  viewport.height = -(float)imageHeight;
+  viewport.y = (float)targetImageHeight;
+  viewport.width = (float)targetImageWidth;
+  viewport.height = -(float)targetImageHeight;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
   // Область вывода для теста ножниц
   VkRect2D scissor{};
   scissor.offset = {0, 0};
-  scissor.extent = {imageWidth, imageHeight};
+  scissor.extent = {targetImageWidth, targetImageHeight};
 
   VkPipelineViewportStateCreateInfo viewportState{};
   viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -144,7 +238,7 @@ void GeometryPass::createGraphicsPipeline() {
   viewportState.scissorCount = 1;
   viewportState.pScissors = &scissor;
 
-  //=====================================================================================================
+  //=================================================================================
   // Растеризация - преобразование примитивов для фрагментного шейдера
 
   VkPipelineRasterizationStateCreateInfo rasterizer{};
@@ -178,7 +272,7 @@ void GeometryPass::createGraphicsPipeline() {
   rasterizer.depthClampEnable = VK_FALSE;  // Отсечение глубины - заполнение дыр геометрии
   rasterizer.depthBiasEnable = VK_FALSE;   // Смещение глубины
 
-  //=====================================================================================================
+  //=================================================================================
   // Мультисэмплинг - создание образцов для каждого пиксела
 
   VkPipelineMultisampleStateCreateInfo multisampling{};
@@ -186,7 +280,7 @@ void GeometryPass::createGraphicsPipeline() {
   multisampling.sampleShadingEnable = VK_FALSE;
   multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-  //=====================================================================================================
+  //=================================================================================
   // Тесты изображений
 
   VkPipelineDepthStencilStateCreateInfo depthStencil{};
@@ -201,7 +295,7 @@ void GeometryPass::createGraphicsPipeline() {
   // Тест трафарета
   depthStencil.stencilTestEnable = VK_FALSE;
 
-  //=====================================================================================================
+  //=================================================================================
   // Цветовые подключения
 
   // Смешивание цветов
@@ -222,7 +316,7 @@ void GeometryPass::createGraphicsPipeline() {
   colorBlending.blendConstants[2] = 0.0f;
   colorBlending.blendConstants[3] = 0.0f;
 
-  //=====================================================================================================
+  //=================================================================================
   // Динамические части конвейера
 
   VkDynamicState states[] = {
@@ -235,7 +329,7 @@ void GeometryPass::createGraphicsPipeline() {
   dynamicState.dynamicStateCount = 2;
   dynamicState.pDynamicStates = states;
 
-  //=====================================================================================================
+  //=================================================================================
   // Создание конвейера
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -267,15 +361,17 @@ void GeometryPass::createGraphicsPipeline() {
     throw std::runtime_error("ERROR: Failed to create graphics pipeline!");
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void GeometryPass::createRenderPass() {
-  //=====================================================================================================
+  //=================================================================================
   // Описание цветового подключения - выходного изображения конвейера
 
   VkAttachmentDescription colorAttachment{};
-  colorAttachment.format = imageFormat;
+  colorAttachment.format = targetImageFormat;
 
   // Действия при работе с изображением
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
   // Действия при работе с трафаретом
@@ -289,19 +385,20 @@ void GeometryPass::createRenderPass() {
   // Мультисэмплинг
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;  // Число образцов (1 = выкл)
 
+  // Элемент подпрохода
   VkAttachmentReference colorAttachmentRef{};
   colorAttachmentRef.attachment = 0;
   colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-  //=====================================================================================================
+  //=================================================================================
   // Описание изобржения глубины
 
   VkAttachmentDescription depthAttachment{};
   depthAttachment.format = depthImageFormat;
 
   // Действия при работе с изображением
-  depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
   // Действия при работе с трафаретом
   depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -314,11 +411,12 @@ void GeometryPass::createRenderPass() {
   // Мультисэмплинг
   depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;  // Число образцов (1 = выкл)
 
+  // Элемент подпрохода
   VkAttachmentReference depthAttachmentRef{};
   depthAttachmentRef.attachment = 1;
   depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-  //=====================================================================================================
+  //=================================================================================
   // Подпроходы рендера
 
   VkSubpassDescription subpass{};
@@ -328,11 +426,11 @@ void GeometryPass::createRenderPass() {
   subpass.colorAttachmentCount = 1;
   subpass.pColorAttachments = &colorAttachmentRef;
 
-  // Подключение (только одно) глубины-трафарета
+  // Подключение глубины-трафарета (только одно)
   //subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-  //=====================================================================================================
-  // Зависимости подпроходв рендера
+  //=================================================================================
+  // Зависимости подпроходов рендера
 
   VkSubpassDependency dependency{};
   dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -342,10 +440,11 @@ void GeometryPass::createRenderPass() {
   dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
   dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-  //=====================================================================================================
+  //=================================================================================
   // Создание прохода рендера
 
-  std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};  //, depthAttachment};
+  std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
+  //std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
   VkRenderPassCreateInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -359,16 +458,7 @@ void GeometryPass::createRenderPass() {
     throw std::runtime_error("ERROR: Failed to create render pass!");
 }
 
-void GeometryPass::createFramebuffers() {
-  framebuffers.resize(imageCount);
-  for (uint32_t i = 0; i < imageCount; ++i) {
-    std::vector<VkImageView> attachment = {
-        imageViews[i],
-        //depthImageView,
-    };
-    createFramebuffer(attachment, i);
-  }
-}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GeometryPass::createDescriptorSetLayout() {
   //   VkDescriptorSetLayoutBinding uboLayoutBinding{};
@@ -406,8 +496,10 @@ void GeometryPass::createDescriptorSetLayout() {
     throw std::runtime_error("ERROR: Failed to create descriptor set layout!");
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void GeometryPass::updateDescriptorSets() {
-  for (size_t i = 0; i < imageCount; ++i) {
+  for (size_t i = 0; i < targetImageCount; ++i) {
     // VkDescriptorBufferInfo bufferInfo{};
     // bufferInfo.buffer = uniformBuffers[i];
     // bufferInfo.offset = 0;
@@ -449,3 +541,5 @@ void GeometryPass::updateDescriptorSets() {
     vkUpdateDescriptorSets(core->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
   }
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////

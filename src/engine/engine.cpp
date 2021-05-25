@@ -10,6 +10,8 @@ Engine::Engine(GLFWwindow* window) {
 }
 
 Engine::~Engine() {
+  vkDeviceWaitIdle(core->device);
+  destroyGeometryPass();
   destroyFrames();
   destroyCommands();
   destroyResources();
@@ -96,31 +98,10 @@ void Engine::initFrames() {
 
 void Engine::destroyFrames() {
   for (auto& frame : frames) {
+    vkDestroySemaphore(core->device, frame.available, nullptr);
+    vkDestroyFence(core->device, frame.drawing, nullptr);
     commands->destroyCommandBufferPool(frame.cmdPool);
   }
-}
-
-VkFormat findSupportedFormat(Core* core, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
-  for (VkFormat format : candidates) {
-    VkFormatProperties props;
-    vkGetPhysicalDeviceFormatProperties(core->physicalDevice, format, &props);
-
-    if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-      return format;
-    } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
-      return format;
-    }
-  }
-
-  throw std::runtime_error("failed to find supported format!");
-}
-
-VkFormat findDepthFormat(Core* core) {
-  return findSupportedFormat(
-      core,
-      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-      VK_IMAGE_TILING_OPTIMAL,
-      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
 void Engine::initGeometryPass() {
@@ -128,61 +109,23 @@ void Engine::initGeometryPass() {
   geometryPass.resources = resources;
   geometryPass.shaderManager = new ShaderManager();
   geometryPass.shaderName = std::string("shaders/geometry.hlsl");
-  geometryPass.imageCount = core->swapchainImagesCount;
-  geometryPass.imageWidth = core->swapchainExtent.width;
-  geometryPass.imageHeight = core->swapchainExtent.height;
-  geometryPass.imageFormat = core->swapchainFormat;
 
+  // Цель вывода прохода рендера
+  geometryPass.targetImageCount = core->swapchainImageCount;
+  geometryPass.targetImageWidth = core->swapchainExtent.width;
+  geometryPass.targetImageHeight = core->swapchainExtent.height;
+  geometryPass.targetImageFormat = core->swapchainFormat;
   // TODO: тройное копирование векторов
-  geometryPass.imageViews = resources->createImageViews(core->swapchainImages,
-                                                        core->swapchainFormat,
-                                                        VK_IMAGE_ASPECT_COLOR_BIT);
-
-  geometryPass.depthImageFormat = findDepthFormat(core);
-  resources->createImage(core->swapchainExtent.width,
-                         core->swapchainExtent.height,
-                         geometryPass.depthImageFormat,
-                         VK_IMAGE_TILING_OPTIMAL,
-                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                         geometryPass.depthImage, geometryPass.depthImageMemory);
-
-  geometryPass.depthImageView = resources->createImageView(
-      geometryPass.depthImage,
-      geometryPass.depthImageFormat,
-      VK_IMAGE_ASPECT_DEPTH_BIT);
-
-  resources->createImage(
-      core->swapchainExtent.width, core->swapchainExtent.height,
-      VK_FORMAT_R8G8B8A8_SRGB,
-      VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-      geometryPass.textureImage, geometryPass.textureImageMemory);
-
-  geometryPass.textureImageView = resources->createImageView(
-      geometryPass.textureImage,
-      VK_FORMAT_R8G8B8A8_SRGB,
-      VK_IMAGE_ASPECT_COLOR_BIT);
-
-  VkSamplerCreateInfo samplerInfo{};
-  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  samplerInfo.magFilter = VK_FILTER_LINEAR;
-  samplerInfo.minFilter = VK_FILTER_LINEAR;
-  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.anisotropyEnable = VK_TRUE;
-  samplerInfo.maxAnisotropy = core->physicalDeviceProperties.limits.maxSamplerAnisotropy;
-  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-  samplerInfo.unnormalizedCoordinates = VK_FALSE;
-  samplerInfo.compareEnable = VK_FALSE;
-  samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-  if (vkCreateSampler(core->device, &samplerInfo, nullptr, &geometryPass.textureSampler) != VK_SUCCESS)
-    throw std::runtime_error("ERROR: Failed to create texture sampler!");
+  geometryPass.targetImageViews = resources->createImageViews(core->swapchainImages,
+                                                              core->swapchainFormat,
+                                                              VK_IMAGE_ASPECT_COLOR_BIT);
 
   geometryPass.init();
+}
+
+void Engine::destroyGeometryPass() {
+  resources->destroyImageViews(geometryPass.targetImageViews);
+  geometryPass.destroy();
 }
 
 void Engine::drawFrame() {
@@ -238,5 +181,5 @@ void Engine::drawFrame() {
 
   vkQueuePresentKHR(core->presentQueue, &presentInfo);
 
-  currentFrameIndex = (swapchainImageIndex + 1) % core->swapchainImagesCount;
+  currentFrameIndex = (swapchainImageIndex + 1) % core->swapchainImageCount;
 }
