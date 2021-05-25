@@ -1,6 +1,9 @@
 #pragma once
 
+// Внутренние библиотеки
 #include "core.h"
+
+typedef class Resources* ResourcesManager;
 
 class Resources {
  private:

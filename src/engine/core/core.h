@@ -1,5 +1,12 @@
 #pragma once
 
+// Сторонние библиотеки
+#include <vulkan/vulkan.h>
+
+// Внутренние библиотеки
+#include "validation.h"
+
+// Стандартные библиотеки
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -8,8 +15,7 @@
 #include <optional>
 #include <set>
 
-#include <vulkan/vulkan.h>
-#include "validation.h"
+typedef class Core* CoreManager;
 
 class Core {
  public:

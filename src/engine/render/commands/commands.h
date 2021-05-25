@@ -1,6 +1,9 @@
 #pragma once
 
+// Внутренние библиотеки
 #include "core.h"
+
+typedef class Commands* CommandsManager;
 
 class Commands {
  private:

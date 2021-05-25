@@ -1,18 +1,20 @@
 #pragma once
 
+// Внутренние библиотеки
 #include "core.h"
 #include "resources.h"
 #include "shaders.h"
 
+// Стандартные библиотеки
 #include <array>
 #include <string>
 #include <vector>
 
 class RenderPass {
  public:
-  Core* core;
-  Resources* resources;
-  ShaderManager* shaderManager;
+  CoreManager core;
+  ResourcesManager resources;
+  ShadersManager shaders;
 
   virtual void init() = 0;
   virtual void resize() = 0;

@@ -1,14 +1,18 @@
 #pragma once
 
+// Сторонние библиотеки
 #include <slang.h>
 #include <slang-com-ptr.h>
 
+// Стандартные библиотеки
 #include <cstdio>
 #include <vector>
 #include <string>
 #include <iostream>
 
-class ShaderManager {
+typedef class Shaders* ShadersManager;
+
+class Shaders {
  private:
   // Дискриптор шейдера
   struct shader_t {
@@ -23,12 +27,12 @@ class ShaderManager {
     SlangCompileRequest* slangRequest;
   };
 
-  std::vector<shader_t> shaders;
+  std::vector<shader_t> handlers;
   SlangSession* slangSession = nullptr;
 
  public:
-  ShaderManager();
-  ~ShaderManager();
+  Shaders();
+  ~Shaders();
 
   uint32_t loadShader(const char* name, const char* entryPointName, SlangStage);
   shader_t compileShader(const char* name, const char* entryPointName, SlangStage);

@@ -1,15 +1,15 @@
 #include "shaders.h"
 
-ShaderManager::ShaderManager() {
+Shaders::Shaders() {
   slangSession = spCreateSession(NULL);
 }
 
-ShaderManager::~ShaderManager() {
+Shaders::~Shaders() {
   if (slangSession != nullptr)
     spDestroySession(slangSession);
 }
 
-ShaderManager::shader_t ShaderManager::compileShader(const char* name, const char* entryPointName, SlangStage stage) {
+Shaders::shader_t Shaders::compileShader(const char* name, const char* entryPointName, SlangStage stage) {
   SlangCompileRequest* slangRequest = spCreateCompileRequest(slangSession);
 
   // spSetDebugInfoLevel(slangRequest, SLANG_DEBUG_INFO_LEVEL_MAXIMAL);
@@ -47,13 +47,13 @@ ShaderManager::shader_t ShaderManager::compileShader(const char* name, const cha
   return shader;
 }
 
-uint32_t ShaderManager::loadShader(const char* name, const char* entryPointName, SlangStage stage) {
+uint32_t Shaders::loadShader(const char* name, const char* entryPointName, SlangStage stage) {
   shader_t new_shader = compileShader(name, entryPointName, stage);
 
   // Поиск и перезапись старой информации о шейдере
   uint32_t shaderId = 0;
-  for (; shaderId < shaders.size(); ++shaderId) {
-    shader_t& old_shader = shaders[shaderId];
+  for (; shaderId < handlers.size(); ++shaderId) {
+    shader_t& old_shader = handlers[shaderId];
     if (old_shader.name == new_shader.name && old_shader.entryPointName == new_shader.entryPointName) {
       old_shader.code.resize(new_shader.code.size());
       memcpy(&old_shader.code[0], &new_shader.code[0], new_shader.code.size());
@@ -62,19 +62,19 @@ uint32_t ShaderManager::loadShader(const char* name, const char* entryPointName,
   }
 
   // Сохраним новые данные
-  shaderId = shaders.size();
-  shaders.push_back(new_shader);
+  shaderId = handlers.size();
+  handlers.push_back(new_shader);
   return shaderId;
 }
 
-void ShaderManager::reloadAllShaders() {
-  for (const auto& shader : shaders)
+void Shaders::reloadAllShaders() {
+  for (const auto& shader : handlers)
     loadShader(shader.name.c_str(), shader.entryPointName.c_str(), shader.stage);
 }
 
-bool ShaderManager::getShaderCode(uint32_t id, const char*& code, uint32_t& size) {
-  if (shaders.size() <= id) return false;
-  shader_t& shader = shaders[id];
+bool Shaders::getShaderCode(uint32_t id, const char*& code, uint32_t& size) {
+  if (handlers.size() <= id) return false;
+  shader_t& shader = handlers[id];
   code = shader.code.data();
   size = shader.code.size();
   return true;
