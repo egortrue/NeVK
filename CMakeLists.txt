@@ -112,7 +112,14 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${LIBRARY_SHADERS_NAME}
 )
 
-# Copy slang dlls to final directory after building
+# Копирование шейдеров в рабочую директорию
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        "${CMAKE_SOURCE_DIR}/src/shaders"
+        "${OUTPUT_DIRECTORY}/shaders"
+        )
+
+# Копирование библиотеки SLANG в рабочую директорию
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
