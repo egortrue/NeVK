@@ -5,8 +5,6 @@
 
 class GeometryPass : public RenderPass {
  public:
-  TexturesManager textures;
-
   struct RecordData {
     VkCommandBuffer cmd;
     uint32_t imageIndex;
@@ -28,40 +26,30 @@ class GeometryPass : public RenderPass {
   // Выделенные ресурсы, привязанные к конвейеру
 
  public:
+  TexturesManager textures;
   std::string textureName;
-  void updateDescriptorSets() override;
 
  private:
   VkImageView textureImageView;
   VkSampler textureSampler;
+  void createTextureDescriptors();
+  void destroyTextureDescriptors();
 
-  void createTextureImage();
-  void destroyTextureImage();
   void createDescriptorSetLayout() override;
-
-  //void updateUniformBuffer(uint32_t imageIndex, const glm::float4x4& perspective, const glm::float4x4& view);
-
-  //   struct UniformBufferObject {
-  //     alignas(16) glm::mat4 modelViewProj;
-  //     alignas(16) glm::mat4 worldToView;
-  //     alignas(16) glm::mat4 inverseWorldToView;
-  //   };
-  //   std::vector<VkBuffer> uniformBuffers;
-  //   std::vector<VkDeviceMemory> uniformBuffersMemory;
-  //void createUniformBuffers();
+  void updateDescriptorSets() override;
 
   //=========================================================================
   // Наборы изображений, в которые будет идти результат
 
  public:
-  // Изображения теста глубины
   VkImage depthImage;
   VkDeviceMemory depthImageMemory;
   VkFormat depthImageFormat;
   VkImageView depthImageView;
-  void createDepthImage();
-  void destroyDepthImage();
 
  private:
+  void createDepthImageFramebuffer();
+  void destroyDepthImageFramebuffer();
+
   void createFramebuffers() override;
 };

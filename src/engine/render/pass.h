@@ -49,14 +49,12 @@ class RenderPass {
   //=========================================================================
   // Множества ресурсов, привязанные к конвейеру
 
- public:
-  virtual void updateDescriptorSets() = 0;
-
  protected:
   std::vector<VkDescriptorSet> descriptorSets;  // Множества ресурсов
   VkDescriptorSetLayout descriptorSetLayout;    // Раскладка каждого множества
   void createDescriptorSets();
   virtual void createDescriptorSetLayout() = 0;
+  virtual void updateDescriptorSets() = 0;
 
   //=========================================================================
   // Наборы изображений, в которые будет идти результат
