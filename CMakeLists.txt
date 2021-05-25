@@ -89,15 +89,18 @@ target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC
 )
 
 #================================================================
-# Внешние библиотеки
+# Сторонние библиотеки
 
-# GLFW -> Engine
+# GLFW (Оконный менеджер)
 target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC external/glfw/include) 
 target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/glfw3.lib")
 
-# SLANG -> ShaderManager
+# SLANG (Компиляция шейдеров)
 target_include_directories(${LIBRARY_SHADERS_NAME} PUBLIC external/slang/include)
 target_link_libraries(${LIBRARY_SHADERS_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/slang.lib")
+
+# STB (Загрузка изображений)
+target_include_directories(${LIBRARY_RENDER_NAME} PUBLIC external/stb)
 
 #================================================================
 # Приложение
@@ -117,6 +120,13 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink
         "${CMAKE_SOURCE_DIR}/src/shaders"
         "${OUTPUT_DIRECTORY}/shaders"
+        )
+
+# Копирование текстур в рабочую директорию
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        "${CMAKE_SOURCE_DIR}/misc"
+        "${OUTPUT_DIRECTORY}/misc"
         )
 
 # Копирование библиотеки SLANG в рабочую директорию

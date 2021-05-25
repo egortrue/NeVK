@@ -7,10 +7,10 @@ typedef class Commands* CommandsManager;
 
 class Commands {
  private:
-  Core* core;
+  CoreManager core;
 
  public:
-  Commands(Core*);
+  Commands(CoreManager);
   ~Commands();
 
   // Области выделения командных буферов
@@ -29,4 +29,8 @@ class Commands {
   VkCommandPool singleTimeCommandBufferPool;
   VkCommandBuffer beginSingleTimeCommands();
   void endSingleTimeCommands(VkCommandBuffer);
+
+  // Общие операции над ресурсами
+  void changeImageLayout(VkCommandBuffer, VkImage, VkImageLayout oldLayout, VkImageLayout newLayout);
+  void copyBufferToImage(VkCommandBuffer, VkBuffer, VkImage, uint32_t width, uint32_t height);
 };

@@ -4,6 +4,7 @@
 #include "core.h"
 #include "resources.h"
 #include "shaders.h"
+#include "commands/commands.h"
 
 // Стандартные библиотеки
 #include <array>
@@ -15,6 +16,7 @@ class RenderPass {
   CoreManager core;
   ResourcesManager resources;
   ShadersManager shaders;
+  CommandsManager commands;
 
   virtual void init() = 0;
   virtual void resize() = 0;

@@ -1,5 +1,11 @@
 #pragma once
 
+// Сторонние библиотеки
+#define STB_IMAGE_STATIC
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+// Внутренние библиотеки
 #include "pass.h"
 
 class GeometryPass : public RenderPass {
@@ -25,6 +31,7 @@ class GeometryPass : public RenderPass {
   // Выделенные ресурсы, привязанные к конвейеру
 
  public:
+  std::string textureName;
   void updateDescriptorSets() override;
 
  private:

@@ -132,8 +132,10 @@ void Engine::destroyFrames() {
 void Engine::initGeometryPass() {
   geometryPass.core = core;
   geometryPass.resources = resources;
+  geometryPass.commands = commands;
   geometryPass.shaders = shaders;
   geometryPass.shaderName = std::string("shaders/geometry.hlsl");
+  geometryPass.textureName = std::string("misc/textures/brickwall.png");
 
   // Цель вывода прохода рендера
   geometryPass.targetImageCount = core->swapchainImageCount;

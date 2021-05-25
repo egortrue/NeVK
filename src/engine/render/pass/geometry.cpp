@@ -78,14 +78,53 @@ void GeometryPass::record(RecordData& data) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GeometryPass::createTextureImage() {
+  // Получим изображение в виде набора пикселов
+  int textureWidth, textureHeight, textureChannels;
+  stbi_uc* pixels = stbi_load(textureName.c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+  VkDeviceSize textureSize = textureWidth * textureHeight * 4;
+  if (!pixels)
+    throw std::runtime_error("ERROR: Failed to load texture image!");
+
+  // Создание временного буфера на устройстве
+  VkBuffer tmpBuffer;
+  VkDeviceMemory tmpBufferMemory;
+  resources->createBuffer(
+      textureSize,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      tmpBuffer, tmpBufferMemory);
+
+  // Отобразим память GPU на память CPU
+  void* commonMemory = nullptr;
+  vkMapMemory(core->device, tmpBufferMemory, 0, textureSize, 0, &commonMemory);
+  if (commonMemory == nullptr)
+    throw std::runtime_error("ERROR: Failed to map memory for texture image!");
+
+  // Скопируем данные текстуры в память устройства
+  memcpy(commonMemory, pixels, static_cast<size_t>(textureSize));
+  vkUnmapMemory(core->device, tmpBufferMemory);
+  stbi_image_free(pixels);
+
+  // Создание изображения для хранения текстуры
   resources->createImage(
-      core->swapchainExtent.width, core->swapchainExtent.height,
+      textureWidth, textureHeight,
       VK_FORMAT_R8G8B8A8_SRGB,
       VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
       textureImage, textureImageMemory);
 
+  // Копирование данных из буфера в изображение
+  VkCommandBuffer cmd = commands->beginSingleTimeCommands();
+  commands->changeImageLayout(cmd, textureImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  commands->copyBufferToImage(cmd, tmpBuffer, textureImage, textureWidth, textureHeight);
+  commands->changeImageLayout(cmd, textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  commands->endSingleTimeCommands(cmd);
+
+  // Уничтожим временный буфер
+  resources->destroyBuffer(tmpBuffer, tmpBufferMemory);
+
+  // Создание вида изображения
   textureImageView = resources->createImageView(
       textureImage,
       VK_FORMAT_R8G8B8A8_SRGB,
