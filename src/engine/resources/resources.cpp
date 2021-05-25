@@ -10,6 +10,8 @@ Resources::~Resources() {
   destroyDescriptorPool(this->descriptorPool);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 uint32_t Resources::findMemoryTypeIndex(uint32_t type, VkMemoryPropertyFlags properties) {
   for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
     if ((type & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
@@ -17,6 +19,23 @@ uint32_t Resources::findMemoryTypeIndex(uint32_t type, VkMemoryPropertyFlags pro
 
   throw std::runtime_error("ERROR: Failed to find suitable memory type!");
 }
+
+VkFormat Resources::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+  for (VkFormat format : candidates) {
+    VkFormatProperties props;
+    vkGetPhysicalDeviceFormatProperties(core->physicalDevice, format, &props);
+
+    if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+      return format;
+    } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+      return format;
+    }
+  }
+
+  throw std::runtime_error("ERROR: Failed to find supported format!");
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 VkDescriptorPool Resources::createDescriptorPool() {
   VkDescriptorPoolSize descPoolSizes[] = {
@@ -49,6 +68,8 @@ VkDescriptorPool Resources::createDescriptorPool() {
 void Resources::destroyDescriptorPool(VkDescriptorPool descPool) {
   vkDestroyDescriptorPool(core->device, descPool, nullptr);
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Resources::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
   //===================================================
@@ -88,6 +109,8 @@ void Resources::destroyBuffer(VkBuffer buffer, VkDeviceMemory bufferMemory) {
   vkDestroyBuffer(core->device, buffer, nullptr);
   vkFreeMemory(core->device, bufferMemory, nullptr);
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Resources::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
   //===================================================
@@ -142,3 +165,42 @@ void Resources::destroyImage(VkImage image, VkDeviceMemory imageMemory) {
   vkDestroyImage(core->device, image, nullptr);
   vkFreeMemory(core->device, imageMemory, nullptr);
 }
+
+VkImageView Resources::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+  VkImageViewCreateInfo viewInfo{};
+  viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+
+  viewInfo.image = image;
+  viewInfo.format = format;
+  viewInfo.subresourceRange.aspectMask = aspectFlags;
+  viewInfo.subresourceRange.baseMipLevel = 0;
+  viewInfo.subresourceRange.levelCount = 1;
+  viewInfo.subresourceRange.baseArrayLayer = 0;
+  viewInfo.subresourceRange.layerCount = 1;
+
+  VkImageView imageView;
+  if (vkCreateImageView(core->device, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+    throw std::runtime_error("ERROR: Failed to create texture image view!");
+
+  return imageView;
+}
+
+void Resources::destroyImageView(VkImageView imageView) {
+  vkDestroyImageView(core->device, imageView, nullptr);
+}
+
+void Resources::destroyImageViews(std::vector<VkImageView>& imageViews) {
+  for (auto imageView : imageViews)
+    vkDestroyImageView(core->device, imageView, nullptr);
+}
+
+std::vector<VkImageView> Resources::createImageViews(std::vector<VkImage>& images, VkFormat format, VkImageAspectFlags aspectFlags) {
+  std::vector<VkImageView> imageViews;
+  imageViews.resize(images.size());
+  for (uint32_t i = 0; i < images.size(); ++i)
+    imageViews[i] = createImageView(images[i], format, aspectFlags);
+  return imageViews;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////

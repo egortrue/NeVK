@@ -7,7 +7,8 @@
 // Внутренние зависимости
 #include "core/core.h"
 #include "resources/resources.h"
-#include "render/commands.h"
+#include "render/commands/commands.h"
+#include "render/pass/geometry.h"
 
 // Стандартные зависимости
 #include <array>
@@ -23,11 +24,15 @@ class Engine {
   struct Frame {
     VkCommandPool cmdPool;
     VkCommandBuffer cmdBuffer;
+    VkFence drawing;
+    VkSemaphore available;
   };
 
  public:
   Engine(GLFWwindow*);
   ~Engine();
+
+  void drawFrame();
 
  private:
   Window* window;
@@ -47,7 +52,11 @@ class Engine {
   void destroyCommands();
 
   std::vector<Frame> frames;
+  uint32_t currentFrameIndex;
   void initFrames();
   void destroyFrames();
-  void drawFrame();
+
+  GeometryPass geometryPass;
+  void initGeometryPass();
+  void destroyGeometryPass();
 };
