@@ -5,10 +5,10 @@
 #include <GLFW/glfw3.h>
 
 // Внутренние библиотеки
-#include "core/core.h"
-#include "resources/resources.h"
-#include "render/commands/commands.h"
-#include "render/pass/geometry.h"
+#include "core.h"
+#include "resources.h"
+#include "commands.h"
+#include "render/passes/geometry.h"
 
 // Стандартные библиотеки
 #include <array>

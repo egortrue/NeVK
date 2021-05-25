@@ -2,9 +2,10 @@
 
 // Внутренние библиотеки
 #include "core.h"
+#include "commands.h"
 #include "resources.h"
 #include "shaders.h"
-#include "commands/commands.h"
+#include "textures.h"
 
 // Стандартные библиотеки
 #include <array>

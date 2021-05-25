@@ -39,9 +39,9 @@ class GeometryPass : public RenderPass {
   VkDeviceMemory textureImageMemory;
   VkImageView textureImageView;
   VkSampler textureSampler;
+
   void createTextureImage();
   void destroyTextureImage();
-
   void createDescriptorSetLayout() override;
 
   //void updateUniformBuffer(uint32_t imageIndex, const glm::float4x4& perspective, const glm::float4x4& view);
