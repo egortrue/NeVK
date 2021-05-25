@@ -15,9 +15,9 @@
 class RenderPass {
  public:
   CoreManager core;
+  CommandsManager commands;
   ResourcesManager resources;
   ShadersManager shaders;
-  CommandsManager commands;
 
   virtual void init() = 0;
   virtual void resize() = 0;

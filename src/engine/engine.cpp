@@ -6,6 +6,7 @@ Engine::Engine(GLFWwindow* window) {
   initResources();
   initCommands();
   initShaders();
+  initTextures();
   initFrames();
   initGeometryPass();
 }
@@ -14,6 +15,7 @@ Engine::~Engine() {
   vkDeviceWaitIdle(core->device);
   destroyGeometryPass();
   destroyFrames();
+  destroyTextures();
   destroyShaders();
   destroyCommands();
   destroyResources();
@@ -98,6 +100,17 @@ void Engine::destroyShaders() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void Engine::initTextures() {
+  textures = new Textures(core, commands, resources);
+}
+
+void Engine::destroyTextures() {
+  if (textures != nullptr)
+    delete textures;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void Engine::initFrames() {
   currentFrameIndex = 0;
   frames.resize(core->swapchainImages.size());
@@ -135,6 +148,7 @@ void Engine::initGeometryPass() {
   geometryPass.commands = commands;
   geometryPass.shaders = shaders;
   geometryPass.shaderName = std::string("shaders/geometry.hlsl");
+  geometryPass.textures = textures;
   geometryPass.textureName = std::string("misc/textures/brickwall.png");
 
   // Цель вывода прохода рендера

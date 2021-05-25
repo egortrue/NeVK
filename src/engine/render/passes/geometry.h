@@ -1,18 +1,11 @@
 #pragma once
 
-// Сторонние библиотеки
-#define STB_IMAGE_STATIC
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 // Внутренние библиотеки
 #include "pass.h"
 
 class GeometryPass : public RenderPass {
  public:
-  void init() override;
-  void resize() override;
-  void destroy() override;
+  TexturesManager textures;
 
   struct RecordData {
     VkCommandBuffer cmd;
@@ -21,6 +14,10 @@ class GeometryPass : public RenderPass {
     VkBuffer indices;
     VkBuffer vertices;
   };
+
+  void init() override;
+  void resize() override;
+  void destroy() override;
   void record(RecordData&);
 
  private:
@@ -35,8 +32,6 @@ class GeometryPass : public RenderPass {
   void updateDescriptorSets() override;
 
  private:
-  VkImage textureImage;
-  VkDeviceMemory textureImageMemory;
   VkImageView textureImageView;
   VkSampler textureSampler;
 

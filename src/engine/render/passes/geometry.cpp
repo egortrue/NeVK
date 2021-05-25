@@ -78,80 +78,13 @@ void GeometryPass::record(RecordData& data) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GeometryPass::createTextureImage() {
-  // Получим изображение в виде набора пикселов
-  int textureWidth, textureHeight, textureChannels;
-  stbi_uc* pixels = stbi_load(textureName.c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-  VkDeviceSize textureSize = textureWidth * textureHeight * 4;
-  if (!pixels)
-    throw std::runtime_error("ERROR: Failed to load texture image!");
-
-  // Создание временного буфера на устройстве
-  VkBuffer tmpBuffer;
-  VkDeviceMemory tmpBufferMemory;
-  resources->createBuffer(
-      textureSize,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      tmpBuffer, tmpBufferMemory);
-
-  // Отобразим память GPU на память CPU
-  void* commonMemory = nullptr;
-  vkMapMemory(core->device, tmpBufferMemory, 0, textureSize, 0, &commonMemory);
-  if (commonMemory == nullptr)
-    throw std::runtime_error("ERROR: Failed to map memory for texture image!");
-
-  // Скопируем данные текстуры в память устройства
-  memcpy(commonMemory, pixels, static_cast<size_t>(textureSize));
-  vkUnmapMemory(core->device, tmpBufferMemory);
-  stbi_image_free(pixels);
-
-  // Создание изображения для хранения текстуры
-  resources->createImage(
-      textureWidth, textureHeight,
-      VK_FORMAT_R8G8B8A8_SRGB,
-      VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-      textureImage, textureImageMemory);
-
-  // Копирование данных из буфера в изображение
-  VkCommandBuffer cmd = commands->beginSingleTimeCommands();
-  commands->changeImageLayout(cmd, textureImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-  commands->copyBufferToImage(cmd, tmpBuffer, textureImage, textureWidth, textureHeight);
-  commands->changeImageLayout(cmd, textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-  commands->endSingleTimeCommands(cmd);
-
-  // Уничтожим временный буфер
-  resources->destroyBuffer(tmpBuffer, tmpBufferMemory);
-
-  // Создание вида изображения
-  textureImageView = resources->createImageView(
-      textureImage,
-      VK_FORMAT_R8G8B8A8_SRGB,
-      VK_IMAGE_ASPECT_COLOR_BIT);
-
-  VkSamplerCreateInfo samplerInfo{};
-  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  samplerInfo.magFilter = VK_FILTER_LINEAR;
-  samplerInfo.minFilter = VK_FILTER_LINEAR;
-  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.anisotropyEnable = VK_TRUE;
-  samplerInfo.maxAnisotropy = core->physicalDeviceProperties.limits.maxSamplerAnisotropy;
-  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-  samplerInfo.unnormalizedCoordinates = VK_FALSE;
-  samplerInfo.compareEnable = VK_FALSE;
-  samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-  if (vkCreateSampler(core->device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
-    throw std::runtime_error("ERROR: Failed to create texture sampler!");
+  auto texture = textures->loadTexture(textureName);
+  textureImageView = texture->view;
+  textureSampler = textures->sampler;
 }
 
 void GeometryPass::destroyTextureImage() {
-  vkDestroySampler(core->device, textureSampler, nullptr);
-  resources->destroyImageView(textureImageView);
-  resources->destroyImage(textureImage, textureImageMemory);
+  textures->destroyTexture(textureName);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////

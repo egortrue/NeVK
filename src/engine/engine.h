@@ -6,8 +6,10 @@
 
 // Внутренние библиотеки
 #include "core.h"
-#include "resources.h"
 #include "commands.h"
+#include "resources.h"
+#include "shaders.h"
+#include "textures.h"
 #include "render/passes/geometry.h"
 
 // Стандартные библиотеки
@@ -54,6 +56,10 @@ class Engine {
   ShadersManager shaders;
   void initShaders();
   void destroyShaders();
+
+  TexturesManager textures;
+  void initTextures();
+  void destroyTextures();
 
   std::vector<Frame> frames;
   uint32_t currentFrameIndex;
