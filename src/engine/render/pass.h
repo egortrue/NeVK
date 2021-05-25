@@ -1,18 +1,23 @@
 #pragma once
 
+// Внутренние библиотеки
 #include "core.h"
+#include "commands.h"
 #include "resources.h"
 #include "shaders.h"
+#include "textures.h"
 
+// Стандартные библиотеки
 #include <array>
 #include <string>
 #include <vector>
 
 class RenderPass {
  public:
-  Core* core;
-  Resources* resources;
-  ShaderManager* shaderManager;
+  CoreManager core;
+  CommandsManager commands;
+  ResourcesManager resources;
+  ShadersManager shaders;
 
   virtual void init() = 0;
   virtual void resize() = 0;
@@ -44,14 +49,12 @@ class RenderPass {
   //=========================================================================
   // Множества ресурсов, привязанные к конвейеру
 
- public:
-  virtual void updateDescriptorSets() = 0;
-
  protected:
   std::vector<VkDescriptorSet> descriptorSets;  // Множества ресурсов
   VkDescriptorSetLayout descriptorSetLayout;    // Раскладка каждого множества
   void createDescriptorSets();
   virtual void createDescriptorSetLayout() = 0;
+  virtual void updateDescriptorSets() = 0;
 
   //=========================================================================
   // Наборы изображений, в которые будет идти результат

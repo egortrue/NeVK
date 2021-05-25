@@ -27,16 +27,16 @@ void RenderPass::createShaderModules() {
 
   try {
     // Попытка (пере)компиляции новых шейдеров в SPIR-V
-    uint32_t vertId = shaderManager->loadShader(shaderName.c_str(), "vertexMain", SLANG_STAGE_VERTEX);
-    uint32_t fragId = shaderManager->loadShader(shaderName.c_str(), "fragmentMain", SLANG_STAGE_FRAGMENT);
+    uint32_t vertId = shaders->loadShader(shaderName.c_str(), "vertexMain", SLANG_STAGE_VERTEX);
+    uint32_t fragId = shaders->loadShader(shaderName.c_str(), "fragmentMain", SLANG_STAGE_FRAGMENT);
 
     // Получение SPIR-V
     const char* vertShaderCode = nullptr;
     uint32_t vertShaderCodeSize = 0;
-    shaderManager->getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+    shaders->getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
     const char* fragShaderCode = nullptr;
     uint32_t fragShaderCodeSize = 0;
-    shaderManager->getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+    shaders->getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
 
     // Создание модулей
     vertexShader = createModule(vertShaderCode, vertShaderCodeSize);

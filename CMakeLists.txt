@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(nevk)
 
-#================================================================
+#===============================================================================================
 # Переменные общего назначения
 
 # Требуемый стандарт C++
@@ -13,12 +13,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
 
-#================================================================
+#===============================================================================================
 # Требования
 
 find_package(Vulkan REQUIRED) # Необходим Vulkan SDK на локальном ПК
 
-#================================================================
+#===============================================================================================
 # Внутренние библиотеки
 
 # CORE
@@ -33,6 +33,17 @@ add_library(${LIBRARY_CORE_NAME} OBJECT ${LIBRARY_CORE_SOURCES})
 target_include_directories(${LIBRARY_CORE_NAME} PUBLIC ${LIBRARY_CORE_PATH})
 target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC Vulkan::Vulkan)
 
+# COMMANDS
+set(LIBRARY_COMMANDS_NAME commands)
+set(LIBRARY_COMMANDS_PATH src/engine/commands)
+set(LIBRARY_COMMANDS_SOURCES
+    ${LIBRARY_COMMANDS_PATH}/commands.h
+    ${LIBRARY_COMMANDS_PATH}/commands.cpp
+)
+add_library(${LIBRARY_COMMANDS_NAME} OBJECT ${LIBRARY_COMMANDS_SOURCES})
+target_include_directories(${LIBRARY_COMMANDS_NAME} PUBLIC ${LIBRARY_COMMANDS_PATH})
+target_link_libraries(${LIBRARY_COMMANDS_NAME} PUBLIC ${LIBRARY_CORE_NAME})
+
 # RESOURCES
 set(LIBRARY_RESOURCES_NAME resources)
 set(LIBRARY_RESOURCES_PATH src/engine/resources)
@@ -46,7 +57,7 @@ target_link_libraries(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_CORE_NAME})
 
 # SHADERS
 set(LIBRARY_SHADERS_NAME shaders)
-set(LIBRARY_SHADERS_PATH src/engine/render/shaders)
+set(LIBRARY_SHADERS_PATH src/engine/resources/shaders)
 set(LIBRARY_SHADERS_SOURCES
     ${LIBRARY_SHADERS_PATH}/shaders.h
     ${LIBRARY_SHADERS_PATH}/shaders.cpp
@@ -54,23 +65,37 @@ set(LIBRARY_SHADERS_SOURCES
 add_library(${LIBRARY_SHADERS_NAME} OBJECT ${LIBRARY_SHADERS_SOURCES})
 target_include_directories(${LIBRARY_SHADERS_NAME} PUBLIC ${LIBRARY_SHADERS_PATH})
 
+# TEXTURES
+set(LIBRARY_TEXTURES_NAME textures)
+set(LIBRARY_TEXTURES_PATH src/engine/resources/textures)
+set(LIBRARY_TEXTURES_SOURCES
+    ${LIBRARY_TEXTURES_PATH}/textures.h
+    ${LIBRARY_TEXTURES_PATH}/textures.cpp
+)
+add_library(${LIBRARY_TEXTURES_NAME} OBJECT ${LIBRARY_TEXTURES_SOURCES})
+target_include_directories(${LIBRARY_TEXTURES_NAME} PUBLIC ${LIBRARY_TEXTURES_PATH})
+target_link_libraries(${LIBRARY_TEXTURES_NAME} PUBLIC
+    ${LIBRARY_COMMANDS_NAME} 
+    ${LIBRARY_RESOURCES_NAME}
+)
+
 # RENDER
 set(LIBRARY_RENDER_NAME render)
 set(LIBRARY_RENDER_PATH src/engine/render)
 set(LIBRARY_RENDER_SOURCES
-    ${LIBRARY_RENDER_PATH}/commands/commands.h
-    ${LIBRARY_RENDER_PATH}/commands/commands.cpp
-    ${LIBRARY_RENDER_PATH}/pass/pass.h
-    ${LIBRARY_RENDER_PATH}/pass/pass.cpp
-    ${LIBRARY_RENDER_PATH}/pass/geometry.h
-    ${LIBRARY_RENDER_PATH}/pass/geometry.cpp
+    ${LIBRARY_RENDER_PATH}/pass.h
+    ${LIBRARY_RENDER_PATH}/pass.cpp
+    ${LIBRARY_RENDER_PATH}/passes/geometry.h
+    ${LIBRARY_RENDER_PATH}/passes/geometry.cpp
 )
 add_library(${LIBRARY_RENDER_NAME} OBJECT ${LIBRARY_RENDER_SOURCES})
 target_include_directories(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_RENDER_PATH})
 target_link_libraries(${LIBRARY_RENDER_NAME} PUBLIC 
     ${LIBRARY_CORE_NAME}
+    ${LIBRARY_COMMANDS_NAME} 
     ${LIBRARY_RESOURCES_NAME}
     ${LIBRARY_SHADERS_NAME}
+    ${LIBRARY_TEXTURES_NAME}
 )
 
 # ENGINE
@@ -84,20 +109,26 @@ add_library(${LIBRARY_ENGINE_NAME} OBJECT ${LIBRARY_ENGINE_SOURCES})
 target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_ENGINE_PATH})
 target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC 
     ${LIBRARY_CORE_NAME}
+    ${LIBRARY_COMMANDS_NAME} 
     ${LIBRARY_RESOURCES_NAME}
+    ${LIBRARY_SHADERS_NAME}
+    ${LIBRARY_TEXTURES_NAME}
     ${LIBRARY_RENDER_NAME}
 )
 
-#================================================================
-# Внешние библиотеки
+#===============================================================================================
+# Сторонние библиотеки
 
-# GLFW -> Engine
+# GLFW (Оконный менеджер) -> ENGINE
 target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC external/glfw/include) 
 target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/glfw3.lib")
 
-# SLANG -> ShaderManager
+# SLANG (Компиляция шейдеров) -> SHADERS
 target_include_directories(${LIBRARY_SHADERS_NAME} PUBLIC external/slang/include)
 target_link_libraries(${LIBRARY_SHADERS_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/slang.lib")
+
+# STB (Загрузка изображений) -> TEXTURES
+target_include_directories(${LIBRARY_TEXTURES_NAME} PUBLIC external/stb)
 
 #================================================================
 # Приложение
@@ -105,28 +136,37 @@ target_link_libraries(${LIBRARY_SHADERS_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/extern
 add_executable(${PROJECT_NAME} src/app/app.cpp src/app/app.h)
 target_include_directories(${PROJECT_NAME} PUBLIC src/)
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-    ${LIBRARY_ENGINE_NAME}
     ${LIBRARY_CORE_NAME}
+    ${LIBRARY_COMMANDS_NAME} 
     ${LIBRARY_RESOURCES_NAME}
-    ${LIBRARY_RENDER_NAME}
     ${LIBRARY_SHADERS_NAME}
+    ${LIBRARY_TEXTURES_NAME}
+    ${LIBRARY_RENDER_NAME}
+    ${LIBRARY_ENGINE_NAME}
 )
 
 # Копирование шейдеров в рабочую директорию
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E create_symlink
-        "${CMAKE_SOURCE_DIR}/src/shaders"
-        "${OUTPUT_DIRECTORY}/shaders"
-        )
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+    "${CMAKE_SOURCE_DIR}/src/shaders"
+    "${OUTPUT_DIRECTORY}/shaders"
+)
 
-# Копирование библиотеки SLANG в рабочую директорию
+# Копирование текстур в рабочую директорию
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+    "${CMAKE_SOURCE_DIR}/misc"
+    "${OUTPUT_DIRECTORY}/misc"
+)
+
+# Копирование динамической библиотеки SLANG в рабочую директорию
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
-        "${OUTPUT_DIRECTORY}"
-        )
+    COMMAND ${CMAKE_COMMAND} -E copy
+    "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
+    "${OUTPUT_DIRECTORY}"
+)
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
-        "${OUTPUT_DIRECTORY}"
-        )
+    COMMAND ${CMAKE_COMMAND} -E copy
+    "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
+    "${OUTPUT_DIRECTORY}"
+)

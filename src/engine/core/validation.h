@@ -1,7 +1,11 @@
 #pragma once
 
-#include <vector>
+// Сторонние библиотеки
 #include <vulkan/vulkan.h>
+
+// Стандартные библиотеки
+#include <iostream>
+#include <vector>
 
 static const bool enableValidationLayers = true;
 

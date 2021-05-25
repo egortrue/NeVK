@@ -5,6 +5,8 @@ Engine::Engine(GLFWwindow* window) {
   initCore();
   initResources();
   initCommands();
+  initShaders();
+  initTextures();
   initFrames();
   initGeometryPass();
 }
@@ -13,11 +15,15 @@ Engine::~Engine() {
   vkDeviceWaitIdle(core->device);
   destroyGeometryPass();
   destroyFrames();
+  destroyTextures();
+  destroyShaders();
   destroyCommands();
   destroyResources();
   destroyCore();
   destroyWindow();
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::initWindow(GLFWwindow* window) {
   this->window = new Window;
@@ -28,6 +34,8 @@ void Engine::destroyWindow() {
   if (window != nullptr)
     delete window;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::initCore() {
   core = new Core();
@@ -57,6 +65,8 @@ void Engine::destroyCore() {
   }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void Engine::initResources() {
   resources = new Resources(core);
 }
@@ -66,6 +76,8 @@ void Engine::destroyResources() {
     delete resources;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void Engine::initCommands() {
   commands = new Commands(core);
 }
@@ -74,6 +86,30 @@ void Engine::destroyCommands() {
   if (commands != nullptr)
     delete commands;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Engine::initShaders() {
+  shaders = new Shaders();
+}
+
+void Engine::destroyShaders() {
+  if (shaders != nullptr)
+    delete shaders;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Engine::initTextures() {
+  textures = new Textures(core, commands, resources);
+}
+
+void Engine::destroyTextures() {
+  if (textures != nullptr)
+    delete textures;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::initFrames() {
   currentFrameIndex = 0;
@@ -104,21 +140,28 @@ void Engine::destroyFrames() {
   }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void Engine::initGeometryPass() {
   geometryPass.core = core;
   geometryPass.resources = resources;
-  geometryPass.shaderManager = new ShaderManager();
+  geometryPass.commands = commands;
+  geometryPass.shaders = shaders;
   geometryPass.shaderName = std::string("shaders/geometry.hlsl");
+  geometryPass.textures = textures;
+  geometryPass.textureName = std::string("misc/textures/brickwall.png");
 
   // Цель вывода прохода рендера
   geometryPass.targetImageCount = core->swapchainImageCount;
   geometryPass.targetImageWidth = core->swapchainExtent.width;
   geometryPass.targetImageHeight = core->swapchainExtent.height;
   geometryPass.targetImageFormat = core->swapchainFormat;
+
   // TODO: тройное копирование векторов
-  geometryPass.targetImageViews = resources->createImageViews(core->swapchainImages,
-                                                              core->swapchainFormat,
-                                                              VK_IMAGE_ASPECT_COLOR_BIT);
+  geometryPass.targetImageViews = resources->createImageViews(
+      core->swapchainImages,
+      core->swapchainFormat,
+      VK_IMAGE_ASPECT_COLOR_BIT);
 
   geometryPass.init();
 }
@@ -127,6 +170,8 @@ void Engine::destroyGeometryPass() {
   resources->destroyImageViews(geometryPass.targetImageViews);
   geometryPass.destroy();
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::drawFrame() {
   Frame& frame = frames[currentFrameIndex];

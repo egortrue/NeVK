@@ -1,16 +1,18 @@
 #pragma once
 
-// Сторонние зависимости
+// Сторонние библиотеки
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-// Внутренние зависимости
-#include "core/core.h"
-#include "resources/resources.h"
-#include "render/commands/commands.h"
-#include "render/pass/geometry.h"
+// Внутренние библиотеки
+#include "core.h"
+#include "commands.h"
+#include "resources.h"
+#include "shaders.h"
+#include "textures.h"
+#include "render/passes/geometry.h"
 
-// Стандартные зависимости
+// Стандартные библиотеки
 #include <array>
 
 class Engine {
@@ -39,17 +41,25 @@ class Engine {
   void initWindow(GLFWwindow*);
   void destroyWindow();
 
-  Core* core;
+  CoreManager core;
   void initCore();
   void destroyCore();
 
-  Resources* resources;
+  ResourcesManager resources;
   void initResources();
   void destroyResources();
 
-  Commands* commands;
+  CommandsManager commands;
   void initCommands();
   void destroyCommands();
+
+  ShadersManager shaders;
+  void initShaders();
+  void destroyShaders();
+
+  TexturesManager textures;
+  void initTextures();
+  void destroyTextures();
 
   std::vector<Frame> frames;
   uint32_t currentFrameIndex;

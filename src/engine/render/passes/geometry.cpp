@@ -1,17 +1,16 @@
 #include "geometry.h"
 
 void GeometryPass::init() {
-  createTextureImage();
-  createDepthImage();
-  createShaderModules();
-
-  //createUniformBuffers();
+  createTextureDescriptors();
   createDescriptorSetLayout();
   createDescriptorSets();
   updateDescriptorSets();
 
+  createShaderModules();
   createRenderPass();
   createGraphicsPipeline();
+
+  createDepthImageFramebuffer();
   createFramebuffers();
 }
 
@@ -29,8 +28,8 @@ void GeometryPass::resize() {
 
 void GeometryPass::destroy() {
   RenderPass::destroy();
-  destroyDepthImage();
-  destroyTextureImage();
+  destroyDepthImageFramebuffer();
+  destroyTextureDescriptors();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -77,47 +76,19 @@ void GeometryPass::record(RecordData& data) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createTextureImage() {
-  resources->createImage(
-      core->swapchainExtent.width, core->swapchainExtent.height,
-      VK_FORMAT_R8G8B8A8_SRGB,
-      VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-      textureImage, textureImageMemory);
-
-  textureImageView = resources->createImageView(
-      textureImage,
-      VK_FORMAT_R8G8B8A8_SRGB,
-      VK_IMAGE_ASPECT_COLOR_BIT);
-
-  VkSamplerCreateInfo samplerInfo{};
-  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  samplerInfo.magFilter = VK_FILTER_LINEAR;
-  samplerInfo.minFilter = VK_FILTER_LINEAR;
-  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.anisotropyEnable = VK_TRUE;
-  samplerInfo.maxAnisotropy = core->physicalDeviceProperties.limits.maxSamplerAnisotropy;
-  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-  samplerInfo.unnormalizedCoordinates = VK_FALSE;
-  samplerInfo.compareEnable = VK_FALSE;
-  samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-  if (vkCreateSampler(core->device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
-    throw std::runtime_error("ERROR: Failed to create texture sampler!");
+void GeometryPass::createTextureDescriptors() {
+  auto texture = textures->loadTexture(textureName);
+  textureImageView = texture->view;
+  textureSampler = textures->sampler;
 }
 
-void GeometryPass::destroyTextureImage() {
-  vkDestroySampler(core->device, textureSampler, nullptr);
-  resources->destroyImageView(textureImageView);
-  resources->destroyImage(textureImage, textureImageMemory);
+void GeometryPass::destroyTextureDescriptors() {
+  textures->destroyTexture(textureName);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createDepthImage() {
+void GeometryPass::createDepthImageFramebuffer() {
   depthImageFormat = resources->findSupportedFormat(
       {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
       VK_IMAGE_TILING_OPTIMAL,
@@ -138,7 +109,7 @@ void GeometryPass::createDepthImage() {
       VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void GeometryPass::destroyDepthImage() {
+void GeometryPass::destroyDepthImageFramebuffer() {
   resources->destroyImageView(depthImageView);
   resources->destroyImage(depthImage, depthImageMemory);
 }
@@ -461,13 +432,6 @@ void GeometryPass::createRenderPass() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GeometryPass::createDescriptorSetLayout() {
-  //   VkDescriptorSetLayoutBinding uboLayoutBinding{};
-  //   uboLayoutBinding.binding = 0;
-  //   uboLayoutBinding.descriptorCount = 1;
-  //   uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  //   uboLayoutBinding.pImmutableSamplers = nullptr;
-  //   uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
   VkDescriptorSetLayoutBinding texLayoutBinding{};
   texLayoutBinding.binding = 0;
   texLayoutBinding.descriptorCount = 1;
@@ -500,11 +464,6 @@ void GeometryPass::createDescriptorSetLayout() {
 
 void GeometryPass::updateDescriptorSets() {
   for (size_t i = 0; i < targetImageCount; ++i) {
-    // VkDescriptorBufferInfo bufferInfo{};
-    // bufferInfo.buffer = uniformBuffers[i];
-    // bufferInfo.offset = 0;
-    // bufferInfo.range = 0;  //sizeof(UniformBufferObject);
-
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = textureImageView;
@@ -513,14 +472,6 @@ void GeometryPass::updateDescriptorSets() {
     samplerInfo.sampler = textureSampler;
 
     std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-    // descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    // descriptorWrites[0].dstSet = descriptorSets[i];
-    // descriptorWrites[0].dstBinding = 0;
-    // descriptorWrites[0].dstArrayElement = 0;
-    // descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    // descriptorWrites[0].descriptorCount = 1;
-    // descriptorWrites[0].pBufferInfo = &bufferInfo;
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[0].dstSet = descriptorSets[i];
