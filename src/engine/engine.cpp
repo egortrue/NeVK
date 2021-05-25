@@ -79,7 +79,7 @@ void Engine::destroyResources() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::initCommands() {
-  commands = new Commands(core);
+  commands = new Commands(core, resources);
 }
 
 void Engine::destroyCommands() {

@@ -24,6 +24,7 @@ class Textures {
     int width, height;
     VkImage image;
     VkImageView view;
+    VkDeviceSize size;
     VkDeviceMemory memory;
   };
 

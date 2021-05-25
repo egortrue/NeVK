@@ -51,29 +51,9 @@ Textures::texture_t* Textures::createTexture(const std::string& name) {
 
   // Получим изображение в виде набора пикселов
   stbi_uc* pixels = stbi_load(name.c_str(), &texture->width, &texture->height, nullptr, STBI_rgb_alpha);
-  VkDeviceSize textureSize = texture->width * texture->height * 4;
+  texture->size = texture->width * texture->height * 4;
   if (!pixels)
     throw std::runtime_error(std::string("ERROR: Failed to load texture image: ") + name);
-
-  // Создание временного буфера на устройстве
-  VkBuffer tmpBuffer;
-  VkDeviceMemory tmpBufferMemory;
-  resources->createBuffer(
-      textureSize,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      tmpBuffer, tmpBufferMemory);
-
-  // Отображение память GPU на память CPU
-  void* commonMemory = nullptr;
-  vkMapMemory(core->device, tmpBufferMemory, 0, textureSize, 0, &commonMemory);
-  if (commonMemory == nullptr)
-    throw std::runtime_error(std::string("ERROR: Failed to map memory for texture image: ") + name);
-
-  // Скопируем данные текстуры в память устройства
-  memcpy(commonMemory, pixels, static_cast<size_t>(textureSize));
-  vkUnmapMemory(core->device, tmpBufferMemory);
-  stbi_image_free(pixels);
 
   // Создание изображения для хранения текстуры
   resources->createImage(
@@ -84,15 +64,11 @@ Textures::texture_t* Textures::createTexture(const std::string& name) {
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
       texture->image, texture->memory);
 
-  // Копирование данных из буфера в изображение
-  VkCommandBuffer cmd = commands->beginSingleTimeCommands();
-  commands->changeImageLayout(cmd, texture->image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-  commands->copyBufferToImage(cmd, tmpBuffer, texture->image, texture->width, texture->height);
-  commands->changeImageLayout(cmd, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-  commands->endSingleTimeCommands(cmd);
+  // Заполнение изображения данными
+  commands->copyDataToImage(pixels, texture->image, texture->size, texture->width, texture->height);
 
-  // Уничтожим временный буфер
-  resources->destroyBuffer(tmpBuffer, tmpBufferMemory);
+  // Удалим сырые данные
+  stbi_image_free(pixels);
 
   // Создание вида изображения
   texture->view = resources->createImageView(
