@@ -142,3 +142,31 @@ void Resources::destroyImage(VkImage image, VkDeviceMemory imageMemory) {
   vkDestroyImage(core->device, image, nullptr);
   vkFreeMemory(core->device, imageMemory, nullptr);
 }
+
+VkImageView Resources::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+  VkImageViewCreateInfo viewInfo{};
+  viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+
+  viewInfo.image = image;
+  viewInfo.format = format;
+  viewInfo.subresourceRange.aspectMask = aspectFlags;
+  viewInfo.subresourceRange.baseMipLevel = 0;
+  viewInfo.subresourceRange.levelCount = 1;
+  viewInfo.subresourceRange.baseArrayLayer = 0;
+  viewInfo.subresourceRange.layerCount = 1;
+
+  VkImageView imageView;
+  if (vkCreateImageView(core->device, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+    throw std::runtime_error("ERROR: Failed to create texture image view!");
+
+  return imageView;
+}
+
+std::vector<VkImageView> Resources::createImageViews(std::vector<VkImage>& images, VkFormat format, VkImageAspectFlags aspectFlags) {
+  std::vector<VkImageView> imageViews;
+  imageViews.resize(images.size());
+  for (uint32_t i = 0; i < images.size(); ++i)
+    imageViews[i] = createImageView(images[i], format, aspectFlags);
+  return imageViews;
+}

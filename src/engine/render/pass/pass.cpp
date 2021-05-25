@@ -27,8 +27,8 @@ void RenderPass::createShaderModules() {
 
   try {
     // Попытка (пере)компиляции новых шейдеров в SPIR-V
-    uint32_t vertId = shaderManager->loadShader(shaderName.c_str(), "vertexMain", false);
-    uint32_t fragId = shaderManager->loadShader(shaderName.c_str(), "fragmentMain", true);
+    uint32_t vertId = shaderManager->loadShader(shaderName.c_str(), "vertexMain", SLANG_STAGE_VERTEX);
+    uint32_t fragId = shaderManager->loadShader(shaderName.c_str(), "fragmentMain", SLANG_STAGE_FRAGMENT);
 
     // Получение SPIR-V
     const char* vertShaderCode = nullptr;

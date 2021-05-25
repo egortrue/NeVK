@@ -9,10 +9,11 @@
 #include <vector>
 
 class RenderPass {
- protected:
-  Core* core;
-
  public:
+  Core* core;
+  Resources* resources;
+  ShaderManager* shaderManager;
+
   virtual void init() = 0;
   virtual void resize() = 0;
   virtual void destroy();
@@ -31,7 +32,6 @@ class RenderPass {
   // Шейдеры - подпрограммы конвейера
 
  public:
-  ShaderManager* shaderManager;
   std::string shaderName;
   void reloadShader();
 
@@ -45,7 +45,6 @@ class RenderPass {
   // Множества ресурсов, привязанные к конвейеру
 
  public:
-  Resources* resources;
   virtual void updateDescriptorSets() = 0;
 
  protected:
@@ -60,9 +59,11 @@ class RenderPass {
  public:
   uint32_t imageCount;
   uint32_t imageWidth, imageHeight;
-  VkFormat framebufferFormat;
+  std::vector<VkImageView> imageViews;
+  VkFormat imageFormat;
 
  protected:
   std::vector<VkFramebuffer> framebuffers;
   void createFramebuffer(std::vector<VkImageView>&, uint32_t index);
+  virtual void createFramebuffers() = 0;
 };

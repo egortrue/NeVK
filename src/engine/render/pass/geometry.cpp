@@ -1,5 +1,69 @@
 #include "geometry.h"
 
+void GeometryPass::init() {
+  createShaderModules();
+  //createUniformBuffers();
+
+  createDescriptorSetLayout();
+  createDescriptorSets();
+  updateDescriptorSets();
+
+  createRenderPass();
+  createGraphicsPipeline();
+  createFramebuffers();
+}
+
+void GeometryPass::record(RecordData& data) {
+  //   std::array<VkClearValue, 2> clearValues{};
+  //   clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+  //   clearValues[1].depthStencil = {1.0f, 0};
+
+  VkRenderPassBeginInfo renderPassInfo{};
+  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.renderPass = renderPass;
+  renderPassInfo.framebuffer = framebuffers[data.imageIndex];
+  renderPassInfo.renderArea.offset = {0, 0};
+  renderPassInfo.renderArea.extent = {imageWidth, imageHeight};
+  //   renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+  //   renderPassInfo.pClearValues = clearValues.data();
+
+  VkViewport viewport{};
+  viewport.x = 0;
+  viewport.y = (float)imageHeight;
+  viewport.width = (float)imageWidth;
+  viewport.height = -(float)imageHeight;
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+
+  vkCmdBeginRenderPass(data.cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+  vkCmdBindPipeline(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+  vkCmdSetViewport(data.cmd, 0, 1, &viewport);
+  //vkCmdSetLineWidth(data.cmd, 1.0f);
+
+  vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
+
+  vkCmdDraw(data.cmd, 3, 1, 0, 0);
+
+  vkCmdEndRenderPass(data.cmd);
+}
+
+void GeometryPass::resize() {
+  for (auto framebuffer : framebuffers)
+    vkDestroyFramebuffer(core->device, framebuffer, nullptr);
+  vkDestroyPipeline(core->device, pipeline, nullptr);
+  vkDestroyPipelineLayout(core->device, pipelineLayout, nullptr);
+  vkDestroyRenderPass(core->device, renderPass, nullptr);
+
+  createRenderPass();
+  createGraphicsPipeline();
+  createFramebuffers();
+}
+
+void GeometryPass::destroy() {
+  RenderPass::destroy();
+}
+
 void GeometryPass::createGraphicsPipeline() {
   //=====================================================================================================
   // Используемые шейдеры
@@ -43,9 +107,9 @@ void GeometryPass::createGraphicsPipeline() {
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexBindingDescriptionCount = 1;
+  vertexInputInfo.vertexBindingDescriptionCount = 0;
   vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-  vertexInputInfo.vertexAttributeDescriptionCount = 1;
+  vertexInputInfo.vertexAttributeDescriptionCount = 0;
   vertexInputInfo.pVertexAttributeDescriptions = &attributeDescription;
 
   //=====================================================================================================
@@ -54,6 +118,7 @@ void GeometryPass::createGraphicsPipeline() {
   VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
   inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;  // Вершины группируются в тройки -> треугольник
+  inputAssembly.primitiveRestartEnable = VK_FALSE;
 
   //=====================================================================================================
   // Преобразование области вывода
@@ -98,9 +163,9 @@ void GeometryPass::createGraphicsPipeline() {
   rasterizer.lineWidth = 1.0f;  // 1.0f - обязательно по умолчанию для всех режимов
 
   // Лицевая сторона полигона (треугольника)
-  // VK_FRONT_FACE_CLOCKWISE --- если вершина отрисована по часовой
-  // VK_FRONT_FACE_COUNTER_CLOCKWISE --- если вершина отрисована против часовой
-  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  // VK_FRONT_FACE_CLOCKWISE --- если полигон отрисован по часовой
+  // VK_FRONT_FACE_COUNTER_CLOCKWISE --- если полигон отрисован против часовой
+  rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 
   // Отброс сторон полигонов (треугольника)
   // VK_CULL_MODE_NONE --- ничего не отбрасывать
@@ -207,19 +272,19 @@ void GeometryPass::createRenderPass() {
   // Описание цветового подключения - выходного изображения конвейера
 
   VkAttachmentDescription colorAttachment{};
-  colorAttachment.format = framebufferFormat;
+  colorAttachment.format = imageFormat;
 
   // Действия при работе с изображением
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;    // В начале - очистить изображение (залить сплошным цветом)
-  colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;  // В конце - сохранить для дальнейшего использования
+  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
   // Действия при работе с трафаретом
-  colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;    // В начале - не важно
-  colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;  // В конце - не важно
+  colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
   // Раскладка изображения
-  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;               // Не устанавливается автоматически
-  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;  // Устанавливается автоматически в конце прохода
+  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;      // Не устанавливается автоматически
+  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;  // Устанавливается автоматически в конце прохода
 
   // Мультисэмплинг
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;  // Число образцов (1 = выкл)
@@ -232,22 +297,22 @@ void GeometryPass::createRenderPass() {
   // Описание изобржения глубины
 
   VkAttachmentDescription depthAttachment{};
-  depthAttachment.format = depthBufferFormat;
+  depthAttachment.format = depthImageFormat;
 
   // Действия при работе с изображением
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;    // В начале - очистить изображением
-  colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;  // В конце - сохранить для дальнейшего использования
+  depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
   // Действия при работе с трафаретом
-  colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;    // В начале - не важно
-  colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;  // В конце - не важно
+  depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
   // Раскладка изображения
-  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;                       // Не устанавливается автоматически
-  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;  // Устанавливается автоматически в конце прохода
+  depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;                       // Не устанавливается автоматически
+  depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;  // Устанавливается автоматически в конце прохода
 
   // Мультисэмплинг
-  colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;  // Число образцов (1 = выкл)
+  depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;  // Число образцов (1 = выкл)
 
   VkAttachmentReference depthAttachmentRef{};
   depthAttachmentRef.attachment = 1;
@@ -264,7 +329,7 @@ void GeometryPass::createRenderPass() {
   subpass.pColorAttachments = &colorAttachmentRef;
 
   // Подключение (только одно) глубины-трафарета
-  subpass.pDepthStencilAttachment = &depthAttachmentRef;
+  //subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
   //=====================================================================================================
   // Зависимости подпроходв рендера
@@ -280,7 +345,7 @@ void GeometryPass::createRenderPass() {
   //=====================================================================================================
   // Создание прохода рендера
 
-  std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+  std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};  //, depthAttachment};
   VkRenderPassCreateInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -294,40 +359,44 @@ void GeometryPass::createRenderPass() {
     throw std::runtime_error("ERROR: Failed to create render pass!");
 }
 
-void GeometryPass::createFramebuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView) {
+void GeometryPass::createFramebuffers() {
   framebuffers.resize(imageCount);
   for (uint32_t i = 0; i < imageCount; ++i) {
     std::vector<VkImageView> attachment = {
         imageViews[i],
-        depthImageView,
+        //depthImageView,
     };
     createFramebuffer(attachment, i);
   }
 }
 
 void GeometryPass::createDescriptorSetLayout() {
-  VkDescriptorSetLayoutBinding uboLayoutBinding{};
-  uboLayoutBinding.binding = 0;
-  uboLayoutBinding.descriptorCount = 1;
-  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  uboLayoutBinding.pImmutableSamplers = nullptr;
-  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+  //   VkDescriptorSetLayoutBinding uboLayoutBinding{};
+  //   uboLayoutBinding.binding = 0;
+  //   uboLayoutBinding.descriptorCount = 1;
+  //   uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  //   uboLayoutBinding.pImmutableSamplers = nullptr;
+  //   uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
   VkDescriptorSetLayoutBinding texLayoutBinding{};
-  texLayoutBinding.binding = 1;
+  texLayoutBinding.binding = 0;
   texLayoutBinding.descriptorCount = 1;
   texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
   texLayoutBinding.pImmutableSamplers = nullptr;
   texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
   VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-  samplerLayoutBinding.binding = 2;
+  samplerLayoutBinding.binding = 1;
   samplerLayoutBinding.descriptorCount = 1;
   samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
   samplerLayoutBinding.pImmutableSamplers = nullptr;
   samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-  std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, texLayoutBinding, samplerLayoutBinding};
+  std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
+      // uboLayoutBinding,
+      texLayoutBinding,
+      samplerLayoutBinding,
+  };
   VkDescriptorSetLayoutCreateInfo layoutInfo{};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -339,10 +408,10 @@ void GeometryPass::createDescriptorSetLayout() {
 
 void GeometryPass::updateDescriptorSets() {
   for (size_t i = 0; i < imageCount; ++i) {
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = uniformBuffers[i];
-    bufferInfo.offset = 0;
-    bufferInfo.range = 0;  //sizeof(UniformBufferObject);
+    // VkDescriptorBufferInfo bufferInfo{};
+    // bufferInfo.buffer = uniformBuffers[i];
+    // bufferInfo.offset = 0;
+    // bufferInfo.range = 0;  //sizeof(UniformBufferObject);
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -351,31 +420,31 @@ void GeometryPass::updateDescriptorSets() {
     VkDescriptorImageInfo samplerInfo{};
     samplerInfo.sampler = textureSampler;
 
-    std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+    // descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    // descriptorWrites[0].dstSet = descriptorSets[i];
+    // descriptorWrites[0].dstBinding = 0;
+    // descriptorWrites[0].dstArrayElement = 0;
+    // descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    // descriptorWrites[0].descriptorCount = 1;
+    // descriptorWrites[0].pBufferInfo = &bufferInfo;
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[0].dstSet = descriptorSets[i];
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
+    descriptorWrites[0].pImageInfo = &imageInfo;
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = descriptorSets[i];
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
-
-    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[2].dstSet = descriptorSets[i];
-    descriptorWrites[2].dstBinding = 2;
-    descriptorWrites[2].dstArrayElement = 0;
-    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    descriptorWrites[2].descriptorCount = 1;
-    descriptorWrites[2].pImageInfo = &samplerInfo;
+    descriptorWrites[1].pImageInfo = &samplerInfo;
 
     vkUpdateDescriptorSets(core->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
   }

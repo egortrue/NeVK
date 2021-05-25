@@ -8,6 +8,15 @@ class GeometryPass : public RenderPass {
   void resize() override;
   void destroy() override;
 
+  struct RecordData {
+    VkCommandBuffer cmd;
+    uint32_t imageIndex;
+    uint32_t indicesCount;
+    VkBuffer indices;
+    VkBuffer vertices;
+  };
+  void record(RecordData&);
+
  private:
   void createRenderPass() override;
   void createGraphicsPipeline() override;
@@ -25,22 +34,27 @@ class GeometryPass : public RenderPass {
   //     alignas(16) glm::mat4 worldToView;
   //     alignas(16) glm::mat4 inverseWorldToView;
   //   };
+  VkImage textureImage;
+  VkDeviceMemory textureImageMemory;
   VkImageView textureImageView;
   VkSampler textureSampler;
 
  private:
-  std::vector<VkBuffer> uniformBuffers;
-  std::vector<VkDeviceMemory> uniformBuffersMemory;
+  //   std::vector<VkBuffer> uniformBuffers;
+  //   std::vector<VkDeviceMemory> uniformBuffersMemory;
 
   void createDescriptorSetLayout() override;
-  void createUniformBuffers();
+  //void createUniformBuffers();
 
   //=========================================================================
   // Наборы изображений, в которые будет идти результат
 
  public:
-  VkFormat depthBufferFormat;
+  VkImage depthImage;
+  VkDeviceMemory depthImageMemory;
+  VkImageView depthImageView;
+  VkFormat depthImageFormat;
 
  private:
-  void createFramebuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView);
+  void createFramebuffers() override;
 };

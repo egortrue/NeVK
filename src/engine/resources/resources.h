@@ -26,4 +26,6 @@ class Resources {
   // Изображения - хранилище структурированных данных
   void createImage(uint32_t width, uint32_t height, VkFormat, VkImageTiling, VkImageUsageFlags, VkMemoryPropertyFlags, VkImage&, VkDeviceMemory&);
   void destroyImage(VkImage, VkDeviceMemory);
+  VkImageView createImageView(VkImage, VkFormat, VkImageAspectFlags);
+  std::vector<VkImageView> createImageViews(std::vector<VkImage>&, VkFormat, VkImageAspectFlags);
 };

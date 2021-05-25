@@ -27,6 +27,7 @@ class Application {
   void run() {
     while (!glfwWindowShouldClose(this->window)) {
       glfwPollEvents();  // Проверка нажатий клавиатуры/мыши
+      engine->drawFrame();
     }
   }
 
