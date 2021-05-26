@@ -114,38 +114,13 @@ void Engine::destroyTextures() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::initModels() {
-  models = new Models();
-  createIndexBuffer();
-  createVertexBuffer();
+  models = new Models(commands, resources);
+  cube = models->loadModel("misc/models/teapot.obj");
 }
 
 void Engine::destroyModels() {
-  resources->destroyBuffer(vertexBuffer, vertexBufferMemory);
-  resources->destroyBuffer(indexBuffer, indexBufferMemory);
   if (models != nullptr)
     delete models;
-}
-
-void Engine::createVertexBuffer() {
-  std::vector<float>& vertices = models->cube.vertices;
-  resources->createBuffer(
-      vertices.size() * sizeof(float),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      vertexBuffer, vertexBufferMemory);
-
-  commands->copyDataToBuffer(vertices.data(), vertexBuffer, vertices.size() * sizeof(float));
-}
-
-void Engine::createIndexBuffer() {
-  std::vector<uint32_t>& indices = models->cube.indices;
-  resources->createBuffer(
-      indices.size() * sizeof(uint32_t),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      indexBuffer, indexBufferMemory);
-
-  commands->copyDataToBuffer(indices.data(), indexBuffer, indices.size() * sizeof(uint32_t));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -235,9 +210,9 @@ void Engine::drawFrame() {
   GeometryPass::record_t data;
   data.cmd = frame.cmdBuffer;
   data.imageIndex = swapchainImageIndex;
-  data.indicesCount = static_cast<uint32_t>(models->cube.indices.size());
-  data.indices = indexBuffer;
-  data.vertices = vertexBuffer;
+  data.indicesCount = cube->verticesCount;  // TODO: Сделать индексацию
+  data.indices = cube->indexBuffer;
+  data.vertices = cube->vertexBuffer;
   geometryPass.record(data);
 
   vkEndCommandBuffer(frame.cmdBuffer);

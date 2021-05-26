@@ -5,12 +5,15 @@
 
 // Внутренние библиотеки
 #include "pass.h"
+#include "textures.h"
 
 // Стандартные библиотеки
 #include <chrono>
 
 class GeometryPass : public RenderPass {
  public:
+  TexturesManager textures;
+
   struct record_t {
     VkCommandBuffer cmd;
     uint32_t imageIndex;
@@ -32,7 +35,6 @@ class GeometryPass : public RenderPass {
   // Выделенные ресурсы, привязанные к конвейеру
 
  public:
-  TexturesManager textures;
   std::string textureName;
   void updateUniformDescriptors(uint32_t imageIndex);
 

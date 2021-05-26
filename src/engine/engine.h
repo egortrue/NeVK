@@ -63,13 +63,9 @@ class Engine {
   void destroyTextures();
 
   ModelsManager models;
+  Models::Instance cube;
   void initModels();
   void destroyModels();
-
-  VkBuffer vertexBuffer, indexBuffer;
-  VkDeviceMemory vertexBufferMemory, indexBufferMemory;
-  void createVertexBuffer();
-  void createIndexBuffer();
 
   std::vector<Frame> frames;
   uint32_t currentFrameIndex;

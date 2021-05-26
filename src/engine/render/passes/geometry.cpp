@@ -1,11 +1,3 @@
-#define GLM_LANG_STL11_FORCED
-#define GLM_ENABLE_EXPERIMENTAL
-#define GLM_FORCE_CTOR_INIT
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
 #include "geometry.h"
 
 void GeometryPass::init() {
@@ -79,12 +71,13 @@ void GeometryPass::record(record_t& data) {
   // Подключение множества ресурсов, используемых в конвейере
   vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
 
-  // Операция рендера
-
+  // Буферы вершин рендера
   VkBuffer vertexBuffers[] = {data.vertices};
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(data.cmd, 0, 1, vertexBuffers, offsets);
   vkCmdBindIndexBuffer(data.cmd, data.indices, 0, VK_INDEX_TYPE_UINT32);
+
+  // Операция рендера
   vkCmdDrawIndexed(data.cmd, data.indicesCount, 1, 0, 0, 0);
 
   vkCmdEndRenderPass(data.cmd);
