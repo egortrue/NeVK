@@ -11,20 +11,23 @@ struct PS_INPUT {
 };
 
 // Ресурсу, привязанные к конвейеру
-Texture2D gTexture; // VkImageView
-SamplerState gSampler; // VkSampler
 cbuffer ubo // VkBuffer
 {
     float4x4 model;
     float4x4 view;
     float4x4 projection;
 }
+Texture2D gTexture; // VkImageView
+SamplerState gSampler; // VkSampler
+
 
 [shader("vertex")]
 PS_INPUT vertexMain(VS_INPUT vertex)
 {
     PS_INPUT data;
-    data.position = float4(vertex.position, 1.0f);
+
+    float4x4 modelViewProj = mul(projection, mul(view, model));
+    data.position = mul(modelViewProj, float4(vertex.position, 1.0f));
     data.uv = vertex.uv;
 
     return data;

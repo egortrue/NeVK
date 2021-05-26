@@ -1,7 +1,8 @@
 #pragma once
 
 // Сторонние библиотеки
-#include "tiny_obj_loader.h"
+#include <tiny_obj_loader.h>
+#include <glm/gtx/compatibility.hpp>
 
 // Стандартные библиотеки
 #include <iostream>
@@ -12,8 +13,8 @@ typedef class Models* ModelsManager;
 class Models {
  private:
   struct vertex_t {
-    std::array<float, 3> position;
-    std::array<float, 2> uv;
+    glm::float3 position;
+    glm::float2 uv;
   };
 
   struct model_t {

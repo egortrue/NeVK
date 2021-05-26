@@ -148,6 +148,9 @@ target_include_directories(${LIBRARY_TEXTURES_NAME} PUBLIC external/stb)
 # TOL (Загрузка объектов) -> MODELS
 target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/tol)
 
+# GLM (Работа с матрицами) -> MODELS
+target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/glm)
+
 #================================================================
 # Приложение
 

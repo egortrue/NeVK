@@ -1,4 +1,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
 
 #include "models.h"
 
@@ -10,7 +13,7 @@ Models::Models() {
   std::string err;
 
   tinyobj::LoadObj(&attrib, &shapes, &materials,
-                   &warn, &err, "misc/models/cube.obj", "misc/models/", true);
+                   &warn, &err, "misc/models/teapot.obj", "misc/models/", true);
 
   for (auto& shape : shapes) {
     size_t index_offset = 0;

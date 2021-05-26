@@ -1,8 +1,17 @@
+#define GLM_LANG_STL11_FORCED
+#define GLM_ENABLE_EXPERIMENTAL
+#define GLM_FORCE_CTOR_INIT
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "geometry.h"
 
 void GeometryPass::init() {
   createDepthImageFramebuffer();
 
+  createUniformDescriptors();
   createTextureDescriptors();
   createDescriptorSetLayout();
   createDescriptorSets();
@@ -30,12 +39,13 @@ void GeometryPass::resize() {
 void GeometryPass::destroy() {
   RenderPass::destroy();
   destroyDepthImageFramebuffer();
+  destroyUniformDescriptors();
   destroyTextureDescriptors();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::record(RecordData& data) {
+void GeometryPass::record(record_t& data) {
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass = renderPass;
@@ -90,6 +100,43 @@ void GeometryPass::createTextureDescriptors() {
 
 void GeometryPass::destroyTextureDescriptors() {
   textures->destroyTexture(textureName);
+}
+
+void GeometryPass::createUniformDescriptors() {
+  VkDeviceSize bufferSize = sizeof(uniform_t);
+  uniformBuffers.resize(targetImageCount);
+  uniformBuffersMemory.resize(targetImageCount);
+
+  for (uint32_t i = 0; i < targetImageCount; ++i) {
+    resources->createBuffer(
+        bufferSize,
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        uniformBuffers[i], uniformBuffersMemory[i]);
+  }
+}
+
+void GeometryPass::destroyUniformDescriptors() {
+  for (uint32_t i = 0; i < targetImageCount; ++i)
+    resources->destroyBuffer(uniformBuffers[i], uniformBuffersMemory[i]);
+}
+
+void GeometryPass::updateUniformDescriptors(uint32_t imageIndex) {
+  // Получим время
+  static auto prevTime = std::chrono::high_resolution_clock::now();
+  auto currentTime = std::chrono::high_resolution_clock::now();
+  float deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
+
+  // Обновим данные структуры
+  uniform.model = glm::rotate(glm::mat4(1.0f), deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 0.5f, 0.0f));
+  uniform.view = glm::lookAt(glm::vec3(0, 2, 3), glm::vec3(0, 0.5f, 0), glm::vec3(0, 1, 0));
+  uniform.projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 256.0f);
+
+  // Скопируем данные в память устройства
+  void* data;
+  vkMapMemory(core->device, uniformBuffersMemory[imageIndex], 0, sizeof(uniform_t), 0, &data);
+  memcpy(data, &uniform, sizeof(uniform_t));
+  vkUnmapMemory(core->device, uniformBuffersMemory[imageIndex]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -253,7 +300,7 @@ void GeometryPass::createGraphicsPipeline() {
   // VK_CULL_MODE_FRONT_BIT --- отброс лицевых полигонов
   // VK_CULL_MODE_BACK_BIT --- отброс нелицевых полигонов
   // VK_CULL_MODE_FRONT_AND_BACK --- отброс обоих сторон полигонов
-  rasterizer.cullMode = VK_CULL_MODE_NONE;
+  rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 
   // Опции глубины
   rasterizer.depthClampEnable = VK_FALSE;  // Отсечение глубины - заполнение дыр геометрии
@@ -430,7 +477,6 @@ void GeometryPass::createRenderPass() {
   //=================================================================================
   // Создание прохода рендера
 
-  //std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
   std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
   VkRenderPassCreateInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -448,25 +494,33 @@ void GeometryPass::createRenderPass() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GeometryPass::createDescriptorSetLayout() {
-  VkDescriptorSetLayoutBinding texLayoutBinding{};
-  texLayoutBinding.binding = 0;
-  texLayoutBinding.descriptorCount = 1;
-  texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-  texLayoutBinding.pImmutableSamplers = nullptr;
-  texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  VkDescriptorSetLayoutBinding uniformLayout{};
+  uniformLayout.binding = 0;
+  uniformLayout.descriptorCount = 1;
+  uniformLayout.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  uniformLayout.pImmutableSamplers = nullptr;
+  uniformLayout.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-  VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-  samplerLayoutBinding.binding = 1;
-  samplerLayoutBinding.descriptorCount = 1;
-  samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-  samplerLayoutBinding.pImmutableSamplers = nullptr;
-  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  VkDescriptorSetLayoutBinding textureImageLayout{};
+  textureImageLayout.binding = 1;
+  textureImageLayout.descriptorCount = 1;
+  textureImageLayout.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+  textureImageLayout.pImmutableSamplers = nullptr;
+  textureImageLayout.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-  std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
-      // uboLayoutBinding,
-      texLayoutBinding,
-      samplerLayoutBinding,
+  VkDescriptorSetLayoutBinding textureSamplerLayout{};
+  textureSamplerLayout.binding = 2;
+  textureSamplerLayout.descriptorCount = 1;
+  textureSamplerLayout.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+  textureSamplerLayout.pImmutableSamplers = nullptr;
+  textureSamplerLayout.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  std::array<VkDescriptorSetLayoutBinding, 3> bindings = {
+      uniformLayout,
+      textureImageLayout,
+      textureSamplerLayout,
   };
+
   VkDescriptorSetLayoutCreateInfo layoutInfo{};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -480,6 +534,13 @@ void GeometryPass::createDescriptorSetLayout() {
 
 void GeometryPass::updateDescriptorSets() {
   for (size_t i = 0; i < targetImageCount; ++i) {
+    //=========================================================================
+    // Инициализация ресурсов
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = uniformBuffers[i];
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(uniform_t);
+
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = textureImageView;
@@ -487,23 +548,33 @@ void GeometryPass::updateDescriptorSets() {
     VkDescriptorImageInfo samplerInfo{};
     samplerInfo.sampler = textureSampler;
 
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    //=========================================================================
+    // Запись ресурсов
 
+    std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSets[i];
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pImageInfo = &imageInfo;
+    descriptorWrites[0].pBufferInfo = &bufferInfo;
+    descriptorWrites[0].dstSet = descriptorSets[i];
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSets[i];
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &samplerInfo;
+    descriptorWrites[1].pImageInfo = &imageInfo;
+    descriptorWrites[1].dstSet = descriptorSets[i];
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+
+    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[2].dstBinding = 2;
+    descriptorWrites[2].dstArrayElement = 0;
+    descriptorWrites[2].descriptorCount = 1;
+    descriptorWrites[2].pImageInfo = &samplerInfo;
+    descriptorWrites[2].dstSet = descriptorSets[i];
+    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
 
     vkUpdateDescriptorSets(core->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
   }
