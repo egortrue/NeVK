@@ -34,7 +34,7 @@ Models::Instance Models::loadModel(const std::string& name) {
   // Чтение данных из файла .obj
   tinyobj::ObjReader reader;
   tinyobj::ObjReaderConfig readerConfig;
-  readerConfig.mtl_search_path = "misc/models/";
+  readerConfig.mtl_search_path = "misc\\models";
   reader.ParseFromFile(name, readerConfig);
 
   // Проверка корректного чтения

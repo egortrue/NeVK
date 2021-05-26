@@ -6,6 +6,7 @@
 // Внутренние библиотеки
 #include "pass.h"
 #include "textures.h"
+#include "models.h"
 
 // Стандартные библиотеки
 #include <chrono>

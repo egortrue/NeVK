@@ -199,26 +199,23 @@ void GeometryPass::createGraphicsPipeline() {
   //=================================================================================
   // Размещение геометрических данных в памяти
 
-  struct vertex {
-    float x, y, z, u, v;
-  };
-
   // Описание структур, содержащихся в вершинном буфере
   VkVertexInputBindingDescription bindingDescription{};
-  bindingDescription.binding = 0;              // Уникальный id
-  bindingDescription.stride = sizeof(vertex);  // Расстояние между началами структур (размер структуры)
+  bindingDescription.binding = 0;                        // Уникальный id
+  bindingDescription.stride = sizeof(Models::vertex_t);  // Расстояние между началами структур (размер структуры)
   bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
   // Описание членов структур, содержащихся в вершинном буфере
   VkVertexInputAttributeDescription positionAttributeDescription{};
-  positionAttributeDescription.binding = 0;   // Уникальный id структуры
-  positionAttributeDescription.location = 0;  // Уникальный id для каждого члена структуры
-  positionAttributeDescription.offset = 0;    // Смещение от начала структуры
+  positionAttributeDescription.binding = 0;                                    // Уникальный id структуры
+  positionAttributeDescription.location = 0;                                   // Уникальный id для каждого члена структуры
+  positionAttributeDescription.offset = offsetof(Models::vertex_t, position);  // Смещение от начала структуры
   positionAttributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+
   VkVertexInputAttributeDescription uvAttributeDescription{};
-  uvAttributeDescription.binding = 0;                 // Уникальный id структуры
-  uvAttributeDescription.location = 1;                // Уникальный id для каждого члена структуры
-  uvAttributeDescription.offset = 3 * sizeof(float);  // Смещение от начала структуры
+  uvAttributeDescription.binding = 0;                              // Уникальный id структуры
+  uvAttributeDescription.location = 1;                             // Уникальный id для каждого члена структуры
+  uvAttributeDescription.offset = offsetof(Models::vertex_t, uv);  // Смещение от начала структуры
   uvAttributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
 
   std::array<VkVertexInputAttributeDescription, 2> attributesDesc = {
