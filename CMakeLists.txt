@@ -33,17 +33,6 @@ add_library(${LIBRARY_CORE_NAME} OBJECT ${LIBRARY_CORE_SOURCES})
 target_include_directories(${LIBRARY_CORE_NAME} PUBLIC ${LIBRARY_CORE_PATH})
 target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC Vulkan::Vulkan)
 
-# COMMANDS
-set(LIBRARY_COMMANDS_NAME commands)
-set(LIBRARY_COMMANDS_PATH src/engine/commands)
-set(LIBRARY_COMMANDS_SOURCES
-    ${LIBRARY_COMMANDS_PATH}/commands.h
-    ${LIBRARY_COMMANDS_PATH}/commands.cpp
-)
-add_library(${LIBRARY_COMMANDS_NAME} OBJECT ${LIBRARY_COMMANDS_SOURCES})
-target_include_directories(${LIBRARY_COMMANDS_NAME} PUBLIC ${LIBRARY_COMMANDS_PATH})
-target_link_libraries(${LIBRARY_COMMANDS_NAME} PUBLIC ${LIBRARY_CORE_NAME})
-
 # RESOURCES
 set(LIBRARY_RESOURCES_NAME resources)
 set(LIBRARY_RESOURCES_PATH src/engine/resources)
@@ -54,6 +43,20 @@ set(LIBRARY_RESOURCES_SOURCES
 add_library(${LIBRARY_RESOURCES_NAME} OBJECT ${LIBRARY_RESOURCES_SOURCES})
 target_include_directories(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_RESOURCES_PATH})
 target_link_libraries(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_CORE_NAME})
+
+# COMMANDS
+set(LIBRARY_COMMANDS_NAME commands)
+set(LIBRARY_COMMANDS_PATH src/engine/commands)
+set(LIBRARY_COMMANDS_SOURCES
+    ${LIBRARY_COMMANDS_PATH}/commands.h
+    ${LIBRARY_COMMANDS_PATH}/commands.cpp
+)
+add_library(${LIBRARY_COMMANDS_NAME} OBJECT ${LIBRARY_COMMANDS_SOURCES})
+target_include_directories(${LIBRARY_COMMANDS_NAME} PUBLIC ${LIBRARY_COMMANDS_PATH})
+target_link_libraries(${LIBRARY_COMMANDS_NAME} PUBLIC 
+    ${LIBRARY_CORE_NAME}
+    ${LIBRARY_RESOURCES_NAME}
+)
 
 # SHADERS
 set(LIBRARY_SHADERS_NAME shaders)
@@ -79,6 +82,20 @@ target_link_libraries(${LIBRARY_TEXTURES_NAME} PUBLIC
     ${LIBRARY_RESOURCES_NAME}
 )
 
+# MODELS
+set(LIBRARY_MODELS_NAME models)
+set(LIBRARY_MODELS_PATH src/engine/resources/models)
+set(LIBRARY_MODELS_SOURCES
+    ${LIBRARY_MODELS_PATH}/models.h
+    ${LIBRARY_MODELS_PATH}/models.cpp
+)
+add_library(${LIBRARY_MODELS_NAME} OBJECT ${LIBRARY_MODELS_SOURCES})
+target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC ${LIBRARY_MODELS_PATH})
+target_link_libraries(${LIBRARY_MODELS_NAME} PUBLIC
+    ${LIBRARY_COMMANDS_NAME} 
+    ${LIBRARY_RESOURCES_NAME}
+)
+
 # RENDER
 set(LIBRARY_RENDER_NAME render)
 set(LIBRARY_RENDER_PATH src/engine/render)
@@ -96,6 +113,7 @@ target_link_libraries(${LIBRARY_RENDER_NAME} PUBLIC
     ${LIBRARY_RESOURCES_NAME}
     ${LIBRARY_SHADERS_NAME}
     ${LIBRARY_TEXTURES_NAME}
+    ${LIBRARY_MODELS_NAME}
 )
 
 # ENGINE
@@ -113,6 +131,7 @@ target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC
     ${LIBRARY_RESOURCES_NAME}
     ${LIBRARY_SHADERS_NAME}
     ${LIBRARY_TEXTURES_NAME}
+    ${LIBRARY_MODELS_NAME}
     ${LIBRARY_RENDER_NAME}
 )
 
@@ -130,6 +149,12 @@ target_link_libraries(${LIBRARY_SHADERS_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/extern
 # STB (Загрузка изображений) -> TEXTURES
 target_include_directories(${LIBRARY_TEXTURES_NAME} PUBLIC external/stb)
 
+# TOL (Загрузка объектов) -> MODELS
+target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/tol)
+
+# GLM (Работа с матрицами) -> MODELS
+target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/glm)
+
 #================================================================
 # Приложение
 
@@ -141,6 +166,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${LIBRARY_RESOURCES_NAME}
     ${LIBRARY_SHADERS_NAME}
     ${LIBRARY_TEXTURES_NAME}
+    ${LIBRARY_MODELS_NAME}
     ${LIBRARY_RENDER_NAME}
     ${LIBRARY_ENGINE_NAME}
 )

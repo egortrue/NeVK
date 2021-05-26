@@ -1,11 +1,21 @@
 #pragma once
 
+// Сторонние библиотеки
+#include <glm/gtx/compatibility.hpp>
+
 // Внутренние библиотеки
 #include "pass.h"
+#include "textures.h"
+#include "models.h"
+
+// Стандартные библиотеки
+#include <chrono>
 
 class GeometryPass : public RenderPass {
  public:
-  struct RecordData {
+  TexturesManager textures;
+
+  struct record_t {
     VkCommandBuffer cmd;
     uint32_t imageIndex;
     uint32_t indicesCount;
@@ -16,7 +26,7 @@ class GeometryPass : public RenderPass {
   void init() override;
   void resize() override;
   void destroy() override;
-  void record(RecordData&);
+  void record(record_t&);
 
  private:
   void createRenderPass() override;
@@ -26,10 +36,22 @@ class GeometryPass : public RenderPass {
   // Выделенные ресурсы, привязанные к конвейеру
 
  public:
-  TexturesManager textures;
   std::string textureName;
+  void updateUniformDescriptors(uint32_t imageIndex);
 
  private:
+  // Буферы
+  struct uniform_t {
+    glm::float4x4 model;
+    glm::float4x4 view;
+    glm::float4x4 projection;
+  } uniform;
+  std::vector<VkBuffer> uniformBuffers;
+  std::vector<VkDeviceMemory> uniformBuffersMemory;
+  void createUniformDescriptors();
+  void destroyUniformDescriptors();
+
+  // Изображения
   VkImageView textureImageView;
   VkSampler textureSampler;
   void createTextureDescriptors();

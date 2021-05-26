@@ -7,6 +7,7 @@ Engine::Engine(GLFWwindow* window) {
   initCommands();
   initShaders();
   initTextures();
+  initModels();
   initFrames();
   initGeometryPass();
 }
@@ -15,6 +16,7 @@ Engine::~Engine() {
   vkDeviceWaitIdle(core->device);
   destroyGeometryPass();
   destroyFrames();
+  destroyModels();
   destroyTextures();
   destroyShaders();
   destroyCommands();
@@ -79,7 +81,7 @@ void Engine::destroyResources() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::initCommands() {
-  commands = new Commands(core);
+  commands = new Commands(core, resources);
 }
 
 void Engine::destroyCommands() {
@@ -107,6 +109,18 @@ void Engine::initTextures() {
 void Engine::destroyTextures() {
   if (textures != nullptr)
     delete textures;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Engine::initModels() {
+  models = new Models(commands, resources);
+  cube = models->loadModel("misc/models/teapot.obj");
+}
+
+void Engine::destroyModels() {
+  if (models != nullptr)
+    delete models;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,25 +195,29 @@ void Engine::drawFrame() {
   VkResult result = vkAcquireNextImageKHR(core->device, core->swapchain, UINT64_MAX, frame.available, VK_NULL_HANDLE, &swapchainImageIndex);
 
   commands->resetCommandBuffer(frame.cmdBuffer);
+  geometryPass.updateUniformDescriptors(swapchainImageIndex);
+
+  //=========================================================================
+  // Начало рендера
 
   VkCommandBufferBeginInfo cmdBeginInfo = {};
   cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   cmdBeginInfo.pNext = nullptr;
   cmdBeginInfo.pInheritanceInfo = nullptr;
   cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
   vkBeginCommandBuffer(frame.cmdBuffer, &cmdBeginInfo);
 
-  GeometryPass::RecordData data;
+  GeometryPass::record_t data;
   data.cmd = frame.cmdBuffer;
   data.imageIndex = swapchainImageIndex;
-  data.indicesCount = 0;
-  data.indices = nullptr;
-  data.vertices = nullptr;
-
+  data.indicesCount = cube->verticesCount;  // TODO: Сделать индексацию
+  data.indices = cube->indexBuffer;
+  data.vertices = cube->vertexBuffer;
   geometryPass.record(data);
 
   vkEndCommandBuffer(frame.cmdBuffer);
+
+  //=========================================================================
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

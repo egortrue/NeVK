@@ -1,6 +1,9 @@
 #include "geometry.h"
 
 void GeometryPass::init() {
+  createDepthImageFramebuffer();
+
+  createUniformDescriptors();
   createTextureDescriptors();
   createDescriptorSetLayout();
   createDescriptorSets();
@@ -10,7 +13,6 @@ void GeometryPass::init() {
   createRenderPass();
   createGraphicsPipeline();
 
-  createDepthImageFramebuffer();
   createFramebuffers();
 }
 
@@ -29,12 +31,13 @@ void GeometryPass::resize() {
 void GeometryPass::destroy() {
   RenderPass::destroy();
   destroyDepthImageFramebuffer();
+  destroyUniformDescriptors();
   destroyTextureDescriptors();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::record(RecordData& data) {
+void GeometryPass::record(record_t& data) {
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass = renderPass;
@@ -68,8 +71,14 @@ void GeometryPass::record(RecordData& data) {
   // Подключение множества ресурсов, используемых в конвейере
   vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
 
+  // Буферы вершин рендера
+  VkBuffer vertexBuffers[] = {data.vertices};
+  VkDeviceSize offsets[] = {0};
+  vkCmdBindVertexBuffers(data.cmd, 0, 1, vertexBuffers, offsets);
+  vkCmdBindIndexBuffer(data.cmd, data.indices, 0, VK_INDEX_TYPE_UINT32);
+
   // Операция рендера
-  vkCmdDraw(data.cmd, 3, 1, 0, 0);
+  vkCmdDrawIndexed(data.cmd, data.indicesCount, 1, 0, 0, 0);
 
   vkCmdEndRenderPass(data.cmd);
 }
@@ -84,6 +93,43 @@ void GeometryPass::createTextureDescriptors() {
 
 void GeometryPass::destroyTextureDescriptors() {
   textures->destroyTexture(textureName);
+}
+
+void GeometryPass::createUniformDescriptors() {
+  VkDeviceSize bufferSize = sizeof(uniform_t);
+  uniformBuffers.resize(targetImageCount);
+  uniformBuffersMemory.resize(targetImageCount);
+
+  for (uint32_t i = 0; i < targetImageCount; ++i) {
+    resources->createBuffer(
+        bufferSize,
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        uniformBuffers[i], uniformBuffersMemory[i]);
+  }
+}
+
+void GeometryPass::destroyUniformDescriptors() {
+  for (uint32_t i = 0; i < targetImageCount; ++i)
+    resources->destroyBuffer(uniformBuffers[i], uniformBuffersMemory[i]);
+}
+
+void GeometryPass::updateUniformDescriptors(uint32_t imageIndex) {
+  // Получим время
+  static auto prevTime = std::chrono::high_resolution_clock::now();
+  auto currentTime = std::chrono::high_resolution_clock::now();
+  float deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
+
+  // Обновим данные структуры
+  uniform.model = glm::rotate(glm::mat4(1.0f), deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 0.5f, 0.0f));
+  uniform.view = glm::lookAt(glm::vec3(0, 2, 3), glm::vec3(0, 0.5f, 0), glm::vec3(0, 1, 0));
+  uniform.projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 256.0f);
+
+  // Скопируем данные в память устройства
+  void* data;
+  vkMapMemory(core->device, uniformBuffersMemory[imageIndex], 0, sizeof(uniform_t), 0, &data);
+  memcpy(data, &uniform, sizeof(uniform_t));
+  vkUnmapMemory(core->device, uniformBuffersMemory[imageIndex]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -121,7 +167,7 @@ void GeometryPass::createFramebuffers() {
   for (uint32_t i = 0; i < targetImageCount; ++i) {
     std::vector<VkImageView> attachment = {
         targetImageViews[i],
-        //depthImageView,
+        depthImageView,
     };
     createFramebuffer(attachment, i);
   }
@@ -153,29 +199,36 @@ void GeometryPass::createGraphicsPipeline() {
   //=================================================================================
   // Размещение геометрических данных в памяти
 
-  struct vertex {
-    float x, y, z;
-  };
-
   // Описание структур, содержащихся в вершинном буфере
   VkVertexInputBindingDescription bindingDescription{};
-  bindingDescription.binding = 0;              // Уникальный id
-  bindingDescription.stride = sizeof(vertex);  // Расстояние между началами структур (размер структуры)
+  bindingDescription.binding = 0;                        // Уникальный id
+  bindingDescription.stride = sizeof(Models::vertex_t);  // Расстояние между началами структур (размер структуры)
   bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
   // Описание членов структур, содержащихся в вершинном буфере
-  VkVertexInputAttributeDescription attributeDescription{};
-  attributeDescription.binding = 0;   // Уникальный id структуры
-  attributeDescription.location = 0;  // Уникальный id для каждого члена структуры
-  attributeDescription.offset = 0;    // Смещение от начала структуры
-  attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+  VkVertexInputAttributeDescription positionAttributeDescription{};
+  positionAttributeDescription.binding = 0;                                    // Уникальный id структуры
+  positionAttributeDescription.location = 0;                                   // Уникальный id для каждого члена структуры
+  positionAttributeDescription.offset = offsetof(Models::vertex_t, position);  // Смещение от начала структуры
+  positionAttributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+
+  VkVertexInputAttributeDescription uvAttributeDescription{};
+  uvAttributeDescription.binding = 0;                              // Уникальный id структуры
+  uvAttributeDescription.location = 1;                             // Уникальный id для каждого члена структуры
+  uvAttributeDescription.offset = offsetof(Models::vertex_t, uv);  // Смещение от начала структуры
+  uvAttributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
+
+  std::array<VkVertexInputAttributeDescription, 2> attributesDesc = {
+      positionAttributeDescription,
+      uvAttributeDescription,
+  };
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexBindingDescriptionCount = 0;
+  vertexInputInfo.vertexBindingDescriptionCount = 1;
   vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-  vertexInputInfo.vertexAttributeDescriptionCount = 0;
-  vertexInputInfo.pVertexAttributeDescriptions = &attributeDescription;
+  vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributesDesc.size());
+  vertexInputInfo.pVertexAttributeDescriptions = attributesDesc.data();
 
   //=================================================================================
   // Входная сборка - группирование вершин в примитивы
@@ -230,7 +283,7 @@ void GeometryPass::createGraphicsPipeline() {
   // Лицевая сторона полигона (треугольника)
   // VK_FRONT_FACE_CLOCKWISE --- если полигон отрисован по часовой
   // VK_FRONT_FACE_COUNTER_CLOCKWISE --- если полигон отрисован против часовой
-  rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
   // Отброс сторон полигонов (треугольника)
   // VK_CULL_MODE_NONE --- ничего не отбрасывать
@@ -398,7 +451,7 @@ void GeometryPass::createRenderPass() {
   subpass.pColorAttachments = &colorAttachmentRef;
 
   // Подключение глубины-трафарета (только одно)
-  //subpass.pDepthStencilAttachment = &depthAttachmentRef;
+  subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
   //=================================================================================
   // Зависимости подпроходов рендера
@@ -414,8 +467,7 @@ void GeometryPass::createRenderPass() {
   //=================================================================================
   // Создание прохода рендера
 
-  std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
-  //std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+  std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
   VkRenderPassCreateInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -432,25 +484,33 @@ void GeometryPass::createRenderPass() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GeometryPass::createDescriptorSetLayout() {
-  VkDescriptorSetLayoutBinding texLayoutBinding{};
-  texLayoutBinding.binding = 0;
-  texLayoutBinding.descriptorCount = 1;
-  texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-  texLayoutBinding.pImmutableSamplers = nullptr;
-  texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  VkDescriptorSetLayoutBinding uniformLayout{};
+  uniformLayout.binding = 0;
+  uniformLayout.descriptorCount = 1;
+  uniformLayout.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  uniformLayout.pImmutableSamplers = nullptr;
+  uniformLayout.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-  VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-  samplerLayoutBinding.binding = 1;
-  samplerLayoutBinding.descriptorCount = 1;
-  samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-  samplerLayoutBinding.pImmutableSamplers = nullptr;
-  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  VkDescriptorSetLayoutBinding textureImageLayout{};
+  textureImageLayout.binding = 1;
+  textureImageLayout.descriptorCount = 1;
+  textureImageLayout.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+  textureImageLayout.pImmutableSamplers = nullptr;
+  textureImageLayout.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-  std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
-      // uboLayoutBinding,
-      texLayoutBinding,
-      samplerLayoutBinding,
+  VkDescriptorSetLayoutBinding textureSamplerLayout{};
+  textureSamplerLayout.binding = 2;
+  textureSamplerLayout.descriptorCount = 1;
+  textureSamplerLayout.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+  textureSamplerLayout.pImmutableSamplers = nullptr;
+  textureSamplerLayout.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  std::array<VkDescriptorSetLayoutBinding, 3> bindings = {
+      uniformLayout,
+      textureImageLayout,
+      textureSamplerLayout,
   };
+
   VkDescriptorSetLayoutCreateInfo layoutInfo{};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -464,6 +524,13 @@ void GeometryPass::createDescriptorSetLayout() {
 
 void GeometryPass::updateDescriptorSets() {
   for (size_t i = 0; i < targetImageCount; ++i) {
+    //=========================================================================
+    // Инициализация ресурсов
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = uniformBuffers[i];
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(uniform_t);
+
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = textureImageView;
@@ -471,23 +538,33 @@ void GeometryPass::updateDescriptorSets() {
     VkDescriptorImageInfo samplerInfo{};
     samplerInfo.sampler = textureSampler;
 
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    //=========================================================================
+    // Запись ресурсов
 
+    std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSets[i];
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pImageInfo = &imageInfo;
+    descriptorWrites[0].pBufferInfo = &bufferInfo;
+    descriptorWrites[0].dstSet = descriptorSets[i];
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSets[i];
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &samplerInfo;
+    descriptorWrites[1].pImageInfo = &imageInfo;
+    descriptorWrites[1].dstSet = descriptorSets[i];
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+
+    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[2].dstBinding = 2;
+    descriptorWrites[2].dstArrayElement = 0;
+    descriptorWrites[2].descriptorCount = 1;
+    descriptorWrites[2].pImageInfo = &samplerInfo;
+    descriptorWrites[2].dstSet = descriptorSets[i];
+    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
 
     vkUpdateDescriptorSets(core->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
   }

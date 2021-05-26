@@ -50,10 +50,17 @@ void RenderPass::createShaderModules() {
 
     std::cout << "Shader \"" << shaderName << "\" was loaded successfully" << std::endl;
   } catch (std::exception& error) {
-    // Вернём старые модули и выведем ошибку
-    vertexShader = oldVS;
-    fragmentShader = oldFS;
+    // Выведем ошибку компиляции шейдера
+    std::cerr << std::endl;
     std::cerr << error.what();
+
+    // Вернём старые модули
+    if (oldVS != VK_NULL_HANDLE && oldFS != VK_NULL_HANDLE) {
+      vertexShader = oldVS;
+      fragmentShader = oldFS;
+    } else {
+      throw std::runtime_error("ERROR: No shaders loaded");
+    }
   }
 }
 

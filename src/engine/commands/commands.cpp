@@ -1,13 +1,16 @@
 #include "commands.h"
 
-Commands::Commands(CoreManager core) {
+Commands::Commands(CoreManager core, ResourcesManager resources) {
   this->core = core;
+  this->resources = resources;
   this->singleTimeCommandBufferPool = createCommandBufferPool(true);
 };
 
 Commands::~Commands() {
   destroyCommandBufferPool(this->singleTimeCommandBufferPool);
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 VkCommandPool Commands::createCommandBufferPool(bool shortLived) {
   VkCommandPoolCreateInfo cmdPoolInfo{};
@@ -43,6 +46,8 @@ void Commands::destroyCommandBufferPool(VkCommandPool cmdPool) {
   vkDestroyCommandPool(core->device, cmdPool, nullptr);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 VkCommandBuffer Commands::createCommandBuffer(VkCommandPool cmdPool) {
   VkCommandBufferAllocateInfo cmdBufferInfo{};
   cmdBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -68,6 +73,8 @@ void Commands::freeCommandBuffer(VkCommandBuffer cmdBuffer) {
 void Commands::destroyCommandBuffer(VkCommandPool cmdPool, VkCommandBuffer cmdBuffer) {
   vkFreeCommandBuffers(core->device, cmdPool, 1, &cmdBuffer);
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 VkCommandBuffer Commands::beginSingleTimeCommands() {
   VkCommandBuffer cmdBuffer = createCommandBuffer(singleTimeCommandBufferPool);
@@ -95,6 +102,8 @@ void Commands::endSingleTimeCommands(VkCommandBuffer cmdBuffer) {
 
   destroyCommandBuffer(singleTimeCommandBufferPool, cmdBuffer);
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Commands::changeImageLayout(VkCommandBuffer cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout) {
   VkImageMemoryBarrier barrier{};
@@ -137,6 +146,14 @@ void Commands::changeImageLayout(VkCommandBuffer cmd, VkImage image, VkImageLayo
       1, &barrier);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Commands::copyBuffer(VkCommandBuffer cmd, VkBuffer src, VkBuffer dst, VkDeviceSize size) {
+  VkBufferCopy copyRegion{};
+  copyRegion.size = size;
+  vkCmdCopyBuffer(cmd, src, dst, 1, &copyRegion);
+}
+
 void Commands::copyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
   VkBufferImageCopy region{};
   region.bufferOffset = 0;
@@ -154,3 +171,67 @@ void Commands::copyBufferToImage(VkCommandBuffer cmd, VkBuffer buffer, VkImage i
 
   vkCmdCopyBufferToImage(cmd, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Commands::copyDataToImage(void* src, VkImage dst, VkDeviceSize size, uint32_t width, uint32_t height) {
+  // Создание временного буфера на устройстве
+  VkBuffer tmpBuffer;
+  VkDeviceMemory tmpBufferMemory;
+  resources->createBuffer(
+      size,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      tmpBuffer, tmpBufferMemory);
+
+  // Отображение память GPU на память CPU
+  void* commonMemory = nullptr;
+  vkMapMemory(core->device, tmpBufferMemory, 0, size, 0, &commonMemory);
+  if (commonMemory == nullptr)
+    throw std::runtime_error("ERROR: Failed to map memory on image!");
+
+  // Скопируем данные в память устройства
+  memcpy(commonMemory, src, static_cast<size_t>(size));
+  vkUnmapMemory(core->device, tmpBufferMemory);
+
+  // Копирование данных из буфера в изображение
+  VkCommandBuffer cmd = this->beginSingleTimeCommands();
+  this->changeImageLayout(cmd, dst, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  this->copyBufferToImage(cmd, tmpBuffer, dst, width, height);
+  this->changeImageLayout(cmd, dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  this->endSingleTimeCommands(cmd);
+
+  // Уничтожим временный буфер
+  resources->destroyBuffer(tmpBuffer, tmpBufferMemory);
+}
+
+void Commands::copyDataToBuffer(void* src, VkBuffer dst, VkDeviceSize size) {
+  // Создание временного буфера на устройстве
+  VkBuffer tmpBuffer;
+  VkDeviceMemory tmpBufferMemory;
+  resources->createBuffer(
+      size,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      tmpBuffer, tmpBufferMemory);
+
+  // Отображение память GPU на память CPU
+  void* commonMemory = nullptr;
+  vkMapMemory(core->device, tmpBufferMemory, 0, size, 0, &commonMemory);
+  if (commonMemory == nullptr)
+    throw std::runtime_error("ERROR: Failed to map memory on buffer!");
+
+  // Скопируем данные в память устройства
+  memcpy(commonMemory, src, static_cast<size_t>(size));
+  vkUnmapMemory(core->device, tmpBufferMemory);
+
+  // Копирование данных в нужный буфер
+  VkCommandBuffer cmd = this->beginSingleTimeCommands();
+  this->copyBuffer(cmd, tmpBuffer, dst, size);
+  this->endSingleTimeCommands(cmd);
+
+  // Уничтожим временный буфер
+  resources->destroyBuffer(tmpBuffer, tmpBufferMemory);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
