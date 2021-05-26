@@ -10,6 +10,7 @@
 #include "resources.h"
 #include "shaders.h"
 #include "textures.h"
+#include "models.h"
 #include "render/passes/geometry.h"
 
 // Стандартные библиотеки
@@ -60,6 +61,15 @@ class Engine {
   TexturesManager textures;
   void initTextures();
   void destroyTextures();
+
+  ModelsManager models;
+  void initModels();
+  void destroyModels();
+
+  VkBuffer vertexBuffer, indexBuffer;
+  VkDeviceMemory vertexBufferMemory, indexBufferMemory;
+  void createVertexBuffer();
+  void createIndexBuffer();
 
   std::vector<Frame> frames;
   uint32_t currentFrameIndex;

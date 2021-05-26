@@ -108,6 +108,7 @@ void Textures::createTextureSampler() {
   samplerInfo.compareEnable = VK_FALSE;
   samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
   samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
   if (vkCreateSampler(core->device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create texture sampler!");
 }

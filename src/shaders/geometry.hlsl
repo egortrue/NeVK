@@ -1,25 +1,37 @@
-struct PS_INPUT
-{
-    float4 pos : SV_POSITION;
+// Вход вершинного шейдера
+struct VS_INPUT {
+    float3 position : POSITION;
     float2 uv;
 };
 
-Texture2D gTexture;
-SamplerState gSampler;
+// Вход фрагментного шейдера
+struct PS_INPUT {
+    float4 position : SV_POSITION;
+    float2 uv;
+};
+
+// Ресурсу, привязанные к конвейеру
+Texture2D gTexture; // VkImageView
+SamplerState gSampler; // VkSampler
+cbuffer ubo // VkBuffer
+{
+    float4x4 model;
+    float4x4 view;
+    float4x4 projection;
+}
 
 [shader("vertex")]
-PS_INPUT vertexMain(uint VertexID: SV_VertexID)
+PS_INPUT vertexMain(VS_INPUT vertex)
 {
-    PS_INPUT out;
+    PS_INPUT data;
+    data.position = float4(vertex.position, 1.0f);
+    data.uv = vertex.uv;
 
-    out.uv = float2((VertexID << 1) & 2, VertexID & 2);
-    out.pos = float4(out.uv * float2(1.0f, -1.0f) + float2(-1.0f, 1.0f), 0.0f, 1.0f);
-
-    return out;
+    return data;
 }
 
 [shader("fragment")]
-float4 fragmentMain(PS_INPUT inp) : SV_TARGET
+float4 fragmentMain(PS_INPUT data) : SV_TARGET
 {
-    return float4(gTexture.Sample(gSampler, inp.uv));
+    return float4(gTexture.Sample(gSampler, data.uv));
 }

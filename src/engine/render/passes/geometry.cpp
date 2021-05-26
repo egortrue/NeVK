@@ -1,6 +1,8 @@
 #include "geometry.h"
 
 void GeometryPass::init() {
+  createDepthImageFramebuffer();
+
   createTextureDescriptors();
   createDescriptorSetLayout();
   createDescriptorSets();
@@ -10,7 +12,6 @@ void GeometryPass::init() {
   createRenderPass();
   createGraphicsPipeline();
 
-  createDepthImageFramebuffer();
   createFramebuffers();
 }
 
@@ -69,7 +70,12 @@ void GeometryPass::record(RecordData& data) {
   vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
 
   // Операция рендера
-  vkCmdDraw(data.cmd, 3, 1, 0, 0);
+
+  VkBuffer vertexBuffers[] = {data.vertices};
+  VkDeviceSize offsets[] = {0};
+  vkCmdBindVertexBuffers(data.cmd, 0, 1, vertexBuffers, offsets);
+  vkCmdBindIndexBuffer(data.cmd, data.indices, 0, VK_INDEX_TYPE_UINT32);
+  vkCmdDrawIndexed(data.cmd, data.indicesCount, 1, 0, 0, 0);
 
   vkCmdEndRenderPass(data.cmd);
 }
@@ -121,7 +127,7 @@ void GeometryPass::createFramebuffers() {
   for (uint32_t i = 0; i < targetImageCount; ++i) {
     std::vector<VkImageView> attachment = {
         targetImageViews[i],
-        //depthImageView,
+        depthImageView,
     };
     createFramebuffer(attachment, i);
   }
@@ -154,7 +160,7 @@ void GeometryPass::createGraphicsPipeline() {
   // Размещение геометрических данных в памяти
 
   struct vertex {
-    float x, y, z;
+    float x, y, z, u, v;
   };
 
   // Описание структур, содержащихся в вершинном буфере
@@ -164,18 +170,28 @@ void GeometryPass::createGraphicsPipeline() {
   bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
   // Описание членов структур, содержащихся в вершинном буфере
-  VkVertexInputAttributeDescription attributeDescription{};
-  attributeDescription.binding = 0;   // Уникальный id структуры
-  attributeDescription.location = 0;  // Уникальный id для каждого члена структуры
-  attributeDescription.offset = 0;    // Смещение от начала структуры
-  attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+  VkVertexInputAttributeDescription positionAttributeDescription{};
+  positionAttributeDescription.binding = 0;   // Уникальный id структуры
+  positionAttributeDescription.location = 0;  // Уникальный id для каждого члена структуры
+  positionAttributeDescription.offset = 0;    // Смещение от начала структуры
+  positionAttributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+  VkVertexInputAttributeDescription uvAttributeDescription{};
+  uvAttributeDescription.binding = 0;                 // Уникальный id структуры
+  uvAttributeDescription.location = 1;                // Уникальный id для каждого члена структуры
+  uvAttributeDescription.offset = 3 * sizeof(float);  // Смещение от начала структуры
+  uvAttributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
+
+  std::array<VkVertexInputAttributeDescription, 2> attributesDesc = {
+      positionAttributeDescription,
+      uvAttributeDescription,
+  };
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexBindingDescriptionCount = 0;
+  vertexInputInfo.vertexBindingDescriptionCount = 1;
   vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-  vertexInputInfo.vertexAttributeDescriptionCount = 0;
-  vertexInputInfo.pVertexAttributeDescriptions = &attributeDescription;
+  vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributesDesc.size());
+  vertexInputInfo.pVertexAttributeDescriptions = attributesDesc.data();
 
   //=================================================================================
   // Входная сборка - группирование вершин в примитивы
@@ -230,14 +246,14 @@ void GeometryPass::createGraphicsPipeline() {
   // Лицевая сторона полигона (треугольника)
   // VK_FRONT_FACE_CLOCKWISE --- если полигон отрисован по часовой
   // VK_FRONT_FACE_COUNTER_CLOCKWISE --- если полигон отрисован против часовой
-  rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
   // Отброс сторон полигонов (треугольника)
   // VK_CULL_MODE_NONE --- ничего не отбрасывать
   // VK_CULL_MODE_FRONT_BIT --- отброс лицевых полигонов
   // VK_CULL_MODE_BACK_BIT --- отброс нелицевых полигонов
   // VK_CULL_MODE_FRONT_AND_BACK --- отброс обоих сторон полигонов
-  rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+  rasterizer.cullMode = VK_CULL_MODE_NONE;
 
   // Опции глубины
   rasterizer.depthClampEnable = VK_FALSE;  // Отсечение глубины - заполнение дыр геометрии
@@ -398,7 +414,7 @@ void GeometryPass::createRenderPass() {
   subpass.pColorAttachments = &colorAttachmentRef;
 
   // Подключение глубины-трафарета (только одно)
-  //subpass.pDepthStencilAttachment = &depthAttachmentRef;
+  subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
   //=================================================================================
   // Зависимости подпроходов рендера
@@ -414,8 +430,8 @@ void GeometryPass::createRenderPass() {
   //=================================================================================
   // Создание прохода рендера
 
-  std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
-  //std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+  //std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
+  std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
   VkRenderPassCreateInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());

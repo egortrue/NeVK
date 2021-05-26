@@ -82,6 +82,16 @@ target_link_libraries(${LIBRARY_TEXTURES_NAME} PUBLIC
     ${LIBRARY_RESOURCES_NAME}
 )
 
+# MODELS
+set(LIBRARY_MODELS_NAME models)
+set(LIBRARY_MODELS_PATH src/engine/resources/models)
+set(LIBRARY_MODELS_SOURCES
+    ${LIBRARY_MODELS_PATH}/models.h
+    ${LIBRARY_MODELS_PATH}/models.cpp
+)
+add_library(${LIBRARY_MODELS_NAME} OBJECT ${LIBRARY_MODELS_SOURCES})
+target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC ${LIBRARY_MODELS_PATH})
+
 # RENDER
 set(LIBRARY_RENDER_NAME render)
 set(LIBRARY_RENDER_PATH src/engine/render)
@@ -99,6 +109,7 @@ target_link_libraries(${LIBRARY_RENDER_NAME} PUBLIC
     ${LIBRARY_RESOURCES_NAME}
     ${LIBRARY_SHADERS_NAME}
     ${LIBRARY_TEXTURES_NAME}
+    ${LIBRARY_MODELS_NAME}
 )
 
 # ENGINE
@@ -116,6 +127,7 @@ target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC
     ${LIBRARY_RESOURCES_NAME}
     ${LIBRARY_SHADERS_NAME}
     ${LIBRARY_TEXTURES_NAME}
+    ${LIBRARY_MODELS_NAME}
     ${LIBRARY_RENDER_NAME}
 )
 
@@ -133,6 +145,9 @@ target_link_libraries(${LIBRARY_SHADERS_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/extern
 # STB (Загрузка изображений) -> TEXTURES
 target_include_directories(${LIBRARY_TEXTURES_NAME} PUBLIC external/stb)
 
+# TOL (Загрузка объектов) -> MODELS
+target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/tol)
+
 #================================================================
 # Приложение
 
@@ -144,6 +159,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${LIBRARY_RESOURCES_NAME}
     ${LIBRARY_SHADERS_NAME}
     ${LIBRARY_TEXTURES_NAME}
+    ${LIBRARY_MODELS_NAME}
     ${LIBRARY_RENDER_NAME}
     ${LIBRARY_ENGINE_NAME}
 )

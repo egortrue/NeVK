@@ -7,6 +7,7 @@ Engine::Engine(GLFWwindow* window) {
   initCommands();
   initShaders();
   initTextures();
+  initModels();
   initFrames();
   initGeometryPass();
 }
@@ -15,6 +16,7 @@ Engine::~Engine() {
   vkDeviceWaitIdle(core->device);
   destroyGeometryPass();
   destroyFrames();
+  destroyModels();
   destroyTextures();
   destroyShaders();
   destroyCommands();
@@ -111,6 +113,41 @@ void Engine::destroyTextures() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void Engine::initModels() {
+  models = new Models();
+  createIndexBuffer();
+  createVertexBuffer();
+}
+
+void Engine::destroyModels() {
+  if (models != nullptr)
+    delete models;
+}
+
+void Engine::createVertexBuffer() {
+  std::vector<float>& vertices = models->cube.vertices;
+  resources->createBuffer(
+      vertices.size() * sizeof(float),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      vertexBuffer, vertexBufferMemory);
+
+  commands->copyDataToBuffer(vertices.data(), vertexBuffer, vertices.size() * sizeof(float));
+}
+
+void Engine::createIndexBuffer() {
+  std::vector<uint32_t>& indices = models->cube.indices;
+  resources->createBuffer(
+      indices.size() * sizeof(uint32_t),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      indexBuffer, indexBufferMemory);
+
+  commands->copyDataToBuffer(indices.data(), indexBuffer, indices.size() * sizeof(uint32_t));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void Engine::initFrames() {
   currentFrameIndex = 0;
   frames.resize(core->swapchainImages.size());
@@ -193,9 +230,9 @@ void Engine::drawFrame() {
   GeometryPass::RecordData data;
   data.cmd = frame.cmdBuffer;
   data.imageIndex = swapchainImageIndex;
-  data.indicesCount = 0;
-  data.indices = nullptr;
-  data.vertices = nullptr;
+  data.indicesCount = static_cast<uint32_t>(models->cube.indices.size());
+  data.indices = indexBuffer;
+  data.vertices = vertexBuffer;
 
   geometryPass.record(data);
 
