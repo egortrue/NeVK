@@ -28,8 +28,8 @@ class Models {
   typedef struct model_t {
     // Метаданные
     std::string name;
-    uint32_t verticesCount;  // Количество вершин
-    uint32_t poligonsCount;  // Количество полигонов
+    uint32_t verticesCount;
+    uint32_t poligonsCount;
 
     // Вершины
     std::vector<float> vertices;
@@ -42,9 +42,11 @@ class Models {
     VkDeviceMemory indexBufferMemory;
   } * Instance;
 
+ private:
   std::vector<Instance> handlers;
   std::unordered_map<std::string, uint32_t> idList;
 
+ public:
   Models(CommandsManager, ResourcesManager);
   ~Models();
 

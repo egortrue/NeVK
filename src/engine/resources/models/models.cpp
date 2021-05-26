@@ -41,7 +41,7 @@ Models::Instance Models::loadModel(const std::string& name) {
   if (!reader.Error().empty())
     throw std::runtime_error("ERROR: " + reader.Error());
   else if (!reader.Warning().empty())
-    std::cerr << "WARNING [TinyObjReader]:" << reader.Warning();
+    std::cerr << "WARNING [TinyObjReader]:" << reader.Warning() << std::endl;
 
   // Получение данных от TOL
   parseModelData(model, reader);
@@ -63,6 +63,20 @@ Models::Instance Models::getModel(const std::string& name) {
   if (el == idList.end())
     throw std::runtime_error(std::string("ERROR: Failed to get model: ") + name);
   return handlers[el->second];
+}
+
+void Models::destroyModel(const std::string& name) {
+  auto el = idList.find(name);
+  if (el == idList.end()) {
+    std::cerr << "WARNING: Model was already destroyed: " << name << std::endl;
+    return;
+  }
+
+  Instance model = handlers[el->second];
+  handlers.erase(handlers.begin() + el->second);
+  destroyModelBuffers(model);
+  delete model;
+  idList.erase(el);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
