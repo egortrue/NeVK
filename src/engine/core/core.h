@@ -15,10 +15,10 @@
 #include <optional>
 #include <set>
 
-typedef class Core* CoreManager;
-
 class Core {
  public:
+  typedef Core* Manager;
+  
   void init();
   void configure();
   void destroy();

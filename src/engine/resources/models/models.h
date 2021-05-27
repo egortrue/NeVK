@@ -12,18 +12,18 @@
 #include <iostream>
 #include <unordered_map>
 
-typedef class Models* ModelsManager;
-
 class Models {
  private:
   CommandsManager commands;
   ResourcesManager resources;
 
  public:
-  struct vertex_t {
+  typedef Models* Manager;
+
+  typedef struct vertex_t {
     glm::float3 position;
     glm::float2 uv;
-  };
+  } * Vertex;
 
   typedef struct model_t {
     // Метаданные

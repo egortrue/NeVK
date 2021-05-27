@@ -42,15 +42,15 @@ class Engine {
   void initWindow(GLFWwindow*);
   void destroyWindow();
 
-  CoreManager core;
+  Core::Manager core;
   void initCore();
   void destroyCore();
 
-  ResourcesManager resources;
+  Resources::Manager resources;
   void initResources();
   void destroyResources();
 
-  CommandsManager commands;
+  Commands::Manager commands;
   void initCommands();
   void destroyCommands();
 
@@ -62,7 +62,7 @@ class Engine {
   void initTextures();
   void destroyTextures();
 
-  ModelsManager models;
+  Models::Manager models;
   Models::Instance cube;
   void initModels();
   void destroyModels();

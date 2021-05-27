@@ -10,12 +10,11 @@
 #include <string>
 #include <iostream>
 
-typedef class Shaders* ShadersManager;
-
 class Shaders {
- private:
-  // Дискриптор шейдера
-  struct shader_t {
+ public:
+  typedef Shaders* Manager;
+
+  typedef struct shader_t {
     std::string name;            // Полный путь до шейдера, название
     std::string entryPointName;  // Вход в шейдер (= main)
     std::vector<char> code;      // SPIR-V
@@ -25,17 +24,17 @@ class Shaders {
 
     slang::ShaderReflection* slangReflection;
     SlangCompileRequest* slangRequest;
-  };
+  } * Instance;
 
-  std::vector<shader_t> handlers;
+ private:
   SlangSession* slangSession = nullptr;
+  std::vector<Instance> handlers;
+  Instance compileShader(Instance);
 
  public:
   Shaders();
   ~Shaders();
 
-  uint32_t loadShader(const char* name, const char* entryPointName, SlangStage);
-  shader_t compileShader(const char* name, const char* entryPointName, SlangStage);
-  bool getShaderCode(uint32_t id, const char*& code, uint32_t& size);
+  Instance loadShader(const std::string& name, const std::string& entryPointName, SlangStage);
   void reloadAllShaders();
 };
