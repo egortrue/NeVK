@@ -9,32 +9,38 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <list>
+#include <unordered_map>
 
 class Shaders {
  public:
   typedef Shaders* Manager;
-
   typedef struct shader_t {
-    std::string name;            // Полный путь до шейдера, название
-    std::string entryPointName;  // Вход в шейдер (= main)
-    std::vector<char> code;      // SPIR-V
+    // Путь до шейдера
+    std::string name;
 
-    // Стадия конвейера, на которой будет выполнен шейдер
-    SlangStage stage = SLANG_STAGE_NONE;
+    // Вершинный шейдер
+    std::string vertexName;
+    std::vector<char> vertexCode;
 
-    slang::ShaderReflection* slangReflection;
-    SlangCompileRequest* slangRequest;
+    // Фрагментный шейдер
+    std::string fragmentName;
+    std::vector<char> fragmentCode;
+
   } * Instance;
-
- private:
-  SlangSession* slangSession = nullptr;
-  std::vector<Instance> handlers;
-  Instance compileShader(Instance);
 
  public:
   Shaders();
   ~Shaders();
 
-  Instance loadShader(const std::string& name, const std::string& entryPointName, SlangStage);
-  void reloadAllShaders();
+  Instance loadShader(const std::string& name, const std::string& vertexName, const std::string& fragmentName);
+  void reloadShader(const std::string& name);
+  void reload();
+
+ private:
+  std::vector<Instance> handlers;
+  std::unordered_map<std::string, uint32_t> idList;
+
+  SlangSession* slangSession = nullptr;
+  void compileShader(Instance, SlangStage);
 };

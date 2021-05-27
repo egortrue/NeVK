@@ -5,13 +5,14 @@
 #include "resources.h"
 
 class Commands {
+ public:
+  typedef Commands* Manager;
+
  private:
   Core::Manager core;
   Resources::Manager resources;
 
  public:
-  typedef Commands* Manager;
-
   Commands(Core::Manager, Resources::Manager);
   ~Commands();
 

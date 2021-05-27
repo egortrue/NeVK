@@ -54,11 +54,11 @@ class Engine {
   void initCommands();
   void destroyCommands();
 
-  ShadersManager shaders;
+  Shaders::Manager shaders;
   void initShaders();
   void destroyShaders();
 
-  TexturesManager textures;
+  Textures::Manager textures;
   void initTextures();
   void destroyTextures();
 

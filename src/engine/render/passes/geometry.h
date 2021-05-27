@@ -13,7 +13,7 @@
 
 class GeometryPass : public RenderPass {
  public:
-  TexturesManager textures;
+  Textures::Manager textures;
 
   struct record_t {
     VkCommandBuffer cmd;

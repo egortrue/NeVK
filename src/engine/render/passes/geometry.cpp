@@ -95,6 +95,8 @@ void GeometryPass::destroyTextureDescriptors() {
   textures->destroyTexture(textureName);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void GeometryPass::createUniformDescriptors() {
   VkDeviceSize bufferSize = sizeof(uniform_t);
   uniformBuffers.resize(targetImageCount);

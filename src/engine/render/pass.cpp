@@ -27,20 +27,11 @@ void RenderPass::createShaderModules() {
 
   try {
     // Попытка (пере)компиляции новых шейдеров в SPIR-V
-    uint32_t vertId = shaders->loadShader(shaderName.c_str(), "vertexMain", SLANG_STAGE_VERTEX);
-    uint32_t fragId = shaders->loadShader(shaderName.c_str(), "fragmentMain", SLANG_STAGE_FRAGMENT);
-
-    // Получение SPIR-V
-    const char* vertShaderCode = nullptr;
-    uint32_t vertShaderCodeSize = 0;
-    shaders->getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
-    const char* fragShaderCode = nullptr;
-    uint32_t fragShaderCodeSize = 0;
-    shaders->getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+    Shaders::Instance shader = shaders->loadShader(shaderName, std::string("vertexMain"), std::string("fragmentMain"));
 
     // Создание модулей
-    vertexShader = createModule(vertShaderCode, vertShaderCodeSize);
-    fragmentShader = createModule(fragShaderCode, fragShaderCodeSize);
+    vertexShader = createModule(shader->vertexCode.data(), shader->vertexCode.size());
+    fragmentShader = createModule(shader->fragmentCode.data(), shader->fragmentCode.size());
 
     // Удаление старых модулей
     if (oldVS != VK_NULL_HANDLE && oldFS != VK_NULL_HANDLE) {
@@ -49,9 +40,9 @@ void RenderPass::createShaderModules() {
     }
 
     std::cout << "Shader \"" << shaderName << "\" was loaded successfully" << std::endl;
+
   } catch (std::exception& error) {
     // Выведем ошибку компиляции шейдера
-    std::cerr << std::endl;
     std::cerr << error.what();
 
     // Вернём старые модули
@@ -59,7 +50,7 @@ void RenderPass::createShaderModules() {
       vertexShader = oldVS;
       fragmentShader = oldFS;
     } else {
-      throw std::runtime_error("ERROR: No shaders loaded");
+      throw std::runtime_error("ERROR: shader was never loaded: " + shaderName);
     }
   }
 }

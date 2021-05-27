@@ -1,6 +1,6 @@
 #include "commands.h"
 
-Commands::Commands(CoreManager core, ResourcesManager resources) {
+Commands::Commands(Core::Manager core, Resources::Manager resources) {
   this->core = core;
   this->resources = resources;
   this->singleTimeCommandBufferPool = createCommandBufferPool(true);

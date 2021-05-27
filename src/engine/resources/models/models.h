@@ -13,10 +13,6 @@
 #include <unordered_map>
 
 class Models {
- private:
-  CommandsManager commands;
-  ResourcesManager resources;
-
  public:
   typedef Models* Manager;
 
@@ -43,11 +39,14 @@ class Models {
   } * Instance;
 
  private:
+  Commands::Manager commands;
+  Resources::Manager resources;
+
   std::vector<Instance> handlers;
   std::unordered_map<std::string, uint32_t> idList;
 
  public:
-  Models(CommandsManager, ResourcesManager);
+  Models(Commands::Manager, Resources::Manager);
   ~Models();
 
   Instance loadModel(const std::string& name);
