@@ -37,7 +37,7 @@ class GeometryPass : public RenderPass {
 
  public:
   std::string textureName;
-  void updateUniformDescriptors(uint32_t imageIndex);
+  void updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& view, glm::float4x4& projection);
 
  private:
   // Буферы

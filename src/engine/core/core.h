@@ -18,7 +18,7 @@
 class Core {
  public:
   typedef Core* Manager;
-  
+
   void init();
   void configure();
   void destroy();
@@ -84,7 +84,6 @@ class Core {
   VkSurfaceKHR surface;
   uint32_t surfaceWidth;
   uint32_t surfaceHeight;
-  void setSurface(VkSurfaceKHR, uint32_t width, uint32_t height);
 
  private:
   void destroySurface();

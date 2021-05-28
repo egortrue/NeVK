@@ -1,46 +1,31 @@
 #pragma once
 
-// Сторонние библиотеки
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 // Внутренние библиотеки
+#include "window.h"
 #include "core.h"
 #include "commands.h"
 #include "resources.h"
 #include "shaders.h"
 #include "textures.h"
 #include "models.h"
+#include "camera.h"
 #include "render/passes/geometry.h"
 
 // Стандартные библиотеки
-#include <array>
+#include <string>
+#include <vector>
 
 class Engine {
-  struct Window {
-    GLFWwindow* instance;
-    VkSurfaceKHR surface;
-    int width, height;
-    std::vector<const char*> extensions;
-  };
-
-  struct Frame {
-    VkCommandPool cmdPool;
-    VkCommandBuffer cmdBuffer;
-    VkFence drawing;
-    VkSemaphore available;
-  };
-
  public:
-  Engine(GLFWwindow*);
-  ~Engine();
+  typedef Engine* Manager;
 
+  Engine(Window::Manager);
+  ~Engine();
   void drawFrame();
+  Camera::Manager getCamera();
 
  private:
-  Window* window;
-  void initWindow(GLFWwindow*);
-  void destroyWindow();
+  Window::Manager window;
 
   Core::Manager core;
   void initCore();
@@ -66,6 +51,19 @@ class Engine {
   Models::Instance cube;
   void initModels();
   void destroyModels();
+
+  Camera::Manager camera;
+  void initCamera();
+  void destroyCamera();
+
+  //=======================
+
+  struct Frame {
+    VkCommandPool cmdPool;
+    VkCommandBuffer cmdBuffer;
+    VkFence drawing;
+    VkSemaphore available;
+  };
 
   std::vector<Frame> frames;
   uint32_t currentFrameIndex;

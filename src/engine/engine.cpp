@@ -1,13 +1,13 @@
 #include "engine.h"
 
-Engine::Engine(GLFWwindow* window) {
-  initWindow(window);
+Engine::Engine(Window::Manager window) : window(window) {
   initCore();
   initResources();
   initCommands();
   initShaders();
   initTextures();
   initModels();
+  initCamera();
   initFrames();
   initGeometryPass();
 }
@@ -16,25 +16,13 @@ Engine::~Engine() {
   vkDeviceWaitIdle(core->device);
   destroyGeometryPass();
   destroyFrames();
+  destroyCamera();
   destroyModels();
   destroyTextures();
   destroyShaders();
   destroyCommands();
   destroyResources();
   destroyCore();
-  destroyWindow();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void Engine::initWindow(GLFWwindow* window) {
-  this->window = new Window;
-  this->window->instance = window;
-}
-
-void Engine::destroyWindow() {
-  if (window != nullptr)
-    delete window;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -42,21 +30,24 @@ void Engine::destroyWindow() {
 void Engine::initCore() {
   core = new Core();
 
-  // GLFW - Расширения экземпляра
+  // Расширения экземпляра
   uint32_t extensionsCount = 0;
+  std::vector<const char*> extensions;
   const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
   for (uint32_t i = 0; i < extensionsCount; i++)
-    window->extensions.push_back(glfwExtensions[i]);
+    extensions.push_back(glfwExtensions[i]);
 
-  core->setInstanceExtensions(window->extensions);
+  core->setInstanceExtensions(extensions);
   core->init();
 
-  // GLFW - Поверхность вывода изображений
-  if (glfwCreateWindowSurface(core->instance, window->instance, nullptr, &window->surface) != VK_SUCCESS)
+  // Поверхность вывода изображений
+  if (glfwCreateWindowSurface(core->instance, window->instance, nullptr, &core->surface) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create window surface!");
-  glfwGetFramebufferSize(window->instance, &window->width, &window->height);
+  int width, height;
+  glfwGetFramebufferSize(window->instance, &width, &height);
+  core->surfaceWidth = static_cast<uint32_t>(width);
+  core->surfaceHeight = static_cast<uint32_t>(height);
 
-  core->setSurface(window->surface, static_cast<uint32_t>(window->width), static_cast<uint32_t>(window->height));
   core->configure();
 }
 
@@ -121,6 +112,30 @@ void Engine::initModels() {
 void Engine::destroyModels() {
   if (models != nullptr)
     delete models;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Engine::initCamera() {
+  camera = new Camera();
+
+  camera->transform.view = glm::lookAt(glm::vec3(0, 2, 3), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+
+  Camera::Projection initialProj;
+  initialProj.fov = 45.0f;
+  initialProj.aspect = 800.0f / 600.0f;
+  initialProj.near = 0.1f;
+  initialProj.far = 256.0f;
+  camera->setProjection(initialProj);
+}
+
+void Engine::destroyCamera() {
+  if (camera != nullptr)
+    delete camera;
+}
+
+Camera::Manager Engine::getCamera() {
+  return this->camera;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -194,11 +209,13 @@ void Engine::drawFrame() {
   uint32_t swapchainImageIndex;
   VkResult result = vkAcquireNextImageKHR(core->device, core->swapchain, UINT64_MAX, frame.available, VK_NULL_HANDLE, &swapchainImageIndex);
 
-  commands->resetCommandBuffer(frame.cmdBuffer);
-  geometryPass.updateUniformDescriptors(swapchainImageIndex);
+  camera->updatePosition();
+  geometryPass.updateUniformDescriptors(swapchainImageIndex, camera->transform.view, camera->transform.projection);
 
   //=========================================================================
   // Начало рендера
+
+  commands->resetCommandBuffer(frame.cmdBuffer);
 
   VkCommandBufferBeginInfo cmdBeginInfo = {};
   cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
