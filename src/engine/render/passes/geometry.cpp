@@ -4,7 +4,6 @@ void GeometryPass::init() {
   createDepthImageFramebuffer();
 
   createUniformDescriptors();
-  createTextureDescriptors();
   createDescriptorSetLayout();
   createDescriptorSets();
   updateDescriptorSets();
@@ -32,7 +31,6 @@ void GeometryPass::destroy() {
   RenderPass::destroy();
   destroyDepthImageFramebuffer();
   destroyUniformDescriptors();
-  destroyTextureDescriptors();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -85,14 +83,10 @@ void GeometryPass::record(record_t& data) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createTextureDescriptors() {
-  auto texture = textures->loadTexture(textureName);
-  textureImageView = texture->view;
-  textureSampler = textures->sampler;
-}
-
-void GeometryPass::destroyTextureDescriptors() {
-  textures->destroyTexture(textureName);
+void GeometryPass::updateTextureDescriptors(VkImageView view, VkSampler sampler) {
+  textureImageView = view;
+  textureSampler = sampler;
+  isDescriptorsUpdated = false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -569,6 +563,8 @@ void GeometryPass::updateDescriptorSets() {
 
     vkUpdateDescriptorSets(core->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
   }
+
+  isDescriptorsUpdated = true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////

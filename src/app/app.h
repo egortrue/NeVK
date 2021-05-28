@@ -30,11 +30,12 @@ class Application {
  private:
   void initWindow() {
     window = new Window();
+
+    // Подключение обработчиков пользовательского ввода
     glfwSetWindowUserPointer(window->instance, this);
     window->callbacks.keyboard = keyCallback;
     window->callbacks.mousePos = mouseMoveCallback;
     window->callbacks.mouseButtons = mouseButtonCallback;
-
     window->setActions();
   }
 
@@ -53,7 +54,7 @@ class Application {
   }
 
   static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getCamera();
+    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getScene()->getCamera();
     const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
     switch (key) {
       case GLFW_KEY_W:
@@ -80,8 +81,7 @@ class Application {
   }
 
   static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getCamera();
-
+    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getScene()->getCamera();
     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
       if (action == GLFW_PRESS) {
         double xpos = 0, ypos = 0;
@@ -94,8 +94,7 @@ class Application {
   }
 
   static void mouseMoveCallback(GLFWwindow* window, double xpos, double ypos) {
-    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getCamera();
-
+    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getScene()->getCamera();
     if (camera->mouse.right)
       camera->rotate(xpos, ypos);
   }

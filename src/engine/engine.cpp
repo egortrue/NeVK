@@ -5,9 +5,7 @@ Engine::Engine(Window::Manager window) : window(window) {
   initResources();
   initCommands();
   initShaders();
-  initTextures();
-  initModels();
-  initCamera();
+  initScene();
   initFrames();
   initGeometryPass();
 }
@@ -16,9 +14,7 @@ Engine::~Engine() {
   vkDeviceWaitIdle(core->device);
   destroyGeometryPass();
   destroyFrames();
-  destroyCamera();
-  destroyModels();
-  destroyTextures();
+  destroyScene();
   destroyShaders();
   destroyCommands();
   destroyResources();
@@ -93,45 +89,18 @@ void Engine::destroyShaders() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Engine::initTextures() {
-  textures = new Textures(core, commands, resources);
+void Engine::initScene() {
+  scene = new Scene(core, commands, resources);
+  scene->loadObject("misc/models/teapot.obj", "misc/textures/default.png");
 }
 
-void Engine::destroyTextures() {
-  if (textures != nullptr)
-    delete textures;
+void Engine::destroyScene() {
+  if (scene != nullptr)
+    delete scene;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void Engine::initModels() {
-  models = new Models(commands, resources);
-  cube = models->loadModel("misc/models/teapot.obj");
-}
-
-void Engine::destroyModels() {
-  if (models != nullptr)
-    delete models;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void Engine::initCamera() {
-  camera = new Camera();
-  camera->projection.fov = 45.0f;
-  camera->projection.aspect = 800.0f / 600.0f;
-  camera->projection.near = 0.1f;
-  camera->projection.far = 256.0f;
-  camera->updateProjection();
-}
-
-void Engine::destroyCamera() {
-  if (camera != nullptr)
-    delete camera;
-}
-
-Camera::Manager Engine::getCamera() {
-  return this->camera;
+Scene::Manager Engine::getScene() {
+  return scene;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -173,16 +142,14 @@ void Engine::initGeometryPass() {
   geometryPass.commands = commands;
   geometryPass.shaders = shaders;
   geometryPass.shaderName = std::string("shaders/geometry.hlsl");
-  geometryPass.textures = textures;
-  geometryPass.textureName = std::string("misc/textures/default.png");
+  geometryPass.updateTextureDescriptors(scene->objects.front()->texture->view,
+                                        scene->objects.front()->texture->sampler);
 
   // Цель вывода прохода рендера
   geometryPass.targetImageCount = core->swapchainImageCount;
   geometryPass.targetImageWidth = core->swapchainExtent.width;
   geometryPass.targetImageHeight = core->swapchainExtent.height;
   geometryPass.targetImageFormat = core->swapchainFormat;
-
-  // TODO: тройное копирование векторов
   geometryPass.targetImageViews = resources->createImageViews(
       core->swapchainImages,
       core->swapchainFormat,
@@ -211,8 +178,13 @@ void Engine::drawFrame() {
   float deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
   prevTime = currentTime;
 
+  auto object = scene->objects.front();
+  auto camera = scene->getCamera();
   camera->update(deltaTime);
-  geometryPass.updateUniformDescriptors(swapchainImageIndex, camera->transform.view, camera->transform.projection);
+  geometryPass.updateUniformDescriptors(
+      swapchainImageIndex,
+      camera->transform.view,
+      camera->transform.projection);
 
   //=========================================================================
   // Начало рендера
@@ -230,9 +202,10 @@ void Engine::drawFrame() {
   GeometryPass::record_t data;
   data.cmd = cmdBuffer;
   data.imageIndex = swapchainImageIndex;
-  data.indicesCount = cube->verticesCount;  // TODO: Сделать индексацию
-  data.indices = cube->indexBuffer;
-  data.vertices = cube->vertexBuffer;
+  data.indicesCount = object->model->verticesCount;  // TODO: Сделать индексацию
+  data.indices = object->model->indexBuffer;
+  data.vertices = object->model->vertexBuffer;
+
   geometryPass.record(data);
 
   vkEndCommandBuffer(cmdBuffer);

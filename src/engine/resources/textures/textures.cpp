@@ -76,6 +76,9 @@ Textures::Instance Textures::createTexture(const std::string& name) {
       VK_FORMAT_R8G8B8A8_SRGB,
       VK_IMAGE_ASPECT_COLOR_BIT);
 
+  // Закрепим подходящий сэмплер
+  texture->sampler = commonSampler;
+
   return texture;
 };
 
@@ -109,11 +112,11 @@ void Textures::createTextureSampler() {
   samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
   samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-  if (vkCreateSampler(core->device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
+  if (vkCreateSampler(core->device, &samplerInfo, nullptr, &commonSampler) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create texture sampler!");
 }
 
 void Textures::destroyTextureSampler() {
-  if (sampler != nullptr)
-    vkDestroySampler(core->device, sampler, nullptr);
+  if (commonSampler != nullptr)
+    vkDestroySampler(core->device, commonSampler, nullptr);
 }
