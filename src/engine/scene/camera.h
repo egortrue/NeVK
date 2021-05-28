@@ -3,20 +3,21 @@
 // Сторонние библиотеки
 #include <glm/gtx/compatibility.hpp>
 
+// Внутренние библиотеки
+#include "object.h"
+
 // Стандартные библиотеки
 #include <chrono>
 
-class Camera {
+class Camera : public Object {
  public:
   typedef Camera* Manager;
 
-  glm::float3 position = glm::float3(0, 0, 0);
-
-  struct Rotation {
-    float pitch;  // Поворот относительно X
-    float yaw;    // Поворот относительно Y
-    float roll;   // Поворот относительно Z
-  } rotation;
+  struct Direction {
+    glm::float3 right = glm::float3(1, 0, 0);
+    glm::float3 upper = glm::float3(0, 1, 0);
+    glm::float3 front = glm::float3(0, 0, -1);
+  } direction;
 
   struct Projection {
     float fov;     // Угол обзора
@@ -25,16 +26,8 @@ class Camera {
     float far;     // Верхняя граница дальности видимости
   } projection;
 
-  struct Transform {
-    glm::float4x4 view;
-    glm::float4x4 projection;
-  } transform;
-
-  struct Direction {
-    glm::float3 upper = glm::vec3(0, 1, 0);
-    glm::float3 front = glm::vec3(0, 0, -1);
-    glm::float3 right = glm::vec3(1, 0, 0);
-  } direction;
+  glm::float4x4 viewMatrix;
+  glm::float4x4 projectionMatrix;
 
   struct Speed {
     float movement = 2.5f;
@@ -60,13 +53,10 @@ class Camera {
   Camera() = default;
   ~Camera() = default;
 
-  void update(double deltaTime);
-  void updatePosition(double deltaTime);
+  void update(float deltaTime);
+  void rotate(double dx, double dy);
 
   void updateView();
   void updateProjection();
-
-  void setProjection(Projection&);
-
-  void rotate(double dx, double dy);
+  void updateProjection(Projection&);
 };

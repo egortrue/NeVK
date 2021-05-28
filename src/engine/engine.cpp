@@ -91,7 +91,6 @@ void Engine::destroyShaders() {
 
 void Engine::initScene() {
   scene = new Scene(core, commands, resources);
-  scene->loadObject("misc/models/teapot.obj", "misc/textures/default.png");
 }
 
 void Engine::destroyScene() {
@@ -172,23 +171,6 @@ void Engine::drawFrame() {
   uint32_t swapchainImageIndex;
   VkResult result = vkAcquireNextImageKHR(core->device, core->swapchain, UINT64_MAX, frame.available, VK_NULL_HANDLE, &swapchainImageIndex);
 
-  // Получим время
-  static auto prevTime = std::chrono::high_resolution_clock::now();
-  auto currentTime = std::chrono::high_resolution_clock::now();
-  float deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
-  prevTime = currentTime;
-
-  auto object = scene->objects.front();
-  auto camera = scene->getCamera();
-  camera->update(deltaTime);
-  geometryPass.updateUniformDescriptors(
-      swapchainImageIndex,
-      camera->transform.view,
-      camera->transform.projection);
-
-  //=========================================================================
-  // Начало рендера
-
   VkCommandBuffer cmdBuffer = frames[swapchainImageIndex].cmdBuffer;
   commands->resetCommandBuffer(cmdBuffer);
 
@@ -197,15 +179,42 @@ void Engine::drawFrame() {
   cmdBeginInfo.pNext = nullptr;
   cmdBeginInfo.pInheritanceInfo = nullptr;
   cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  //=========================================================================
+  // Начало рендера
+
   vkBeginCommandBuffer(cmdBuffer, &cmdBeginInfo);
 
+  // Получим время
+  static auto timeGlobalStart = std::chrono::high_resolution_clock::now();
+  auto timeGlobal = std::chrono::high_resolution_clock::now();
+  float deltaGlobal = std::chrono::duration<double, std::milli>(timeGlobal - timeGlobalStart).count() / 1000.0f;
+
+  static auto timeFrameStart = std::chrono::high_resolution_clock::now();
+  auto timeFrame = std::chrono::high_resolution_clock::now();
+  float deltaFrame = std::chrono::duration<double, std::milli>(timeFrame - timeFrameStart).count() / 1000.0f;
+  timeFrameStart = timeFrame;
+
+  // Получим объекты сцены
+  auto object = scene->objects.front();
+  object->setPosition({0, sin(deltaGlobal) / 10, 0});
+  object->setRotation({0, deltaGlobal * 10.0f, 0});
+  object->update();
+
+  auto camera = scene->getCamera();
+  camera->update(deltaFrame);
+
+  // Обновим данные прохода рендера
+  glm::float4x4 modelViewProj = camera->projectionMatrix * camera->viewMatrix * object->modelMatrix;
+  geometryPass.updateUniformDescriptors(swapchainImageIndex, modelViewProj);
+
+  // Укажем необходимые вершины для отрисовки
   GeometryPass::record_t data;
   data.cmd = cmdBuffer;
   data.imageIndex = swapchainImageIndex;
-  data.indicesCount = object->model->verticesCount;  // TODO: Сделать индексацию
+  data.indicesCount = object->model->verticesCount;
   data.indices = object->model->indexBuffer;
   data.vertices = object->model->vertexBuffer;
-
   geometryPass.record(data);
 
   vkEndCommandBuffer(cmdBuffer);

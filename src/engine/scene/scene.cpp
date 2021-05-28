@@ -24,7 +24,7 @@ void Scene::loadObject(const char* model, const char* texture) {
 }
 
 void Scene::loadObject(const std::string& model, const std::string& texture) {
-  Object::Instance object = new Object();
+  PhysicalObject::Instance object = new PhysicalObject();
   object->model = models->loadModel(model);
   object->texture = textures->loadTexture(texture);
   objects.push_back(object);
@@ -45,6 +45,7 @@ void Scene::destroyTextures() {
 
 void Scene::initModels() {
   models = new Models(commands, resources);
+  loadObject("misc/models/teapot.obj", "misc/textures/default.png");
 }
 
 void Scene::destroyModels() {
@@ -61,6 +62,8 @@ void Scene::initCamera() {
   camera->projection.near = 0.1f;
   camera->projection.far = 256.0f;
   camera->updateProjection();
+  camera->setPosition({0, 0.5f, 3});
+  camera->updateView();
 }
 
 void Scene::destroyCamera() {

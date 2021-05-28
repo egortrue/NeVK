@@ -45,7 +45,7 @@ void GeometryPass::record(record_t& data) {
 
   // Заливка цвета вне всех примитивов
   std::array<VkClearValue, 2> clearValues{};
-  clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+  clearValues[0].color = {0.2f, 0.3f, 0.3f, 1.0f};
   clearValues[1].depthStencil = {1.0f, 0};
   renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
   renderPassInfo.pClearValues = clearValues.data();
@@ -69,7 +69,7 @@ void GeometryPass::record(record_t& data) {
   // Подключение множества ресурсов, используемых в конвейере
   vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
 
-  // Буферы вершин рендера
+  // Буферы вершин
   VkBuffer vertexBuffers[] = {data.vertices};
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(data.cmd, 0, 1, vertexBuffers, offsets);
@@ -110,15 +110,9 @@ void GeometryPass::destroyUniformDescriptors() {
     resources->destroyBuffer(uniformBuffers[i], uniformBuffersMemory[i]);
 }
 
-void GeometryPass::updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& view, glm::float4x4& projection) {
-  // Получим время
-  static auto prevTime = std::chrono::high_resolution_clock::now();
-  auto currentTime = std::chrono::high_resolution_clock::now();
-  float deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
-
+void GeometryPass::updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& modelViewProj) {
   // Обновим данные структуры
-  glm::float4x4 model = glm::rotate(glm::mat4(1.0f), 0.5f * deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-  uniform.modelViewProj = projection * view * model;
+  uniform.modelViewProj = modelViewProj;
 
   // Скопируем данные в память устройства
   void* data;
@@ -285,7 +279,7 @@ void GeometryPass::createGraphicsPipeline() {
   // VK_CULL_MODE_FRONT_BIT --- отброс лицевых полигонов
   // VK_CULL_MODE_BACK_BIT --- отброс нелицевых полигонов
   // VK_CULL_MODE_FRONT_AND_BACK --- отброс обоих сторон полигонов
-  rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+  rasterizer.cullMode = VK_CULL_MODE_NONE;
 
   // Опции глубины
   rasterizer.depthClampEnable = VK_FALSE;  // Отсечение глубины - заполнение дыр геометрии

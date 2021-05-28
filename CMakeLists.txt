@@ -125,6 +125,8 @@ target_link_libraries(${LIBRARY_MODELS_NAME} PUBLIC
 set(LIBRARY_SCENE_NAME scene)
 set(LIBRARY_SCENE_PATH src/engine/scene)
 set(LIBRARY_SCENE_SOURCES
+    ${LIBRARY_SCENE_PATH}/object.h
+    ${LIBRARY_SCENE_PATH}/object.cpp
     ${LIBRARY_SCENE_PATH}/camera.h
     ${LIBRARY_SCENE_PATH}/camera.cpp
     ${LIBRARY_SCENE_PATH}/scene.h

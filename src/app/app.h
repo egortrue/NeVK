@@ -84,7 +84,6 @@ class Application {
     auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getScene()->getCamera();
     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
       if (action == GLFW_PRESS) {
-        double xpos = 0, ypos = 0;
         glfwGetCursorPos(window, &camera->mouse.pos.x, &camera->mouse.pos.y);
         camera->mouse.right = true;
       } else if (action == GLFW_RELEASE) {

@@ -36,7 +36,7 @@ class GeometryPass : public RenderPass {
   // Выделенные ресурсы, привязанные к конвейеру
 
  public:
-  void updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& view, glm::float4x4& projection);
+  void updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& modelViewProj);
   void updateTextureDescriptors(VkImageView view, VkSampler sampler);
 
  private:

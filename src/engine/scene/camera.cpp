@@ -1,23 +1,26 @@
 #include "camera.h"
 
-void Camera::update(double deltaTime) {
-  updatePosition(deltaTime);
-  updateView();
-}
-
 void Camera::updateView() {
-  transform.view = glm::lookAt(
-      position,                    // Позция камеры
-      position + direction.front,  // Позиция цели
+  viewMatrix = glm::lookAt(
+      transform.position,                    // Позция камеры
+      transform.position + direction.front,  // Позиция цели
       direction.upper);
 }
 
 void Camera::updateProjection() {
-  transform.projection = glm::perspective(
+  projectionMatrix = glm::perspective(
       glm::radians(projection.fov),
       projection.aspect,
       projection.near,
       projection.far);
+}
+
+void Camera::updateProjection(Projection& projection) {
+  this->projection.fov = projection.fov;
+  this->projection.aspect = projection.aspect;
+  this->projection.near = projection.near;
+  this->projection.far = projection.far;
+  updateProjection();
 }
 
 void Camera::rotate(double xpos, double ypos) {
@@ -30,45 +33,49 @@ void Camera::rotate(double xpos, double ypos) {
   mouse.pos.y = ypos;
 
   // Запишем градуcы поворота
-  rotation.yaw += xoffset * speed.rotation;
-  rotation.pitch += yoffset * speed.rotation;
+  transform.rotation.y += xoffset * speed.rotation;
+  transform.rotation.x += yoffset * speed.rotation;
 
-  // Лимиты поворота по X
-  if (rotation.pitch > 89.0f)
-    rotation.pitch = 89.0f;
-  if (rotation.pitch < -89.0f)
-    rotation.pitch = -89.0f;
+  // Лимиты поворота
+  if (transform.rotation.x > 89.0f)
+    transform.rotation.x = 89.0f;
+  if (transform.rotation.x < -89.0f)
+    transform.rotation.x = -89.0f;
 
-  // Обновим векторы направления (вектор вверх всегда константен)
+  // Обновим векторы направления движения (вектор вверх всегда константен)
   glm::float3 front;
-  front.x = cos(glm::radians(rotation.yaw)) * cos(glm::radians(rotation.pitch));
-  front.y = sin(glm::radians(rotation.pitch));
-  front.z = sin(glm::radians(rotation.yaw)) * cos(glm::radians(rotation.pitch));
+  front.x = cos(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
+  front.y = sin(glm::radians(transform.rotation.x));
+  front.z = sin(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
   direction.front = glm::normalize(front);
   direction.right = glm::normalize(glm::cross(direction.front, direction.upper));
+
+  updateView();
 }
 
-void Camera::updatePosition(double deltaTime) {
+void Camera::update(float deltaTime) {
   if (!(move.left || move.right || move.up || move.down || move.forward || move.back))
     return;
 
   float shift = speed.movement * deltaTime;
 
   if (move.up)
-    position += shift * direction.upper;
+    transform.position += shift * direction.upper;
 
   if (move.down)
-    position -= shift * direction.upper;
+    transform.position -= shift * direction.upper;
 
   if (move.right)
-    position += shift * direction.right;
+    transform.position += shift * direction.right;
 
   if (move.left)
-    position -= shift * direction.right;
+    transform.position -= shift * direction.right;
 
   if (move.forward)
-    position += shift * direction.front;
+    transform.position += shift * direction.front;
 
   if (move.back)
-    position -= shift * direction.front;
+    transform.position -= shift * direction.front;
+
+  updateView();
 }
