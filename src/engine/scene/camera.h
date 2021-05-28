@@ -10,16 +10,13 @@ class Camera {
  public:
   typedef Camera* Manager;
 
-  enum Type {
-    LOOK_AT,
-    FIRST_PERSON
-  } type;
+  glm::float3 position = glm::float3(0, 0, 0);
 
-  struct Position {
-    float x;
-    float y;
-    float z;
-  } position;
+  struct Rotation {
+    float pitch;  // Поворот относительно X
+    float yaw;    // Поворот относительно Y
+    float roll;   // Поворот относительно Z
+  } rotation;
 
   struct Projection {
     float fov;     // Угол обзора
@@ -29,13 +26,19 @@ class Camera {
   } projection;
 
   struct Transform {
-    glm::float4x4 view;        // Соответствует данным позиции
-    glm::float4x4 projection;  // Соответствует данным проекции
+    glm::float4x4 view;
+    glm::float4x4 projection;
   } transform;
+
+  struct Direction {
+    glm::float3 upper = glm::vec3(0, 1, 0);
+    glm::float3 front = glm::vec3(0, 0, -1);
+    glm::float3 right = glm::vec3(1, 0, 0);
+  } direction;
 
   struct Speed {
     float movement = 2.5f;
-    float rotation = 0.5f;
+    float rotation = 0.25f;
   } speed;
 
   struct Move {
@@ -47,13 +50,23 @@ class Camera {
     bool back;
   } move;
 
+  struct Mouse {
+    glm::double2 pos;
+    bool right;
+    bool left;
+    bool middle;
+  } mouse;
+
   Camera() = default;
   ~Camera() = default;
 
-  void update();
+  void update(double deltaTime);
   void updatePosition(double deltaTime);
+
+  void updateView();
   void updateProjection();
 
-  void setPosition(Position&);
   void setProjection(Projection&);
+
+  void rotate(double dx, double dy);
 };

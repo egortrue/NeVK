@@ -1,21 +1,15 @@
 #include "camera.h"
 
-void Camera::update() {
+void Camera::update(double deltaTime) {
+  updatePosition(deltaTime);
+  updateView();
 }
 
-void Camera::setPosition(Position& position) {
-  this->position.x = position.x;
-  this->position.y = position.y;
-  this->position.z = position.z;
-  updatePosition(1);
-}
-
-void Camera::setProjection(Projection& projection) {
-  this->projection.fov = projection.fov;
-  this->projection.aspect = projection.aspect;
-  this->projection.near = projection.near;
-  this->projection.far = projection.far;
-  updateProjection();
+void Camera::updateView() {
+  transform.view = glm::lookAt(
+      position,                    // Позция камеры
+      position + direction.front,  // Позиция цели
+      direction.upper);
 }
 
 void Camera::updateProjection() {
@@ -26,33 +20,55 @@ void Camera::updateProjection() {
       projection.far);
 }
 
+void Camera::rotate(double xpos, double ypos) {
+  // Смещение мыши
+  double xoffset = xpos - mouse.pos.x;
+  double yoffset = mouse.pos.y - ypos;
+
+  // Новые координаты мыши
+  mouse.pos.x = xpos;
+  mouse.pos.y = ypos;
+
+  // Запишем градуcы поворота
+  rotation.yaw += xoffset * speed.rotation;
+  rotation.pitch += yoffset * speed.rotation;
+
+  // Лимиты поворота по X
+  if (rotation.pitch > 89.0f)
+    rotation.pitch = 89.0f;
+  if (rotation.pitch < -89.0f)
+    rotation.pitch = -89.0f;
+
+  // Обновим векторы направления (вектор вверх всегда константен)
+  glm::float3 front;
+  front.x = cos(glm::radians(rotation.yaw)) * cos(glm::radians(rotation.pitch));
+  front.y = sin(glm::radians(rotation.pitch));
+  front.z = sin(glm::radians(rotation.yaw)) * cos(glm::radians(rotation.pitch));
+  direction.front = glm::normalize(front);
+  direction.right = glm::normalize(glm::cross(direction.front, direction.upper));
+}
+
 void Camera::updatePosition(double deltaTime) {
   if (!(move.left || move.right || move.up || move.down || move.forward || move.back))
     return;
 
   float shift = speed.movement * deltaTime;
-  float x = position.x;
-  float y = position.y;
-  float z = position.z;
 
   if (move.up)
-    position.y += shift;
+    position += shift * direction.upper;
 
   if (move.down)
-    position.y -= shift;
+    position -= shift * direction.upper;
 
   if (move.right)
-    position.x += shift;
+    position += shift * direction.right;
 
   if (move.left)
-    position.x -= shift;
+    position -= shift * direction.right;
 
   if (move.forward)
-    position.z += shift;
+    position += shift * direction.front;
 
   if (move.back)
-    position.z -= shift;
-
-  glm::float3 offset = glm::float3(x - position.x, y - position.y, -(z - position.z));
-  transform.view *= glm::translate(glm::float4x4(1.0f), offset);
+    position -= shift * direction.front;
 }

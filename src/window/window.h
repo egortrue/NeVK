@@ -19,6 +19,8 @@ class Window {
 
   struct Callbacks {
     GLFWkeyfun keyboard;
+    GLFWmousebuttonfun mouseButtons;
+    GLFWcursorposfun mousePos;
   } callbacks;
 
   bool isClosed() {
@@ -27,6 +29,8 @@ class Window {
 
   void setActions() {
     glfwSetKeyCallback(instance, callbacks.keyboard);
+    glfwSetMouseButtonCallback(instance, callbacks.mouseButtons);
+    glfwSetCursorPosCallback(instance, callbacks.mousePos);
   }
 
   void checkActions() {

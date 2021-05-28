@@ -118,15 +118,11 @@ void Engine::destroyModels() {
 
 void Engine::initCamera() {
   camera = new Camera();
-
-  camera->transform.view = glm::lookAt(glm::vec3(0, 1, 3), glm::vec3(0, 0.5f, 0), glm::vec3(0, 1, 0));
-
-  Camera::Projection initialProj;
-  initialProj.fov = 45.0f;
-  initialProj.aspect = 800.0f / 600.0f;
-  initialProj.near = 0.1f;
-  initialProj.far = 256.0f;
-  camera->setProjection(initialProj);
+  camera->projection.fov = 45.0f;
+  camera->projection.aspect = 800.0f / 600.0f;
+  camera->projection.near = 0.1f;
+  camera->projection.far = 256.0f;
+  camera->updateProjection();
 }
 
 void Engine::destroyCamera() {
@@ -215,7 +211,7 @@ void Engine::drawFrame() {
   float deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
   prevTime = currentTime;
 
-  camera->updatePosition(deltaTime);
+  camera->update(deltaTime);
   geometryPass.updateUniformDescriptors(swapchainImageIndex, camera->transform.view, camera->transform.projection);
 
   //=========================================================================
