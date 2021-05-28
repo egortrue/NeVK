@@ -119,7 +119,7 @@ void Engine::destroyModels() {
 void Engine::initCamera() {
   camera = new Camera();
 
-  camera->transform.view = glm::lookAt(glm::vec3(0, 2, 3), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+  camera->transform.view = glm::lookAt(glm::vec3(0, 1, 3), glm::vec3(0, 0.5f, 0), glm::vec3(0, 1, 0));
 
   Camera::Projection initialProj;
   initialProj.fov = 45.0f;
@@ -178,7 +178,7 @@ void Engine::initGeometryPass() {
   geometryPass.shaders = shaders;
   geometryPass.shaderName = std::string("shaders/geometry.hlsl");
   geometryPass.textures = textures;
-  geometryPass.textureName = std::string("misc/textures/brickwall.png");
+  geometryPass.textureName = std::string("misc/textures/default.png");
 
   // Цель вывода прохода рендера
   geometryPass.targetImageCount = core->swapchainImageCount;
@@ -209,30 +209,37 @@ void Engine::drawFrame() {
   uint32_t swapchainImageIndex;
   VkResult result = vkAcquireNextImageKHR(core->device, core->swapchain, UINT64_MAX, frame.available, VK_NULL_HANDLE, &swapchainImageIndex);
 
-  camera->updatePosition();
+  // Получим время
+  static auto prevTime = std::chrono::high_resolution_clock::now();
+  auto currentTime = std::chrono::high_resolution_clock::now();
+  float deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
+  prevTime = currentTime;
+
+  camera->updatePosition(deltaTime);
   geometryPass.updateUniformDescriptors(swapchainImageIndex, camera->transform.view, camera->transform.projection);
 
   //=========================================================================
   // Начало рендера
 
-  commands->resetCommandBuffer(frame.cmdBuffer);
+  VkCommandBuffer cmdBuffer = frames[swapchainImageIndex].cmdBuffer;
+  commands->resetCommandBuffer(cmdBuffer);
 
   VkCommandBufferBeginInfo cmdBeginInfo = {};
   cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   cmdBeginInfo.pNext = nullptr;
   cmdBeginInfo.pInheritanceInfo = nullptr;
   cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-  vkBeginCommandBuffer(frame.cmdBuffer, &cmdBeginInfo);
+  vkBeginCommandBuffer(cmdBuffer, &cmdBeginInfo);
 
   GeometryPass::record_t data;
-  data.cmd = frame.cmdBuffer;
+  data.cmd = cmdBuffer;
   data.imageIndex = swapchainImageIndex;
   data.indicesCount = cube->verticesCount;  // TODO: Сделать индексацию
   data.indices = cube->indexBuffer;
   data.vertices = cube->vertexBuffer;
   geometryPass.record(data);
 
-  vkEndCommandBuffer(frame.cmdBuffer);
+  vkEndCommandBuffer(cmdBuffer);
 
   //=========================================================================
 

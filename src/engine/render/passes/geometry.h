@@ -42,9 +42,7 @@ class GeometryPass : public RenderPass {
  private:
   // Буферы
   struct uniform_t {
-    glm::float4x4 model;
-    glm::float4x4 view;
-    glm::float4x4 projection;
+    glm::float4x4 modelViewProj;
   } uniform;
   std::vector<VkBuffer> uniformBuffers;
   std::vector<VkDeviceMemory> uniformBuffersMemory;

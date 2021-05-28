@@ -34,7 +34,7 @@ class Camera {
   } transform;
 
   struct Speed {
-    float movement = 10.0f;
+    float movement = 2.5f;
     float rotation = 0.5f;
   } speed;
 
@@ -51,7 +51,7 @@ class Camera {
   ~Camera() = default;
 
   void update();
-  void updatePosition();
+  void updatePosition(double deltaTime);
   void updateProjection();
 
   void setPosition(Position&);
