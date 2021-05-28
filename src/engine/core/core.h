@@ -77,13 +77,20 @@ class Core {
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice);
 
   //=========================================================================
+  // Устройство для вывода отладочной информации
+
+ private:
+  VkDebugUtilsMessengerEXT debugMessenger;
+  void createDebugMessenger();
+  void destroyDebugMessenger();
+
+  //=========================================================================
   // Поверхность для отрисовки. Cоздаётся вне ядра (сторонним API)
   // Требует расширения VK_KHR_surface
 
  public:
   VkSurfaceKHR surface;
-  uint32_t surfaceWidth;
-  uint32_t surfaceHeight;
+  uint32_t surfaceWidth, surfaceHeight;
 
  private:
   void destroySurface();
@@ -97,14 +104,14 @@ class Core {
   VkExtent2D swapchainExtent;
   VkFormat swapchainFormat;
 
-  // Буферы изображений
+  // Буферы списка показа
   uint32_t swapchainImageCount;
   std::vector<VkImage> swapchainImages;
 
- private:
   void createSwapchain();
   void destroySwapchain();
 
+ private:
   VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
   VkPresentModeKHR chooseSwapchainPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
   VkExtent2D chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities);
@@ -114,13 +121,4 @@ class Core {
     std::vector<VkPresentModeKHR> presentModes;
   };
   SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice);
-
-  //=========================================================================
-  // Устройство для вывода отладочной информации
- public:
-  VkDebugUtilsMessengerEXT debugMessenger;
-
- private:
-  void createDebugMessenger();
-  void destroyDebugMessenger();
 };

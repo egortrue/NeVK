@@ -1,5 +1,15 @@
 #include "pass.h"
 
+void RenderPass::init() {
+  // Создание прохода рендера
+  createShaderModules();
+  createRenderPass();
+  createGraphicsPipeline();
+
+  // Создание области вывода
+  createFramebuffers();
+}
+
 void RenderPass::reloadShader() {
   vkDeviceWaitIdle(core->device);
   vkDestroyPipeline(core->device, pipeline, nullptr);
@@ -71,7 +81,7 @@ VkShaderModule RenderPass::createModule(const char* code, const uint32_t codeSiz
 void RenderPass::createDescriptorSets() {
   // На каждое множество ресурсов - своя раскладка
   // В контексте одного конвейера - у всех одинаковая
-  std::vector<VkDescriptorSetLayout> layouts(targetImageCount, descriptorSetLayout);
+  std::vector<VkDescriptorSetLayout> layouts(colorImageCount, descriptorSetLayout);
 
   // Информация о множестве ресурсов
   VkDescriptorSetAllocateInfo allocInfo{};
@@ -81,10 +91,10 @@ void RenderPass::createDescriptorSets() {
   allocInfo.descriptorPool = resources->descriptorPool;
 
   // Количество множеств и их раскладка соответственно
-  allocInfo.descriptorSetCount = static_cast<uint32_t>(targetImageCount);
+  allocInfo.descriptorSetCount = static_cast<uint32_t>(colorImageCount);
   allocInfo.pSetLayouts = layouts.data();
 
-  descriptorSets.resize(targetImageCount);
+  descriptorSets.resize(colorImageCount);
   if (vkAllocateDescriptorSets(core->device, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to allocate descriptor sets!");
 }
@@ -97,8 +107,8 @@ void RenderPass::createFramebuffer(std::vector<VkImageView>& attachment, uint32_
   // Изображения, в которые будет идти результат
   framebufferInfo.attachmentCount = static_cast<uint32_t>(attachment.size());
   framebufferInfo.pAttachments = attachment.data();
-  framebufferInfo.width = targetImageWidth;
-  framebufferInfo.height = targetImageHeight;
+  framebufferInfo.width = colorImageWidth;
+  framebufferInfo.height = colorImageHeight;
   framebufferInfo.layers = 1;
 
   if (vkCreateFramebuffer(core->device, &framebufferInfo, nullptr, &framebuffers[index]) != VK_SUCCESS)

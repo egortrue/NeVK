@@ -52,7 +52,9 @@ class Engine {
     VkCommandPool cmdPool;
     VkCommandBuffer cmdBuffer;
     VkFence drawing;
-    VkSemaphore available;
+    VkFence showing;
+    VkSemaphore imageAvailable;
+    VkSemaphore imageRendered;
   };
 
   std::vector<Frame> frames;
@@ -63,4 +65,6 @@ class Engine {
   GeometryPass geometryPass;
   void initGeometryPass();
   void destroyGeometryPass();
+
+  void resizeSwapchain();
 };

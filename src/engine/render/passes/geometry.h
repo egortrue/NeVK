@@ -24,8 +24,8 @@ class GeometryPass : public RenderPass {
   };
 
   void init() override;
-  void resize() override;
   void destroy() override;
+  void resize() override;
   void record(record_t&);
 
  private:
@@ -35,9 +35,15 @@ class GeometryPass : public RenderPass {
   //=========================================================================
   // Выделенные ресурсы, привязанные к конвейеру
 
+ private:
+  // Описание подключаемых ресурсов
+  void createDescriptorSetLayout() override;
+  void updateDescriptorSets() override;
+
  public:
-  void updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& modelViewProj);
-  void updateTextureDescriptors(VkImageView view, VkSampler sampler);
+  // Текстуры - посутпают извне прохода
+  VkImageView textureImageView;
+  VkSampler textureSampler;
 
  private:
   // Буферы
@@ -49,26 +55,20 @@ class GeometryPass : public RenderPass {
   void createUniformDescriptors();
   void destroyUniformDescriptors();
 
-  // Изображения
-  VkImageView textureImageView;
-  VkSampler textureSampler;
-
-  bool isDescriptorsUpdated = false;
-  void createDescriptorSetLayout() override;
-  void updateDescriptorSets() override;
+ public:
+  void updateUniformDescriptor(uint32_t imageIndex, glm::float4x4& modelViewProj);
 
   //=========================================================================
   // Наборы изображений, в которые будет идти результат
 
- public:
+ private:
+  // Буфер глубины - создаётся локально
   VkImage depthImage;
   VkDeviceMemory depthImageMemory;
   VkFormat depthImageFormat;
   VkImageView depthImageView;
+  void createDepthImage();
+  void destroyDepthImage();
 
- private:
-  void createDepthImageFramebuffer();
-  void destroyDepthImageFramebuffer();
-
-  void createFramebuffers() override;
+  void createFramebuffers();
 };

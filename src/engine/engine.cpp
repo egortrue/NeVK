@@ -41,8 +41,10 @@ void Engine::initCore() {
     throw std::runtime_error("ERROR: Failed to create window surface!");
   int width, height;
   glfwGetFramebufferSize(window->instance, &width, &height);
-  core->surfaceWidth = static_cast<uint32_t>(width);
-  core->surfaceHeight = static_cast<uint32_t>(height);
+  window->width = width;
+  window->height = height;
+  core->surfaceWidth = width;
+  core->surfaceHeight = height;
 
   core->configure();
 }
@@ -120,15 +122,19 @@ void Engine::initFrames() {
     frame.cmdPool = commands->createCommandBufferPool();
     frame.cmdBuffer = commands->createCommandBuffer(frame.cmdPool);
 
-    vkCreateSemaphore(core->device, &semaphoreInfo, nullptr, &frame.available);
+    vkCreateSemaphore(core->device, &semaphoreInfo, nullptr, &frame.imageAvailable);
+    vkCreateSemaphore(core->device, &semaphoreInfo, nullptr, &frame.imageRendered);
     vkCreateFence(core->device, &fenceInfo, nullptr, &frame.drawing);
+    vkCreateFence(core->device, &fenceInfo, nullptr, &frame.showing);
   }
 }
 
 void Engine::destroyFrames() {
   for (auto& frame : frames) {
-    vkDestroySemaphore(core->device, frame.available, nullptr);
+    vkDestroySemaphore(core->device, frame.imageAvailable, nullptr);
+    vkDestroySemaphore(core->device, frame.imageRendered, nullptr);
     vkDestroyFence(core->device, frame.drawing, nullptr);
+    vkDestroyFence(core->device, frame.showing, nullptr);
     commands->destroyCommandBufferPool(frame.cmdPool);
   }
 }
@@ -141,15 +147,15 @@ void Engine::initGeometryPass() {
   geometryPass.commands = commands;
   geometryPass.shaders = shaders;
   geometryPass.shaderName = std::string("shaders/geometry.hlsl");
-  geometryPass.updateTextureDescriptors(scene->objects.front()->texture->view,
-                                        scene->objects.front()->texture->sampler);
+  geometryPass.textureImageView = scene->objects.front()->texture->view;
+  geometryPass.textureSampler = scene->objects.front()->texture->sampler;
 
   // Цель вывода прохода рендера
-  geometryPass.targetImageCount = core->swapchainImageCount;
-  geometryPass.targetImageWidth = core->swapchainExtent.width;
-  geometryPass.targetImageHeight = core->swapchainExtent.height;
-  geometryPass.targetImageFormat = core->swapchainFormat;
-  geometryPass.targetImageViews = resources->createImageViews(
+  geometryPass.colorImageCount = core->swapchainImageCount;
+  geometryPass.colorImageWidth = core->swapchainExtent.width;
+  geometryPass.colorImageHeight = core->swapchainExtent.height;
+  geometryPass.colorImageFormat = core->swapchainFormat;
+  geometryPass.colorImageViews = resources->createImageViews(
       core->swapchainImages,
       core->swapchainFormat,
       VK_IMAGE_ASPECT_COLOR_BIT);
@@ -158,20 +164,57 @@ void Engine::initGeometryPass() {
 }
 
 void Engine::destroyGeometryPass() {
-  resources->destroyImageViews(geometryPass.targetImageViews);
+  resources->destroyImageViews(geometryPass.colorImageViews);
   geometryPass.destroy();
+}
+
+void Engine::resizeSwapchain() {
+  vkDeviceWaitIdle(core->device);
+
+  // Пересоздадим список показа
+  core->destroySwapchain();
+  core->createSwapchain();
+
+  // Обновим все проходы рендера
+  resources->destroyImageViews(geometryPass.colorImageViews);
+  geometryPass.colorImageWidth = core->swapchainExtent.width;
+  geometryPass.colorImageHeight = core->swapchainExtent.height;
+  geometryPass.colorImageViews = resources->createImageViews(
+      core->swapchainImages,
+      core->swapchainFormat,
+      VK_IMAGE_ASPECT_COLOR_BIT);
+  geometryPass.resize();
+
+  // Обновим соотношение сторон для камеры
+  auto camera = scene->getCamera();
+  camera->projection.aspect = static_cast<float>(window->width) / static_cast<float>(window->height);
+  camera->updateProjection();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::drawFrame() {
-  Frame& frame = frames[currentFrameIndex];
-  vkWaitForFences(core->device, 1, &frame.drawing, VK_TRUE, UINT64_MAX);
+  Frame& currentFrame = frames[currentFrameIndex];
+  vkWaitForFences(core->device, 1, &currentFrame.drawing, VK_TRUE, UINT64_MAX);
+
+  //=========================================================================
+  // Получение изображения из списка показа
 
   uint32_t swapchainImageIndex;
-  VkResult result = vkAcquireNextImageKHR(core->device, core->swapchain, UINT64_MAX, frame.available, VK_NULL_HANDLE, &swapchainImageIndex);
+  VkResult result = vkAcquireNextImageKHR(core->device, core->swapchain, UINT64_MAX, currentFrame.imageAvailable, VK_NULL_HANDLE, &swapchainImageIndex);
+  if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    resizeSwapchain();
+    return;
+  } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+    throw std::runtime_error("ERROR: Failed to acquire swapchain image!");
+  }
 
-  VkCommandBuffer cmdBuffer = frames[swapchainImageIndex].cmdBuffer;
+  Frame& targetFrame = frames[swapchainImageIndex];
+
+  //=========================================================================
+  // Генерация команд рендера
+
+  VkCommandBuffer cmdBuffer = targetFrame.cmdBuffer;
   commands->resetCommandBuffer(cmdBuffer);
 
   VkCommandBufferBeginInfo cmdBeginInfo = {};
@@ -179,9 +222,6 @@ void Engine::drawFrame() {
   cmdBeginInfo.pNext = nullptr;
   cmdBeginInfo.pInheritanceInfo = nullptr;
   cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-  //=========================================================================
-  // Начало рендера
 
   vkBeginCommandBuffer(cmdBuffer, &cmdBeginInfo);
 
@@ -206,7 +246,7 @@ void Engine::drawFrame() {
 
   // Обновим данные прохода рендера
   glm::float4x4 modelViewProj = camera->projectionMatrix * camera->viewMatrix * object->modelMatrix;
-  geometryPass.updateUniformDescriptors(swapchainImageIndex, modelViewProj);
+  geometryPass.updateUniformDescriptor(swapchainImageIndex, modelViewProj);
 
   // Укажем необходимые вершины для отрисовки
   GeometryPass::record_t data;
@@ -217,34 +257,53 @@ void Engine::drawFrame() {
   data.vertices = object->model->vertexBuffer;
   geometryPass.record(data);
 
-  vkEndCommandBuffer(cmdBuffer);
+  if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS) {
+    throw std::runtime_error("ERROR: ailed to record command buffer!");
+  }
 
   //=========================================================================
+  // Установка команд рендера
+
+  // Синхронизация кадров
+  if (targetFrame.showing != VK_NULL_HANDLE)
+    vkWaitForFences(core->device, 1, &targetFrame.showing, VK_TRUE, UINT64_MAX);
+  targetFrame.showing = currentFrame.drawing;
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &targetFrame.cmdBuffer;
 
-  VkSemaphore waitSemaphores[] = {frame.available};
+  // Синхронизация изображения
   VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
   submitInfo.waitSemaphoreCount = 1;
-  submitInfo.pWaitSemaphores = waitSemaphores;
+  submitInfo.pWaitSemaphores = &currentFrame.imageAvailable;  // Ждем, пока не получим изображение
   submitInfo.pWaitDstStageMask = waitStages;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &frame.cmdBuffer;
+  submitInfo.signalSemaphoreCount = 1;
+  submitInfo.pSignalSemaphores = &currentFrame.imageRendered;  // Укажем, что команды рендера выставлены в очередь
 
-  vkResetFences(core->device, 1, &frame.drawing);
-  if (vkQueueSubmit(core->graphicsQueue, 1, &submitInfo, frame.drawing) != VK_SUCCESS)
+  vkResetFences(core->device, 1, &currentFrame.drawing);
+  if (vkQueueSubmit(core->graphicsQueue, 1, &submitInfo, currentFrame.drawing) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to submit draw command buffer!");
+
+  //=========================================================================
+  // Установка изображений показа
 
   VkPresentInfoKHR presentInfo{};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-  VkSwapchainKHR swapChains[] = {core->swapchain};
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores = &currentFrame.imageRendered;  // Ждем команды рендера
   presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains = swapChains;
+  presentInfo.pSwapchains = &core->swapchain;
   presentInfo.pImageIndices = &swapchainImageIndex;
 
-  vkQueuePresentKHR(core->presentQueue, &presentInfo);
+  result = vkQueuePresentKHR(core->presentQueue, &presentInfo);
+  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window->isResized) {
+    window->isResized = false;
+    resizeSwapchain();
+  } else if (result != VK_SUCCESS) {
+    throw std::runtime_error("ERROR: Failed to present swapchain image!");
+  }
 
   currentFrameIndex = (swapchainImageIndex + 1) % core->swapchainImageCount;
 }

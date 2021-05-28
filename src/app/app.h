@@ -36,6 +36,7 @@ class Application {
     window->callbacks.keyboard = keyCallback;
     window->callbacks.mousePos = mouseMoveCallback;
     window->callbacks.mouseButtons = mouseButtonCallback;
+    window->callbacks.fbResize = framebufferResizeCallback;
     window->setActions();
   }
 
@@ -96,5 +97,20 @@ class Application {
     auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getScene()->getCamera();
     if (camera->mouse.right)
       camera->rotate(xpos, ypos);
+  }
+
+  static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+    auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+    app->window->isResized = true;
+
+    int width_ = 0, height_ = 0;
+    do {
+      glfwGetFramebufferSize(window, &width_, &height_);
+      glfwWaitEvents();
+    } while (width_ == 0 || height_ == 0);
+
+    // Обновим разрешение у главного обработчика окна
+    app->window->width = static_cast<uint32_t>(width_);
+    app->window->height = static_cast<uint32_t>(height_);
   }
 };
