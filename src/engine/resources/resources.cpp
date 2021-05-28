@@ -1,6 +1,6 @@
 #include "resources.h"
 
-Resources::Resources(CoreManager core) {
+Resources::Resources(Core::Manager core) {
   vkGetPhysicalDeviceMemoryProperties(core->physicalDevice, &memoryProperties);
   this->core = core;
   this->descriptorPool = createDescriptorPool();

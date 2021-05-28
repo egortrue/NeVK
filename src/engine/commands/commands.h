@@ -4,15 +4,16 @@
 #include "core.h"
 #include "resources.h"
 
-typedef class Commands* CommandsManager;
-
 class Commands {
+ public:
+  typedef Commands* Manager;
+
  private:
-  CoreManager core;
-  ResourcesManager resources;
+  Core::Manager core;
+  Resources::Manager resources;
 
  public:
-  Commands(CoreManager, ResourcesManager);
+  Commands(Core::Manager, Resources::Manager);
   ~Commands();
 
   //=========================================================================

@@ -9,16 +9,22 @@ Shaders::~Shaders() {
     spDestroySession(slangSession);
 }
 
-Shaders::shader_t Shaders::compileShader(const char* name, const char* entryPointName, SlangStage stage) {
+void Shaders::compileShader(Instance shader, SlangStage stage) {
   SlangCompileRequest* slangRequest = spCreateCompileRequest(slangSession);
 
+  // Опции компиляции
   // spSetDebugInfoLevel(slangRequest, SLANG_DEBUG_INFO_LEVEL_MAXIMAL);
   int targetIndex = spAddCodeGenTarget(slangRequest, SLANG_SPIRV);
   SlangProfileID profileID = spFindProfile(slangSession, "sm_6_3");
   spSetTargetProfile(slangRequest, targetIndex, profileID);
   int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
-  spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, name);
-  int entryPointIndex = spAddEntryPoint(slangRequest, translationUnitIndex, entryPointName, stage);
+  spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, shader->name.c_str());
+
+  int entryPointIndex;
+  if (stage == SLANG_STAGE_VERTEX)
+    entryPointIndex = spAddEntryPoint(slangRequest, translationUnitIndex, shader->vertexName.c_str(), SLANG_STAGE_VERTEX);
+  else if (stage == SLANG_STAGE_FRAGMENT)
+    entryPointIndex = spAddEntryPoint(slangRequest, translationUnitIndex, shader->fragmentName.c_str(), SLANG_STAGE_FRAGMENT);
 
   // Компиляция шейдера в SPIR-V
   const SlangResult compileRes = spCompile(slangRequest);
@@ -34,48 +40,55 @@ Shaders::shader_t Shaders::compileShader(const char* name, const char* entryPoin
   if (!data)
     throw std::runtime_error(diagnostics);
 
-  // Создание нового дискриптора для шейдера
-  shader_t shader{};
-  shader.name = std::string(name);
-  shader.entryPointName = std::string(entryPointName);
-  shader.code.resize(dataSize);
-  memcpy(&shader.code[0], data, dataSize);
-  shader.slangReflection = (slang::ShaderReflection*)spGetReflection(slangRequest);
-  shader.slangRequest = slangRequest;
+  // Запись данных в дискриптор
+  std::vector<char>* shaderData;
+  if (stage == SLANG_STAGE_VERTEX)
+    shaderData = &shader->vertexCode;
+  else if (stage == SLANG_STAGE_FRAGMENT)
+    shaderData = &shader->fragmentCode;
+  shaderData->clear();
+  shaderData->resize(dataSize);
+  memcpy(shaderData->data(), data, dataSize);
 
   spDestroyCompileRequest(slangRequest);
-  return shader;
 }
 
-uint32_t Shaders::loadShader(const char* name, const char* entryPointName, SlangStage stage) {
-  shader_t new_shader = compileShader(name, entryPointName, stage);
-
-  // Поиск и перезапись старой информации о шейдере
-  uint32_t shaderId = 0;
-  for (; shaderId < handlers.size(); ++shaderId) {
-    shader_t& old_shader = handlers[shaderId];
-    if (old_shader.name == new_shader.name && old_shader.entryPointName == new_shader.entryPointName) {
-      old_shader.code.resize(new_shader.code.size());
-      memcpy(&old_shader.code[0], &new_shader.code[0], new_shader.code.size());
-      return shaderId;
-    }
+Shaders::Instance Shaders::loadShader(const std::string& name, const std::string& vertexName, const std::string& fragmentName) {
+  // Найдем уже загруженный шейдер
+  auto el = idList.find(name);
+  if (el != idList.end()) {
+    // Перезагрузка шейдера
+    compileShader(handlers[el->second], SLANG_STAGE_VERTEX);
+    compileShader(handlers[el->second], SLANG_STAGE_FRAGMENT);
+    return handlers[el->second];
   }
 
   // Сохраним новые данные
-  shaderId = handlers.size();
-  handlers.push_back(new_shader);
-  return shaderId;
+  Instance shader = new shader_t;
+  shader->name = name;
+  shader->vertexName = vertexName;
+  shader->fragmentName = fragmentName;
+  compileShader(shader, SLANG_STAGE_VERTEX);
+  compileShader(shader, SLANG_STAGE_FRAGMENT);
+  uint32_t id = static_cast<uint32_t>(handlers.size());
+  idList.insert(std::make_pair(name, id));
+  handlers.push_back(shader);
+
+  return shader;
 }
 
-void Shaders::reloadAllShaders() {
-  for (const auto& shader : handlers)
-    loadShader(shader.name.c_str(), shader.entryPointName.c_str(), shader.stage);
+void Shaders::reloadShader(const std::string& name) {
+  auto el = idList.find(name);
+  if (el == idList.end())
+    throw std::runtime_error("ERROR: shader was not loaded: " + name);
+
+  compileShader(handlers[el->second], SLANG_STAGE_VERTEX);
+  compileShader(handlers[el->second], SLANG_STAGE_FRAGMENT);
 }
 
-bool Shaders::getShaderCode(uint32_t id, const char*& code, uint32_t& size) {
-  if (handlers.size() <= id) return false;
-  shader_t& shader = handlers[id];
-  code = shader.code.data();
-  size = shader.code.size();
-  return true;
+void Shaders::reload() {
+  for (auto shader : handlers) {
+    compileShader(shader, SLANG_STAGE_VERTEX);
+    compileShader(shader, SLANG_STAGE_FRAGMENT);
+  }
 }

@@ -12,32 +12,32 @@
 #include <list>
 #include <unordered_map>
 
-typedef class Textures* TexturesManager;
-
 class Textures {
- private:
-  CoreManager core;
-  CommandsManager commands;
-  ResourcesManager resources;
-
-  struct texture_t {
+ public:
+  typedef Textures* Manager;
+  typedef struct texture_t {
     int width, height;
     VkImage image;
     VkImageView view;
     VkDeviceSize size;
     VkDeviceMemory memory;
-  };
+  } * Instance;
 
-  std::vector<texture_t*> handlers;
+ private:
+  Core::Manager core;
+  Commands::Manager commands;
+  Resources::Manager resources;
+
+  std::vector<Instance> handlers;
   std::unordered_map<std::string, uint32_t> idList;
 
  public:
-  Textures(CoreManager, CommandsManager, ResourcesManager);
+  Textures(Core::Manager, Commands::Manager, Resources::Manager);
   ~Textures();
 
   VkSampler sampler;
-  texture_t* loadTexture(const std::string& name);
-  texture_t* getTexture(const std::string& name);
+  Instance loadTexture(const std::string& name);
+  Instance getTexture(const std::string& name);
   void destroyTexture(const std::string& name);
 
  private:

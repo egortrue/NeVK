@@ -1,19 +1,15 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-#include "engine/engine.h"
+// Внутренние библиотеки
+#include "window.h"
+#include "engine.h"
 
 class Application {
  private:
-  GLFWwindow* window;
-  Engine* engine;
+  Window::Manager window;
+  Engine::Manager engine;
 
  public:
-  uint32_t WIDTH = 800;
-  uint32_t HEIGHT = 600;
-
   Application() {
     initWindow();
     initEngine();
@@ -25,43 +21,82 @@ class Application {
   }
 
   void run() {
-    while (!glfwWindowShouldClose(this->window)) {
-      glfwPollEvents();  // Проверка нажатий клавиатуры/мыши
+    while (!window->isClosed()) {
+      window->checkActions();
       engine->drawFrame();
     }
   }
 
  private:
   void initWindow() {
-    // Инициализация GLFW
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    window = new Window();
+    glfwSetWindowUserPointer(window->instance, this);
+    window->callbacks.keyboard = keyCallback;
+    window->callbacks.mousePos = mouseMoveCallback;
+    window->callbacks.mouseButtons = mouseButtonCallback;
 
-    // Монитор
-    // nullptr - оконный режим
-    // glfwGetPrimaryMonitor() - полноэкранный режим
-    GLFWmonitor* monitor = nullptr;
-
-    // Создание окна
-    this->window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", monitor, nullptr);
-    if (this->window == nullptr) {
-      glfwTerminate();
-      throw std::runtime_error("ERROR: Failed to create GLFW window");
-    }
+    window->setActions();
   }
 
   void destroyWindow() {
-    if (this->window == nullptr)
-      glfwDestroyWindow(this->window);
-    glfwTerminate();
+    if (window != nullptr)
+      delete window;
   }
 
   void initEngine() {
-    this->engine = new Engine(window);
+    engine = new Engine(window);
   }
 
   void destroyEngine() {
-    if (this->engine != nullptr)
-      delete this->engine;
+    if (engine != nullptr)
+      delete engine;
+  }
+
+  static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getCamera();
+    const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
+    switch (key) {
+      case GLFW_KEY_W:
+        camera->move.forward = keyState;
+        break;
+      case GLFW_KEY_S:
+        camera->move.back = keyState;
+        break;
+      case GLFW_KEY_A:
+        camera->move.left = keyState;
+        break;
+      case GLFW_KEY_D:
+        camera->move.right = keyState;
+        break;
+      case GLFW_KEY_Q:
+        camera->move.up = keyState;
+        break;
+      case GLFW_KEY_E:
+        camera->move.down = keyState;
+        break;
+      default:
+        break;
+    }
+  }
+
+  static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getCamera();
+
+    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+      if (action == GLFW_PRESS) {
+        double xpos = 0, ypos = 0;
+        glfwGetCursorPos(window, &camera->mouse.pos.x, &camera->mouse.pos.y);
+        camera->mouse.right = true;
+      } else if (action == GLFW_RELEASE) {
+        camera->mouse.right = false;
+      }
+    }
+  }
+
+  static void mouseMoveCallback(GLFWwindow* window, double xpos, double ypos) {
+    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getCamera();
+
+    if (camera->mouse.right)
+      camera->rotate(xpos, ypos);
   }
 };

@@ -95,6 +95,8 @@ void GeometryPass::destroyTextureDescriptors() {
   textures->destroyTexture(textureName);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void GeometryPass::createUniformDescriptors() {
   VkDeviceSize bufferSize = sizeof(uniform_t);
   uniformBuffers.resize(targetImageCount);
@@ -114,16 +116,15 @@ void GeometryPass::destroyUniformDescriptors() {
     resources->destroyBuffer(uniformBuffers[i], uniformBuffersMemory[i]);
 }
 
-void GeometryPass::updateUniformDescriptors(uint32_t imageIndex) {
+void GeometryPass::updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& view, glm::float4x4& projection) {
   // Получим время
   static auto prevTime = std::chrono::high_resolution_clock::now();
   auto currentTime = std::chrono::high_resolution_clock::now();
   float deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
 
   // Обновим данные структуры
-  uniform.model = glm::rotate(glm::mat4(1.0f), deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 0.5f, 0.0f));
-  uniform.view = glm::lookAt(glm::vec3(0, 2, 3), glm::vec3(0, 0.5f, 0), glm::vec3(0, 1, 0));
-  uniform.projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 256.0f);
+  glm::float4x4 model = glm::rotate(glm::mat4(1.0f), 0.5f * deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+  uniform.modelViewProj = projection * view * model;
 
   // Скопируем данные в память устройства
   void* data;

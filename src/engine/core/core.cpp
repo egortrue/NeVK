@@ -45,12 +45,6 @@ void Core::setInstanceExtensions(const std::vector<const char*>& requiredExtensi
     std::cout << '\t' << extension << std::endl;
 }
 
-void Core::setSurface(VkSurfaceKHR surface, uint32_t width, uint32_t height) {
-  this->surface = surface;
-  this->surfaceWidth = width;
-  this->surfaceHeight = height;
-}
-
 //=============================================================================
 
 void Core::createInstance() {

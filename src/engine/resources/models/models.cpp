@@ -5,7 +5,7 @@
 
 #include "models.h"
 
-Models::Models(CommandsManager commands, ResourcesManager resources) {
+Models::Models(Commands::Manager commands, Resources::Manager resources) {
   this->commands = commands;
   this->resources = resources;
 }

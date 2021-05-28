@@ -3,14 +3,14 @@
 // Внутренние библиотеки
 #include "core.h"
 
-typedef class Resources* ResourcesManager;
-
 class Resources {
  private:
-  CoreManager core;
+  Core::Manager core;
 
  public:
-  Resources(CoreManager);
+  typedef Resources* Manager;
+
+  Resources(Core::Manager);
   ~Resources();
 
   //=========================================================================

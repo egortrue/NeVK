@@ -3,7 +3,7 @@
 
 #include "textures.h"
 
-Textures::Textures(CoreManager core, CommandsManager commands, ResourcesManager resources) {
+Textures::Textures(Core::Manager core, Commands::Manager commands, Resources::Manager resources) {
   this->core = core;
   this->commands = commands;
   this->resources = resources;
@@ -21,7 +21,7 @@ Textures::~Textures() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Textures::texture_t* Textures::loadTexture(const std::string& name) {
+Textures::Instance Textures::loadTexture(const std::string& name) {
   // Найдем уже загруженную текстуру
   auto el = idList.find(name);
   if (el != idList.end())
@@ -37,7 +37,7 @@ Textures::texture_t* Textures::loadTexture(const std::string& name) {
   return handlers[id];
 }
 
-Textures::texture_t* Textures::getTexture(const std::string& name) {
+Textures::Instance Textures::getTexture(const std::string& name) {
   auto el = idList.find(name);
   if (el == idList.end())
     throw std::runtime_error(std::string("ERROR: Failed to get texture: ") + name);
@@ -46,8 +46,8 @@ Textures::texture_t* Textures::getTexture(const std::string& name) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Textures::texture_t* Textures::createTexture(const std::string& name) {
-  texture_t* texture = new texture_t;
+Textures::Instance Textures::createTexture(const std::string& name) {
+  Instance texture = new texture_t;
 
   // Получим изображение в виде набора пикселов
   stbi_uc* pixels = stbi_load(name.c_str(), &texture->width, &texture->height, nullptr, STBI_rgb_alpha);

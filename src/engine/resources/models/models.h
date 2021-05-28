@@ -12,18 +12,14 @@
 #include <iostream>
 #include <unordered_map>
 
-typedef class Models* ModelsManager;
-
 class Models {
- private:
-  CommandsManager commands;
-  ResourcesManager resources;
-
  public:
-  struct vertex_t {
+  typedef Models* Manager;
+
+  typedef struct vertex_t {
     glm::float3 position;
     glm::float2 uv;
-  };
+  } * Vertex;
 
   typedef struct model_t {
     // Метаданные
@@ -43,11 +39,14 @@ class Models {
   } * Instance;
 
  private:
+  Commands::Manager commands;
+  Resources::Manager resources;
+
   std::vector<Instance> handlers;
   std::unordered_map<std::string, uint32_t> idList;
 
  public:
-  Models(CommandsManager, ResourcesManager);
+  Models(Commands::Manager, Resources::Manager);
   ~Models();
 
   Instance loadModel(const std::string& name);

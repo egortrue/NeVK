@@ -13,7 +13,7 @@
 
 class GeometryPass : public RenderPass {
  public:
-  TexturesManager textures;
+  Textures::Manager textures;
 
   struct record_t {
     VkCommandBuffer cmd;
@@ -37,14 +37,12 @@ class GeometryPass : public RenderPass {
 
  public:
   std::string textureName;
-  void updateUniformDescriptors(uint32_t imageIndex);
+  void updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& view, glm::float4x4& projection);
 
  private:
   // Буферы
   struct uniform_t {
-    glm::float4x4 model;
-    glm::float4x4 view;
-    glm::float4x4 projection;
+    glm::float4x4 modelViewProj;
   } uniform;
   std::vector<VkBuffer> uniformBuffers;
   std::vector<VkDeviceMemory> uniformBuffersMemory;

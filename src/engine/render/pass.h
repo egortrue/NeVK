@@ -13,10 +13,10 @@
 
 class RenderPass {
  public:
-  CoreManager core;
-  CommandsManager commands;
-  ResourcesManager resources;
-  ShadersManager shaders;
+  Core::Manager core;
+  Commands::Manager commands;
+  Resources::Manager resources;
+  Shaders::Manager shaders;
 
   virtual void init() = 0;
   virtual void resize() = 0;

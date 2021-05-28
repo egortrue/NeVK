@@ -21,7 +21,20 @@ find_package(Vulkan REQUIRED) # Необходим Vulkan SDK на локаль�
 #===============================================================================================
 # Внутренние библиотеки
 
+# ###############
+# # WINDOW
+# ###############
+# set(LIBRARY_WINDOW_NAME window)
+# set(LIBRARY_WINDOW_PATH src/window)
+# set(LIBRARY_WINDOW_SOURCES
+#     ${LIBRARY_WINDOW_PATH}/window.h
+# )
+# add_library(${LIBRARY_WINDOW_NAME} OBJECT ${LIBRARY_WINDOW_SOURCES})
+# target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC ${LIBRARY_WINDOW_PATH})
+
+###############
 # CORE
+###############
 set(LIBRARY_CORE_NAME core)
 set(LIBRARY_CORE_PATH src/engine/core)
 set(LIBRARY_CORE_SOURCES
@@ -33,7 +46,9 @@ add_library(${LIBRARY_CORE_NAME} OBJECT ${LIBRARY_CORE_SOURCES})
 target_include_directories(${LIBRARY_CORE_NAME} PUBLIC ${LIBRARY_CORE_PATH})
 target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC Vulkan::Vulkan)
 
+###############
 # RESOURCES
+###############
 set(LIBRARY_RESOURCES_NAME resources)
 set(LIBRARY_RESOURCES_PATH src/engine/resources)
 set(LIBRARY_RESOURCES_SOURCES
@@ -44,7 +59,9 @@ add_library(${LIBRARY_RESOURCES_NAME} OBJECT ${LIBRARY_RESOURCES_SOURCES})
 target_include_directories(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_RESOURCES_PATH})
 target_link_libraries(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_CORE_NAME})
 
+###############
 # COMMANDS
+###############
 set(LIBRARY_COMMANDS_NAME commands)
 set(LIBRARY_COMMANDS_PATH src/engine/commands)
 set(LIBRARY_COMMANDS_SOURCES
@@ -58,7 +75,9 @@ target_link_libraries(${LIBRARY_COMMANDS_NAME} PUBLIC
     ${LIBRARY_RESOURCES_NAME}
 )
 
+###############
 # SHADERS
+###############
 set(LIBRARY_SHADERS_NAME shaders)
 set(LIBRARY_SHADERS_PATH src/engine/resources/shaders)
 set(LIBRARY_SHADERS_SOURCES
@@ -68,7 +87,9 @@ set(LIBRARY_SHADERS_SOURCES
 add_library(${LIBRARY_SHADERS_NAME} OBJECT ${LIBRARY_SHADERS_SOURCES})
 target_include_directories(${LIBRARY_SHADERS_NAME} PUBLIC ${LIBRARY_SHADERS_PATH})
 
+###############
 # TEXTURES
+###############
 set(LIBRARY_TEXTURES_NAME textures)
 set(LIBRARY_TEXTURES_PATH src/engine/resources/textures)
 set(LIBRARY_TEXTURES_SOURCES
@@ -82,7 +103,9 @@ target_link_libraries(${LIBRARY_TEXTURES_NAME} PUBLIC
     ${LIBRARY_RESOURCES_NAME}
 )
 
+###############
 # MODELS
+###############
 set(LIBRARY_MODELS_NAME models)
 set(LIBRARY_MODELS_PATH src/engine/resources/models)
 set(LIBRARY_MODELS_SOURCES
@@ -96,7 +119,26 @@ target_link_libraries(${LIBRARY_MODELS_NAME} PUBLIC
     ${LIBRARY_RESOURCES_NAME}
 )
 
+###############
+# SCENE
+###############
+set(LIBRARY_SCENE_NAME scene)
+set(LIBRARY_SCENE_PATH src/engine/scene)
+set(LIBRARY_SCENE_SOURCES
+    ${LIBRARY_SCENE_PATH}/camera.h
+    ${LIBRARY_SCENE_PATH}/camera.cpp
+)
+add_library(${LIBRARY_SCENE_NAME} OBJECT ${LIBRARY_SCENE_SOURCES})
+target_include_directories(${LIBRARY_SCENE_NAME} PUBLIC ${LIBRARY_SCENE_PATH})
+target_link_libraries(${LIBRARY_SCENE_NAME} PUBLIC
+    ${LIBRARY_SHADERS_NAME}
+    ${LIBRARY_TEXTURES_NAME}
+    ${LIBRARY_MODELS_NAME}
+)
+
+###############
 # RENDER
+###############
 set(LIBRARY_RENDER_NAME render)
 set(LIBRARY_RENDER_PATH src/engine/render)
 set(LIBRARY_RENDER_SOURCES
@@ -114,9 +156,24 @@ target_link_libraries(${LIBRARY_RENDER_NAME} PUBLIC
     ${LIBRARY_SHADERS_NAME}
     ${LIBRARY_TEXTURES_NAME}
     ${LIBRARY_MODELS_NAME}
+    ${LIBRARY_SCENE_NAME}
 )
 
+###############
+# WINDOW
+###############
+set(LIBRARY_WINDOW_NAME window)
+set(LIBRARY_WINDOW_PATH src/window)
+set(LIBRARY_WINDOW_SOURCES
+    ${LIBRARY_WINDOW_PATH}/window.h
+    ${LIBRARY_WINDOW_PATH}/window.cpp
+)
+add_library(${LIBRARY_WINDOW_NAME} OBJECT ${LIBRARY_WINDOW_SOURCES})
+target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC ${LIBRARY_WINDOW_PATH})
+
+###############
 # ENGINE
+###############
 set(LIBRARY_ENGINE_NAME engine)
 set(LIBRARY_ENGINE_PATH src/engine)
 set(LIBRARY_ENGINE_SOURCES
@@ -132,33 +189,35 @@ target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC
     ${LIBRARY_SHADERS_NAME}
     ${LIBRARY_TEXTURES_NAME}
     ${LIBRARY_MODELS_NAME}
+    ${LIBRARY_SCENE_NAME}
     ${LIBRARY_RENDER_NAME}
+    ${LIBRARY_WINDOW_NAME}
 )
 
 #===============================================================================================
 # Сторонние библиотеки
 
-# GLFW (Оконный менеджер) -> ENGINE
-target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC external/glfw/include) 
-target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/glfw3.lib")
+# GLFW (Оконный менеджер)
+target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC external/glfw/include) 
+target_link_libraries(${LIBRARY_WINDOW_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/glfw3.lib")
 
-# SLANG (Компиляция шейдеров) -> SHADERS
+# SLANG (Компиляция шейдеров)
 target_include_directories(${LIBRARY_SHADERS_NAME} PUBLIC external/slang/include)
 target_link_libraries(${LIBRARY_SHADERS_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/slang.lib")
 
-# STB (Загрузка изображений) -> TEXTURES
+# STB (Загрузка изображений)
 target_include_directories(${LIBRARY_TEXTURES_NAME} PUBLIC external/stb)
 
-# TOL (Загрузка объектов) -> MODELS
+# TOL (Загрузка объектов)
 target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/tol)
 
-# GLM (Работа с матрицами) -> MODELS
+# GLM (Работа с матрицами)
 target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/glm)
 
 #================================================================
 # Приложение
 
-add_executable(${PROJECT_NAME} src/app/app.cpp src/app/app.h)
+add_executable(${PROJECT_NAME} src/app/app.cpp)
 target_include_directories(${PROJECT_NAME} PUBLIC src/)
 target_link_libraries(${PROJECT_NAME} PUBLIC 
     ${LIBRARY_CORE_NAME}
@@ -167,8 +226,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${LIBRARY_SHADERS_NAME}
     ${LIBRARY_TEXTURES_NAME}
     ${LIBRARY_MODELS_NAME}
-    ${LIBRARY_RENDER_NAME}
+    ${LIBRARY_SCENE_NAME}
+    ${LIBRARY_RENDER_NAME}    
     ${LIBRARY_ENGINE_NAME}
+    ${LIBRARY_WINDOW_NAME}
 )
 
 # Копирование шейдеров в рабочую директорию
