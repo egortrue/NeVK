@@ -1,38 +1,37 @@
 #include "geometry.h"
 
-void GeometryPass::init() {
-  // Подготовка данных вывода
+void GeometryPass::init(init_t& data) {
+  this->core = data.core;
+  this->commands = data.commands;
+  this->resources = data.resources;
+  this->shaders = data.shaders;
+  this->models = data.models;
+  this->textures = data.textures;
+  this->shaderName = data.shaderName;
+
   createDepthImage();
-
-  // Подготовка подкючаемых ресурсов
   createUniformDescriptors();
-  createDescriptorSetLayout();
-  createDescriptorSets();
-  updateDescriptorSets();
-
-  RenderPass::init();
+  GraphicsPass::init();
 }
 
-void GeometryPass::destroy() {
-  RenderPass::destroy();
-
+void GeometryPass::reload() {
   destroyDepthImage();
   destroyUniformDescriptors();
+  createDepthImage();
+  createUniformDescriptors();
+  GraphicsPass::reload();
 }
 
 void GeometryPass::resize() {
-  for (auto framebuffer : framebuffers)
-    vkDestroyFramebuffer(core->device, framebuffer, nullptr);
   destroyDepthImage();
-
-  vkDestroyPipeline(core->device, pipeline, nullptr);
-  vkDestroyPipelineLayout(core->device, pipelineLayout, nullptr);
-  vkDestroyRenderPass(core->device, renderPass, nullptr);
-
   createDepthImage();
-  createRenderPass();
-  createGraphicsPipeline();
-  createFramebuffers();
+  GraphicsPass::resize();
+}
+
+void GeometryPass::destroy() {
+  GraphicsPass::destroy();
+  destroyDepthImage();
+  destroyUniformDescriptors();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,7 +39,7 @@ void GeometryPass::resize() {
 void GeometryPass::record(record_t& data) {
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass = renderPass;
+  renderPassInfo.renderPass = pipeline.pass;
   renderPassInfo.framebuffer = framebuffers[data.imageIndex];
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent = {colorImageWidth, colorImageHeight};
@@ -64,12 +63,11 @@ void GeometryPass::record(record_t& data) {
   vkCmdBeginRenderPass(data.cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
   // Подключение конвейера и настройка его динамических частей
-  vkCmdBindPipeline(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+  vkCmdBindPipeline(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.instance);
   vkCmdSetViewport(data.cmd, 0, 1, &viewport);
-  vkCmdSetLineWidth(data.cmd, 1.0f);
 
   // Подключение множества ресурсов, используемых в конвейере
-  vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
+  vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.layout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
 
   // Буферы вершин
   VkBuffer vertexBuffers[] = {data.vertices};
@@ -104,7 +102,7 @@ void GeometryPass::destroyUniformDescriptors() {
     resources->destroyBuffer(uniformBuffers[i], uniformBuffersMemory[i]);
 }
 
-void GeometryPass::updateUniformDescriptor(uint32_t imageIndex, glm::float4x4& modelViewProj) {
+void GeometryPass::updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& modelViewProj) {
   // Обновим данные структуры
   uniform.modelViewProj = modelViewProj;
 
@@ -149,220 +147,33 @@ void GeometryPass::createFramebuffers() {
   framebuffers.resize(colorImageCount);
   for (uint32_t i = 0; i < colorImageCount; ++i) {
     std::vector<VkImageView> attachment = {colorImageViews[i], depthImageView};
-    createFramebuffer(attachment, i);
+    framebuffers[i] = createFramebuffer(attachment, colorImageWidth, colorImageHeight);
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createGraphicsPipeline() {
-  //=================================================================================
-  // Используемые шейдеры
-  // - обязательны хотя бы один вершинный и один фрагментный шейдеры
-
-  // Вершинный шейдер - обрабатывает одну вершину за раз
-  VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-  vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  vertShaderStageInfo.module = vertexShader;
-  vertShaderStageInfo.pName = "main";
-
-  // Фрагментный шейдер - получает растеризованый примитив и выдаёт его цвет
-  VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-  fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  fragShaderStageInfo.module = fragmentShader;
-  fragShaderStageInfo.pName = "main";
-
-  VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-
-  //=================================================================================
-  // Размещение геометрических данных в памяти
-
+void GeometryPass::setVertexBinding() {
   // Описание структур, содержащихся в вершинном буфере
-  VkVertexInputBindingDescription bindingDescription{};
-  bindingDescription.binding = 0;                        // Уникальный id
-  bindingDescription.stride = sizeof(Models::vertex_t);  // Расстояние между началами структур (размер структуры)
-  bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+  vertexBindingDescription.binding = 0;                        // Уникальный id
+  vertexBindingDescription.stride = sizeof(Models::vertex_t);  // Расстояние между началами структур (размер структуры)
+  vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+}
 
+void GeometryPass::setVertexAttributes() {
   // Описание членов структур, содержащихся в вершинном буфере
-  VkVertexInputAttributeDescription positionAttributeDescription{};
-  positionAttributeDescription.binding = 0;                                    // Уникальный id структуры
-  positionAttributeDescription.location = 0;                                   // Уникальный id для каждого члена структуры
-  positionAttributeDescription.offset = offsetof(Models::vertex_t, position);  // Смещение от начала структуры
-  positionAttributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+  VkVertexInputAttributeDescription attributeDescription{};
+  attributeDescription.binding = 0;                                    // Уникальный id структуры
+  attributeDescription.location = 0;                                   // Уникальный id для каждого члена структуры
+  attributeDescription.offset = offsetof(Models::vertex_t, position);  // Смещение от начала структуры
+  attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+  vertexAttributesDescription.emplace_back(attributeDescription);
 
-  VkVertexInputAttributeDescription uvAttributeDescription{};
-  uvAttributeDescription.binding = 0;                              // Уникальный id структуры
-  uvAttributeDescription.location = 1;                             // Уникальный id для каждого члена структуры
-  uvAttributeDescription.offset = offsetof(Models::vertex_t, uv);  // Смещение от начала структуры
-  uvAttributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
-
-  std::array<VkVertexInputAttributeDescription, 2> attributesDesc = {
-      positionAttributeDescription,
-      uvAttributeDescription,
-  };
-
-  VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-  vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexBindingDescriptionCount = 1;
-  vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-  vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributesDesc.size());
-  vertexInputInfo.pVertexAttributeDescriptions = attributesDesc.data();
-
-  //=================================================================================
-  // Входная сборка - группирование вершин в примитивы
-
-  VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-  inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;  // Вершины группируются в тройки -> треугольник
-  inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-  //=================================================================================
-  // Преобразование области вывода
-
-  // Область вывода
-  VkViewport viewport{};
-  viewport.x = 0.0f;
-  viewport.y = (float)colorImageHeight;
-  viewport.width = (float)colorImageWidth;
-  viewport.height = -(float)colorImageHeight;
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
-
-  // Область вывода для теста ножниц
-  VkRect2D scissor{};
-  scissor.offset = {0, 0};
-  scissor.extent = {colorImageWidth, colorImageHeight};
-
-  VkPipelineViewportStateCreateInfo viewportState{};
-  viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-  viewportState.viewportCount = 1;
-  viewportState.pViewports = &viewport;
-  viewportState.scissorCount = 1;
-  viewportState.pScissors = &scissor;
-
-  //=================================================================================
-  // Растеризация - преобразование примитивов для фрагментного шейдера
-
-  VkPipelineRasterizationStateCreateInfo rasterizer{};
-  rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-
-  // Полное отключение растеризации
-  rasterizer.rasterizerDiscardEnable = VK_FALSE;
-
-  // Режим отрисовки примитивов
-  // VK_POLYGON_MODE_FILL --- Полный режим - треугольники, заполненные сплошным цветом
-  // VK_POLYGON_MODE_LINE --- Каркасный режим - отрезки, образующие треугольник
-  // VK_POLYGON_MODE_POINT --- Точечный режим - несвязанные точки
-  rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-
-  // Толщина каждого отрезка в пикселах (только для каркасного режима)
-  rasterizer.lineWidth = 1.0f;  // 1.0f - обязательно по умолчанию для всех режимов
-
-  // Лицевая сторона полигона (треугольника)
-  // VK_FRONT_FACE_CLOCKWISE --- если полигон отрисован по часовой
-  // VK_FRONT_FACE_COUNTER_CLOCKWISE --- если полигон отрисован против часовой
-  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-
-  // Отброс сторон полигонов (треугольника)
-  // VK_CULL_MODE_NONE --- ничего не отбрасывать
-  // VK_CULL_MODE_FRONT_BIT --- отброс лицевых полигонов
-  // VK_CULL_MODE_BACK_BIT --- отброс нелицевых полигонов
-  // VK_CULL_MODE_FRONT_AND_BACK --- отброс обоих сторон полигонов
-  rasterizer.cullMode = VK_CULL_MODE_NONE;
-
-  // Опции глубины
-  rasterizer.depthClampEnable = VK_FALSE;  // Отсечение глубины - заполнение дыр геометрии
-  rasterizer.depthBiasEnable = VK_FALSE;   // Смещение глубины
-
-  //=================================================================================
-  // Мультисэмплинг - создание образцов для каждого пиксела
-
-  VkPipelineMultisampleStateCreateInfo multisampling{};
-  multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-  multisampling.sampleShadingEnable = VK_FALSE;
-  multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-  //=================================================================================
-  // Тесты изображений
-
-  VkPipelineDepthStencilStateCreateInfo depthStencil{};
-  depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-
-  // Тест глубины
-  depthStencil.depthTestEnable = VK_TRUE;
-  depthStencil.depthWriteEnable = VK_TRUE;
-  depthStencil.depthBoundsTestEnable = VK_FALSE;
-  depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-
-  // Тест трафарета
-  depthStencil.stencilTestEnable = VK_FALSE;
-
-  //=================================================================================
-  // Цветовые подключения
-
-  // Смешивание цветов
-  VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-  colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-  colorBlendAttachment.blendEnable = VK_FALSE;
-
-  VkPipelineColorBlendStateCreateInfo colorBlending{};
-  colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-
-  // Операции между фрагментным шейдером и цветовым подключением
-  colorBlending.logicOpEnable = VK_FALSE;
-  colorBlending.logicOp = VK_LOGIC_OP_COPY;
-  colorBlending.attachmentCount = 1;
-  colorBlending.pAttachments = &colorBlendAttachment;
-  colorBlending.blendConstants[0] = 0.0f;
-  colorBlending.blendConstants[1] = 0.0f;
-  colorBlending.blendConstants[2] = 0.0f;
-  colorBlending.blendConstants[3] = 0.0f;
-
-  //=================================================================================
-  // Динамические части конвейера
-
-  VkDynamicState states[] = {
-      VK_DYNAMIC_STATE_VIEWPORT,    // Изменение области вывода - vkCmdSetViewport()
-      VK_DYNAMIC_STATE_LINE_WIDTH,  // Изменение толщины отрезков примитивов - vkCmdSetLineWidth()
-  };
-
-  VkPipelineDynamicStateCreateInfo dynamicState{};
-  dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  dynamicState.dynamicStateCount = 2;
-  dynamicState.pDynamicStates = states;
-
-  //=================================================================================
-  // Создание конвейера
-
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-  pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-
-  if (vkCreatePipelineLayout(core->device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
-    throw std::runtime_error("ERROR: Failed to create pipeline layout!");
-
-  VkGraphicsPipelineCreateInfo pipelineInfo{};
-  pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  pipelineInfo.stageCount = 2;
-  pipelineInfo.pStages = shaderStages;
-  pipelineInfo.pVertexInputState = &vertexInputInfo;
-  pipelineInfo.pInputAssemblyState = &inputAssembly;
-  pipelineInfo.pViewportState = &viewportState;
-  pipelineInfo.pRasterizationState = &rasterizer;
-  pipelineInfo.pMultisampleState = &multisampling;
-  pipelineInfo.pDepthStencilState = &depthStencil;
-  pipelineInfo.pColorBlendState = &colorBlending;
-  pipelineInfo.pDynamicState = &dynamicState;
-  pipelineInfo.layout = pipelineLayout;
-  pipelineInfo.renderPass = renderPass;
-  pipelineInfo.subpass = 0;
-  pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
-  if (vkCreateGraphicsPipelines(core->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
-    throw std::runtime_error("ERROR: Failed to create graphics pipeline!");
+  attributeDescription.binding = 0;                              // Уникальный id структуры
+  attributeDescription.location = 1;                             // Уникальный id для каждого члена структуры
+  attributeDescription.offset = offsetof(Models::vertex_t, uv);  // Смещение от начала структуры
+  attributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
+  vertexAttributesDescription.emplace_back(attributeDescription);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -457,13 +268,13 @@ void GeometryPass::createRenderPass() {
   renderPassInfo.dependencyCount = 1;
   renderPassInfo.pDependencies = &dependency;
 
-  if (vkCreateRenderPass(core->device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
+  if (vkCreateRenderPass(core->device, &renderPassInfo, nullptr, &pipeline.pass) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create render pass!");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createDescriptorSetLayout() {
+void GeometryPass::createDescriptorSetsLayout() {
   VkDescriptorSetLayoutBinding uniformLayout{};
   uniformLayout.binding = 0;
   uniformLayout.descriptorCount = 1;
@@ -496,11 +307,20 @@ void GeometryPass::createDescriptorSetLayout() {
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
   layoutInfo.pBindings = bindings.data();
 
-  if (vkCreateDescriptorSetLayout(core->device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+  VkDescriptorSetLayout layout;
+  if (vkCreateDescriptorSetLayout(core->device, &layoutInfo, nullptr, &layout) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create descriptor set layout!");
+
+  descriptorSetsLayout.push_back(layout);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void GeometryPass::createDescriptorSets() {
+  descriptorSets.resize(colorImageCount);
+  for (size_t i = 0; i < colorImageCount; ++i)
+    descriptorSets[i] = resources->createDesciptorSet(descriptorSetsLayout[0]);
+}
 
 void GeometryPass::updateDescriptorSets() {
   for (size_t i = 0; i < colorImageCount; ++i) {

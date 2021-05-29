@@ -69,6 +69,20 @@ void Resources::destroyDescriptorPool(VkDescriptorPool descPool) {
   vkDestroyDescriptorPool(core->device, descPool, nullptr);
 }
 
+VkDescriptorSet Resources::createDesciptorSet(VkDescriptorSetLayout layout) {
+  VkDescriptorSetAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  allocInfo.descriptorPool = descriptorPool;
+  allocInfo.descriptorSetCount = 1;
+  allocInfo.pSetLayouts = &layout;
+
+  VkDescriptorSet descriptorSet;
+  if (vkAllocateDescriptorSets(core->device, &allocInfo, &descriptorSet) != VK_SUCCESS)
+    throw std::runtime_error("ERROR: Failed to allocate descriptor set!");
+
+  return descriptorSet;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Resources::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {

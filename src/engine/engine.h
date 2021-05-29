@@ -9,7 +9,7 @@
 #include "scene.h"
 
 #include "render/frames/frames.h"
-#include "render/passes/geometry.h"
+#include "render/passes/graphics/geometry.h"
 
 // Стандартные библиотеки
 #include <string>
@@ -54,7 +54,7 @@ class Engine {
 
   //=======================
 
-  GeometryPass geometryPass;
+  GeometryPass* geometryPass;
   void initGeometryPass();
   void destroyGeometryPass();
 

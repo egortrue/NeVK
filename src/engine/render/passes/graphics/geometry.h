@@ -4,16 +4,25 @@
 #include <glm/gtx/compatibility.hpp>
 
 // Внутренние библиотеки
-#include "pass.h"
+#include "graphics.h"
 #include "textures.h"
 #include "models.h"
 
 // Стандартные библиотеки
 #include <chrono>
 
-class GeometryPass : public RenderPass {
+class GeometryPass : public GraphicsPass {
  public:
-  Textures::Manager textures;
+  struct init_t {
+    Core::Manager core;
+    Commands::Manager commands;
+    Resources::Manager resources;
+    Shaders::Manager shaders;
+    Models::Manager models;
+    Textures::Manager textures;
+
+    std::string shaderName;
+  };
 
   struct record_t {
     VkCommandBuffer cmd;
@@ -23,25 +32,33 @@ class GeometryPass : public RenderPass {
     VkBuffer vertices;
   };
 
-  void init() override;
-  void destroy() override;
-  void resize() override;
+  void init(init_t&);
   void record(record_t&);
+  void reload();
+  void resize();
+  void destroy();
 
  private:
+  Models::Manager models;
+  Textures::Manager textures;
+
+  //=========================================================================
+  // Конвейер и проход рендера
+
+  void setVertexBinding() override;
+  void setVertexAttributes() override;
   void createRenderPass() override;
-  void createGraphicsPipeline() override;
 
   //=========================================================================
   // Выделенные ресурсы, привязанные к конвейеру
 
  private:
-  // Описание подключаемых ресурсов
-  void createDescriptorSetLayout() override;
+  void createDescriptorSetsLayout() override;
+  void createDescriptorSets() override;
   void updateDescriptorSets() override;
 
  public:
-  // Текстуры - посутпают извне прохода
+  // Текстуры
   VkImageView textureImageView;
   VkSampler textureSampler;
 
@@ -52,23 +69,33 @@ class GeometryPass : public RenderPass {
   } uniform;
   std::vector<VkBuffer> uniformBuffers;
   std::vector<VkDeviceMemory> uniformBuffersMemory;
+
   void createUniformDescriptors();
   void destroyUniformDescriptors();
 
  public:
-  void updateUniformDescriptor(uint32_t imageIndex, glm::float4x4& modelViewProj);
+  void updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& modelViewProj);
 
   //=========================================================================
-  // Наборы изображений, в которые будет идти результат
+  // Наборы изображений для фреймбуфера
+
+ public:
+  // Буферы цвета
+  VkFormat colorImageFormat;
+  uint32_t colorImageWidth;
+  uint32_t colorImageHeight;
+  uint32_t colorImageCount;
+  std::vector<VkImageView> colorImageViews;
 
  private:
-  // Буфер глубины - создаётся локально
+  // Буфер глубины
   VkImage depthImage;
   VkDeviceMemory depthImageMemory;
   VkFormat depthImageFormat;
   VkImageView depthImageView;
+
   void createDepthImage();
   void destroyDepthImage();
 
-  void createFramebuffers();
+  void createFramebuffers() override;
 };

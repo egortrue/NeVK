@@ -21,17 +21,6 @@ find_package(Vulkan REQUIRED) # Необходим Vulkan SDK на локаль�
 #===============================================================================================
 # Внутренние библиотеки
 
-# ###############
-# # WINDOW
-# ###############
-# set(LIBRARY_WINDOW_NAME window)
-# set(LIBRARY_WINDOW_PATH src/window)
-# set(LIBRARY_WINDOW_SOURCES
-#     ${LIBRARY_WINDOW_PATH}/window.h
-# )
-# add_library(${LIBRARY_WINDOW_NAME} OBJECT ${LIBRARY_WINDOW_SOURCES})
-# target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC ${LIBRARY_WINDOW_PATH})
-
 ###############
 # CORE
 ###############
@@ -86,6 +75,7 @@ set(LIBRARY_SHADERS_SOURCES
 )
 add_library(${LIBRARY_SHADERS_NAME} OBJECT ${LIBRARY_SHADERS_SOURCES})
 target_include_directories(${LIBRARY_SHADERS_NAME} PUBLIC ${LIBRARY_SHADERS_PATH})
+target_link_libraries(${LIBRARY_SHADERS_NAME} PUBLIC ${LIBRARY_CORE_NAME})
 
 ###############
 # TEXTURES
@@ -151,8 +141,10 @@ set(LIBRARY_RENDER_PATH src/engine/render)
 set(LIBRARY_RENDER_SOURCES
     ${LIBRARY_RENDER_PATH}/passes/pass.h
     ${LIBRARY_RENDER_PATH}/passes/pass.cpp
-    ${LIBRARY_RENDER_PATH}/passes/geometry.h
-    ${LIBRARY_RENDER_PATH}/passes/geometry.cpp
+    ${LIBRARY_RENDER_PATH}/passes/graphics/graphics.h
+    ${LIBRARY_RENDER_PATH}/passes/graphics/graphics.cpp
+    ${LIBRARY_RENDER_PATH}/passes/graphics/geometry.h
+    ${LIBRARY_RENDER_PATH}/passes/graphics/geometry.cpp
     ${LIBRARY_RENDER_PATH}/frames/frames.h
     ${LIBRARY_RENDER_PATH}/frames/frames.cpp
 )

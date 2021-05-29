@@ -81,7 +81,7 @@ void Engine::destroyCommands() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::initShaders() {
-  shaders = new Shaders();
+  shaders = new Shaders(core);
 }
 
 void Engine::destroyShaders() {
@@ -118,30 +118,34 @@ void Engine::destroyFrames() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::initGeometryPass() {
-  geometryPass.core = core;
-  geometryPass.resources = resources;
-  geometryPass.commands = commands;
-  geometryPass.shaders = shaders;
-  geometryPass.shaderName = std::string("shaders/geometry.hlsl");
-  geometryPass.textureImageView = scene->objects.front()->texture->view;
-  geometryPass.textureSampler = scene->objects.front()->texture->sampler;
+  geometryPass = new GeometryPass();
+
+  geometryPass->textureImageView = scene->objects.front()->texture->view;
+  geometryPass->textureSampler = scene->objects.front()->texture->sampler;
 
   // Цель вывода прохода рендера
-  geometryPass.colorImageCount = core->swapchainImageCount;
-  geometryPass.colorImageWidth = core->swapchainExtent.width;
-  geometryPass.colorImageHeight = core->swapchainExtent.height;
-  geometryPass.colorImageFormat = core->swapchainFormat;
-  geometryPass.colorImageViews = resources->createImageViews(
+  geometryPass->colorImageCount = core->swapchainImageCount;
+  geometryPass->colorImageWidth = core->swapchainExtent.width;
+  geometryPass->colorImageHeight = core->swapchainExtent.height;
+  geometryPass->colorImageFormat = core->swapchainFormat;
+  geometryPass->colorImageViews = resources->createImageViews(
       core->swapchainImages,
       core->swapchainFormat,
       VK_IMAGE_ASPECT_COLOR_BIT);
 
-  geometryPass.init();
+  GeometryPass::init_t data;
+  data.core = core;
+  data.resources = resources;
+  data.commands = commands;
+  data.shaders = shaders;
+  data.shaderName = std::string("shaders/geometry.hlsl");
+  geometryPass->init(data);
 }
 
 void Engine::destroyGeometryPass() {
-  resources->destroyImageViews(geometryPass.colorImageViews);
-  geometryPass.destroy();
+  resources->destroyImageViews(geometryPass->colorImageViews);
+  geometryPass->destroy();
+  delete geometryPass;
 }
 
 void Engine::resizeSwapchain() {
@@ -153,14 +157,14 @@ void Engine::resizeSwapchain() {
   core->createSwapchain();
 
   // Обновим все проходы рендера
-  resources->destroyImageViews(geometryPass.colorImageViews);
-  geometryPass.colorImageWidth = core->swapchainExtent.width;
-  geometryPass.colorImageHeight = core->swapchainExtent.height;
-  geometryPass.colorImageViews = resources->createImageViews(
+  resources->destroyImageViews(geometryPass->colorImageViews);
+  geometryPass->colorImageWidth = core->swapchainExtent.width;
+  geometryPass->colorImageHeight = core->swapchainExtent.height;
+  geometryPass->colorImageViews = resources->createImageViews(
       core->swapchainImages,
       core->swapchainFormat,
       VK_IMAGE_ASPECT_COLOR_BIT);
-  geometryPass.resize();
+  geometryPass->resize();
 
   // Обновим соотношение сторон для камеры
   auto camera = scene->getCamera();
@@ -223,7 +227,7 @@ void Engine::drawFrame() {
 
   // Обновим данные прохода рендера
   glm::float4x4 modelViewProj = camera->projectionMatrix * camera->viewMatrix * object->modelMatrix;
-  geometryPass.updateUniformDescriptor(swapchainImageIndex, modelViewProj);
+  geometryPass->updateUniformDescriptors(swapchainImageIndex, modelViewProj);
 
   // Укажем необходимые вершины для отрисовки
   GeometryPass::record_t data;
@@ -232,7 +236,7 @@ void Engine::drawFrame() {
   data.indicesCount = object->model->verticesCount;
   data.indices = object->model->indexBuffer;
   data.vertices = object->model->vertexBuffer;
-  geometryPass.record(data);
+  geometryPass->record(data);
 
   if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS) {
     throw std::runtime_error("ERROR: ailed to record command buffer!");
