@@ -21,6 +21,7 @@ class Engine {
 
   Engine(Window::Manager);
   ~Engine();
+
   void drawFrame();
 
   Scene::Manager getScene();

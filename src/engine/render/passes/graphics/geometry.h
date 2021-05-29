@@ -18,9 +18,6 @@ class GeometryPass : public GraphicsPass {
     Commands::Manager commands;
     Resources::Manager resources;
     Shaders::Manager shaders;
-    Models::Manager models;
-    Textures::Manager textures;
-
     std::string shaderName;
   };
 

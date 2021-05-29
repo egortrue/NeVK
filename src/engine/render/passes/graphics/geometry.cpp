@@ -5,8 +5,6 @@ void GeometryPass::init(init_t& data) {
   this->commands = data.commands;
   this->resources = data.resources;
   this->shaders = data.shaders;
-  this->models = data.models;
-  this->textures = data.textures;
   this->shaderName = data.shaderName;
 
   createDepthImage();

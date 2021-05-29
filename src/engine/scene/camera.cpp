@@ -44,9 +44,9 @@ void Camera::rotate(double xpos, double ypos) {
 
   // Обновим векторы направления движения (вектор вверх всегда константен)
   glm::float3 front;
-  front.x = cos(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
+  front.x = sin(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
   front.y = sin(glm::radians(transform.rotation.x));
-  front.z = sin(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
+  front.z = -cos(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
   direction.front = glm::normalize(front);
   direction.right = glm::normalize(glm::cross(direction.front, direction.upper));
 
