@@ -16,11 +16,13 @@ class Window {
   uint32_t width = 800;
   uint32_t height = 600;
   std::string title = "NeVK Example";
+  bool isResized = false;
 
   struct Callbacks {
     GLFWkeyfun keyboard;
     GLFWmousebuttonfun mouseButtons;
     GLFWcursorposfun mousePos;
+    GLFWframebuffersizefun fbResize;
   } callbacks;
 
   bool isClosed() {
@@ -31,6 +33,7 @@ class Window {
     glfwSetKeyCallback(instance, callbacks.keyboard);
     glfwSetMouseButtonCallback(instance, callbacks.mouseButtons);
     glfwSetCursorPosCallback(instance, callbacks.mousePos);
+    glfwSetFramebufferSizeCallback(instance, callbacks.fbResize);
   }
 
   void checkActions() {

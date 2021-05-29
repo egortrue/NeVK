@@ -19,6 +19,7 @@ class Textures {
     int width, height;
     VkImage image;
     VkImageView view;
+    VkSampler sampler;
     VkDeviceSize size;
     VkDeviceMemory memory;
   } * Instance;
@@ -35,7 +36,7 @@ class Textures {
   Textures(Core::Manager, Commands::Manager, Resources::Manager);
   ~Textures();
 
-  VkSampler sampler;
+  VkSampler commonSampler;
   Instance loadTexture(const std::string& name);
   Instance getTexture(const std::string& name);
   void destroyTexture(const std::string& name);

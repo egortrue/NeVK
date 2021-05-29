@@ -30,11 +30,13 @@ class Application {
  private:
   void initWindow() {
     window = new Window();
+
+    // Подключение обработчиков пользовательского ввода
     glfwSetWindowUserPointer(window->instance, this);
     window->callbacks.keyboard = keyCallback;
     window->callbacks.mousePos = mouseMoveCallback;
     window->callbacks.mouseButtons = mouseButtonCallback;
-
+    window->callbacks.fbResize = framebufferResizeCallback;
     window->setActions();
   }
 
@@ -53,7 +55,7 @@ class Application {
   }
 
   static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getCamera();
+    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getScene()->getCamera();
     const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
     switch (key) {
       case GLFW_KEY_W:
@@ -80,11 +82,9 @@ class Application {
   }
 
   static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getCamera();
-
+    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getScene()->getCamera();
     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
       if (action == GLFW_PRESS) {
-        double xpos = 0, ypos = 0;
         glfwGetCursorPos(window, &camera->mouse.pos.x, &camera->mouse.pos.y);
         camera->mouse.right = true;
       } else if (action == GLFW_RELEASE) {
@@ -94,9 +94,23 @@ class Application {
   }
 
   static void mouseMoveCallback(GLFWwindow* window, double xpos, double ypos) {
-    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getCamera();
-
+    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getScene()->getCamera();
     if (camera->mouse.right)
       camera->rotate(xpos, ypos);
+  }
+
+  static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+    auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+    app->window->isResized = true;
+
+    int width_ = 0, height_ = 0;
+    do {
+      glfwGetFramebufferSize(window, &width_, &height_);
+      glfwWaitEvents();
+    } while (width_ == 0 || height_ == 0);
+
+    // Обновим разрешение у главного обработчика окна
+    app->window->width = static_cast<uint32_t>(width_);
+    app->window->height = static_cast<uint32_t>(height_);
   }
 };

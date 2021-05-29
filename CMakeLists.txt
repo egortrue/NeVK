@@ -125,12 +125,19 @@ target_link_libraries(${LIBRARY_MODELS_NAME} PUBLIC
 set(LIBRARY_SCENE_NAME scene)
 set(LIBRARY_SCENE_PATH src/engine/scene)
 set(LIBRARY_SCENE_SOURCES
+    ${LIBRARY_SCENE_PATH}/object.h
+    ${LIBRARY_SCENE_PATH}/object.cpp
     ${LIBRARY_SCENE_PATH}/camera.h
     ${LIBRARY_SCENE_PATH}/camera.cpp
+    ${LIBRARY_SCENE_PATH}/scene.h
+    ${LIBRARY_SCENE_PATH}/scene.cpp
 )
 add_library(${LIBRARY_SCENE_NAME} OBJECT ${LIBRARY_SCENE_SOURCES})
 target_include_directories(${LIBRARY_SCENE_NAME} PUBLIC ${LIBRARY_SCENE_PATH})
 target_link_libraries(${LIBRARY_SCENE_NAME} PUBLIC
+    ${LIBRARY_CORE_NAME}
+    ${LIBRARY_COMMANDS_NAME} 
+    ${LIBRARY_RESOURCES_NAME}
     ${LIBRARY_SHADERS_NAME}
     ${LIBRARY_TEXTURES_NAME}
     ${LIBRARY_MODELS_NAME}
@@ -142,10 +149,12 @@ target_link_libraries(${LIBRARY_SCENE_NAME} PUBLIC
 set(LIBRARY_RENDER_NAME render)
 set(LIBRARY_RENDER_PATH src/engine/render)
 set(LIBRARY_RENDER_SOURCES
-    ${LIBRARY_RENDER_PATH}/pass.h
-    ${LIBRARY_RENDER_PATH}/pass.cpp
+    ${LIBRARY_RENDER_PATH}/passes/pass.h
+    ${LIBRARY_RENDER_PATH}/passes/pass.cpp
     ${LIBRARY_RENDER_PATH}/passes/geometry.h
     ${LIBRARY_RENDER_PATH}/passes/geometry.cpp
+    ${LIBRARY_RENDER_PATH}/frames/frames.h
+    ${LIBRARY_RENDER_PATH}/frames/frames.cpp
 )
 add_library(${LIBRARY_RENDER_NAME} OBJECT ${LIBRARY_RENDER_SOURCES})
 target_include_directories(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_RENDER_PATH})

@@ -6,9 +6,9 @@
 #include "commands.h"
 #include "resources.h"
 #include "shaders.h"
-#include "textures.h"
-#include "models.h"
-#include "camera.h"
+#include "scene.h"
+
+#include "render/frames/frames.h"
 #include "render/passes/geometry.h"
 
 // Стандартные библиотеки
@@ -22,7 +22,8 @@ class Engine {
   Engine(Window::Manager);
   ~Engine();
   void drawFrame();
-  Camera::Manager getCamera();
+
+  Scene::Manager getScene();
 
  private:
   Window::Manager window;
@@ -43,34 +44,19 @@ class Engine {
   void initShaders();
   void destroyShaders();
 
-  Textures::Manager textures;
-  void initTextures();
-  void destroyTextures();
+  Scene::Manager scene;
+  void initScene();
+  void destroyScene();
 
-  Models::Manager models;
-  Models::Instance cube;
-  void initModels();
-  void destroyModels();
-
-  Camera::Manager camera;
-  void initCamera();
-  void destroyCamera();
-
-  //=======================
-
-  struct Frame {
-    VkCommandPool cmdPool;
-    VkCommandBuffer cmdBuffer;
-    VkFence drawing;
-    VkSemaphore available;
-  };
-
-  std::vector<Frame> frames;
-  uint32_t currentFrameIndex;
+  Frames::Manager frames;
   void initFrames();
   void destroyFrames();
+
+  //=======================
 
   GeometryPass geometryPass;
   void initGeometryPass();
   void destroyGeometryPass();
+
+  void resizeSwapchain();
 };

@@ -18,9 +18,9 @@ class RenderPass {
   Resources::Manager resources;
   Shaders::Manager shaders;
 
-  virtual void init() = 0;
-  virtual void resize() = 0;
+  virtual void init();
   virtual void destroy();
+  virtual void resize() = 0;
 
   //=========================================================================
   // Конвейер и проходы рендера
@@ -50,7 +50,8 @@ class RenderPass {
 
  protected:
   std::vector<VkDescriptorSet> descriptorSets;  // Множества ресурсов
-  VkDescriptorSetLayout descriptorSetLayout;    // Раскладка каждого множества
+  VkDescriptorSetLayout descriptorSetLayout;    // Описание множества
+
   void createDescriptorSets();
   virtual void createDescriptorSetLayout() = 0;
   virtual void updateDescriptorSets() = 0;
@@ -59,10 +60,11 @@ class RenderPass {
   // Наборы изображений, в которые будет идти результат
 
  public:
-  uint32_t targetImageCount;
-  uint32_t targetImageWidth, targetImageHeight;
-  VkFormat targetImageFormat;
-  std::vector<VkImageView> targetImageViews;
+  // Цветовые подключения - посутпают извне прохода
+  uint32_t colorImageCount;
+  uint32_t colorImageWidth, colorImageHeight;
+  VkFormat colorImageFormat;
+  std::vector<VkImageView> colorImageViews;
 
  protected:
   std::vector<VkFramebuffer> framebuffers;

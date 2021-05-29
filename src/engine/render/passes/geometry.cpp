@@ -1,38 +1,38 @@
 #include "geometry.h"
 
 void GeometryPass::init() {
-  createDepthImageFramebuffer();
+  // Подготовка данных вывода
+  createDepthImage();
 
+  // Подготовка подкючаемых ресурсов
   createUniformDescriptors();
-  createTextureDescriptors();
   createDescriptorSetLayout();
   createDescriptorSets();
   updateDescriptorSets();
 
-  createShaderModules();
-  createRenderPass();
-  createGraphicsPipeline();
+  RenderPass::init();
+}
 
-  createFramebuffers();
+void GeometryPass::destroy() {
+  RenderPass::destroy();
+
+  destroyDepthImage();
+  destroyUniformDescriptors();
 }
 
 void GeometryPass::resize() {
   for (auto framebuffer : framebuffers)
     vkDestroyFramebuffer(core->device, framebuffer, nullptr);
+  destroyDepthImage();
+
   vkDestroyPipeline(core->device, pipeline, nullptr);
   vkDestroyPipelineLayout(core->device, pipelineLayout, nullptr);
   vkDestroyRenderPass(core->device, renderPass, nullptr);
 
+  createDepthImage();
   createRenderPass();
   createGraphicsPipeline();
   createFramebuffers();
-}
-
-void GeometryPass::destroy() {
-  RenderPass::destroy();
-  destroyDepthImageFramebuffer();
-  destroyUniformDescriptors();
-  destroyTextureDescriptors();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -43,11 +43,11 @@ void GeometryPass::record(record_t& data) {
   renderPassInfo.renderPass = renderPass;
   renderPassInfo.framebuffer = framebuffers[data.imageIndex];
   renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent = {targetImageWidth, targetImageHeight};
+  renderPassInfo.renderArea.extent = {colorImageWidth, colorImageHeight};
 
   // Заливка цвета вне всех примитивов
   std::array<VkClearValue, 2> clearValues{};
-  clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+  clearValues[0].color = {0.2f, 0.3f, 0.3f, 1.0f};
   clearValues[1].depthStencil = {1.0f, 0};
   renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
   renderPassInfo.pClearValues = clearValues.data();
@@ -55,9 +55,9 @@ void GeometryPass::record(record_t& data) {
   // Новое разрешение вывода
   VkViewport viewport{};
   viewport.x = 0;
-  viewport.y = (float)targetImageHeight;
-  viewport.width = (float)targetImageWidth;
-  viewport.height = -(float)targetImageHeight;
+  viewport.y = (float)colorImageHeight;
+  viewport.width = (float)colorImageWidth;
+  viewport.height = -(float)colorImageHeight;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
@@ -71,7 +71,7 @@ void GeometryPass::record(record_t& data) {
   // Подключение множества ресурсов, используемых в конвейере
   vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
 
-  // Буферы вершин рендера
+  // Буферы вершин
   VkBuffer vertexBuffers[] = {data.vertices};
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(data.cmd, 0, 1, vertexBuffers, offsets);
@@ -85,24 +85,12 @@ void GeometryPass::record(record_t& data) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createTextureDescriptors() {
-  auto texture = textures->loadTexture(textureName);
-  textureImageView = texture->view;
-  textureSampler = textures->sampler;
-}
-
-void GeometryPass::destroyTextureDescriptors() {
-  textures->destroyTexture(textureName);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 void GeometryPass::createUniformDescriptors() {
   VkDeviceSize bufferSize = sizeof(uniform_t);
-  uniformBuffers.resize(targetImageCount);
-  uniformBuffersMemory.resize(targetImageCount);
+  uniformBuffers.resize(colorImageCount);
+  uniformBuffersMemory.resize(colorImageCount);
 
-  for (uint32_t i = 0; i < targetImageCount; ++i) {
+  for (uint32_t i = 0; i < colorImageCount; ++i) {
     resources->createBuffer(
         bufferSize,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -112,19 +100,13 @@ void GeometryPass::createUniformDescriptors() {
 }
 
 void GeometryPass::destroyUniformDescriptors() {
-  for (uint32_t i = 0; i < targetImageCount; ++i)
+  for (uint32_t i = 0; i < colorImageCount; ++i)
     resources->destroyBuffer(uniformBuffers[i], uniformBuffersMemory[i]);
 }
 
-void GeometryPass::updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& view, glm::float4x4& projection) {
-  // Получим время
-  static auto prevTime = std::chrono::high_resolution_clock::now();
-  auto currentTime = std::chrono::high_resolution_clock::now();
-  float deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
-
+void GeometryPass::updateUniformDescriptor(uint32_t imageIndex, glm::float4x4& modelViewProj) {
   // Обновим данные структуры
-  glm::float4x4 model = glm::rotate(glm::mat4(1.0f), 0.5f * deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-  uniform.modelViewProj = projection * view * model;
+  uniform.modelViewProj = modelViewProj;
 
   // Скопируем данные в память устройства
   void* data;
@@ -135,7 +117,7 @@ void GeometryPass::updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createDepthImageFramebuffer() {
+void GeometryPass::createDepthImage() {
   depthImageFormat = resources->findSupportedFormat(
       {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
       VK_IMAGE_TILING_OPTIMAL,
@@ -156,7 +138,7 @@ void GeometryPass::createDepthImageFramebuffer() {
       VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void GeometryPass::destroyDepthImageFramebuffer() {
+void GeometryPass::destroyDepthImage() {
   resources->destroyImageView(depthImageView);
   resources->destroyImage(depthImage, depthImageMemory);
 }
@@ -164,12 +146,9 @@ void GeometryPass::destroyDepthImageFramebuffer() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GeometryPass::createFramebuffers() {
-  framebuffers.resize(targetImageCount);
-  for (uint32_t i = 0; i < targetImageCount; ++i) {
-    std::vector<VkImageView> attachment = {
-        targetImageViews[i],
-        depthImageView,
-    };
+  framebuffers.resize(colorImageCount);
+  for (uint32_t i = 0; i < colorImageCount; ++i) {
+    std::vector<VkImageView> attachment = {colorImageViews[i], depthImageView};
     createFramebuffer(attachment, i);
   }
 }
@@ -245,16 +224,16 @@ void GeometryPass::createGraphicsPipeline() {
   // Область вывода
   VkViewport viewport{};
   viewport.x = 0.0f;
-  viewport.y = (float)targetImageHeight;
-  viewport.width = (float)targetImageWidth;
-  viewport.height = -(float)targetImageHeight;
+  viewport.y = (float)colorImageHeight;
+  viewport.width = (float)colorImageWidth;
+  viewport.height = -(float)colorImageHeight;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
   // Область вывода для теста ножниц
   VkRect2D scissor{};
   scissor.offset = {0, 0};
-  scissor.extent = {targetImageWidth, targetImageHeight};
+  scissor.extent = {colorImageWidth, colorImageHeight};
 
   VkPipelineViewportStateCreateInfo viewportState{};
   viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -291,7 +270,7 @@ void GeometryPass::createGraphicsPipeline() {
   // VK_CULL_MODE_FRONT_BIT --- отброс лицевых полигонов
   // VK_CULL_MODE_BACK_BIT --- отброс нелицевых полигонов
   // VK_CULL_MODE_FRONT_AND_BACK --- отброс обоих сторон полигонов
-  rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+  rasterizer.cullMode = VK_CULL_MODE_NONE;
 
   // Опции глубины
   rasterizer.depthClampEnable = VK_FALSE;  // Отсечение глубины - заполнение дыр геометрии
@@ -393,7 +372,7 @@ void GeometryPass::createRenderPass() {
   // Описание цветового подключения - выходного изображения конвейера
 
   VkAttachmentDescription colorAttachment{};
-  colorAttachment.format = targetImageFormat;
+  colorAttachment.format = colorImageFormat;
 
   // Действия при работе с изображением
   colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -524,7 +503,7 @@ void GeometryPass::createDescriptorSetLayout() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GeometryPass::updateDescriptorSets() {
-  for (size_t i = 0; i < targetImageCount; ++i) {
+  for (size_t i = 0; i < colorImageCount; ++i) {
     //=========================================================================
     // Инициализация ресурсов
     VkDescriptorBufferInfo bufferInfo{};
