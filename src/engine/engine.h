@@ -7,6 +7,8 @@
 #include "resources.h"
 #include "shaders.h"
 #include "scene.h"
+
+#include "render/frames/frames.h"
 #include "render/passes/geometry.h"
 
 // Стандартные библиотеки
@@ -46,21 +48,11 @@ class Engine {
   void initScene();
   void destroyScene();
 
-  //=======================
-
-  struct Frame {
-    VkCommandPool cmdPool;
-    VkCommandBuffer cmdBuffer;
-    VkFence drawing;
-    VkFence showing;
-    VkSemaphore imageAvailable;
-    VkSemaphore imageRendered;
-  };
-
-  std::vector<Frame> frames;
-  uint32_t currentFrameIndex;
+  Frames::Manager frames;
   void initFrames();
   void destroyFrames();
+
+  //=======================
 
   GeometryPass geometryPass;
   void initGeometryPass();

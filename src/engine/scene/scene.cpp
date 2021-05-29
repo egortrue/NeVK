@@ -58,7 +58,7 @@ void Scene::destroyModels() {
 void Scene::initCamera() {
   camera = new Camera();
   camera->projection.fov = 45.0f;
-  camera->projection.aspect = 800.0f / 600.0f;
+  camera->projection.aspect = 4.0f / 3.0f;
   camera->projection.near = 0.1f;
   camera->projection.far = 256.0f;
   camera->updateProjection();

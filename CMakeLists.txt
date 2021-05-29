@@ -149,10 +149,12 @@ target_link_libraries(${LIBRARY_SCENE_NAME} PUBLIC
 set(LIBRARY_RENDER_NAME render)
 set(LIBRARY_RENDER_PATH src/engine/render)
 set(LIBRARY_RENDER_SOURCES
-    ${LIBRARY_RENDER_PATH}/pass.h
-    ${LIBRARY_RENDER_PATH}/pass.cpp
+    ${LIBRARY_RENDER_PATH}/passes/pass.h
+    ${LIBRARY_RENDER_PATH}/passes/pass.cpp
     ${LIBRARY_RENDER_PATH}/passes/geometry.h
     ${LIBRARY_RENDER_PATH}/passes/geometry.cpp
+    ${LIBRARY_RENDER_PATH}/frames/frames.h
+    ${LIBRARY_RENDER_PATH}/frames/frames.cpp
 )
 add_library(${LIBRARY_RENDER_NAME} OBJECT ${LIBRARY_RENDER_SOURCES})
 target_include_directories(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_RENDER_PATH})
