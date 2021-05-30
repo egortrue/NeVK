@@ -7,6 +7,12 @@ void GraphicsPass::init() {
   createFramebuffers();
 }
 
+void GraphicsPass::destroy() {
+  for (auto framebuffer : framebuffers)
+    vkDestroyFramebuffer(core->device, framebuffer, nullptr);
+  Pass::destroy();
+}
+
 void GraphicsPass::reload() {
   for (auto framebuffer : framebuffers)
     vkDestroyFramebuffer(core->device, framebuffer, nullptr);
@@ -19,12 +25,6 @@ void GraphicsPass::resize() {
     vkDestroyFramebuffer(core->device, framebuffer, nullptr);
   Pass::resize();
   createFramebuffers();
-}
-
-void GraphicsPass::destroy() {
-  for (auto framebuffer : framebuffers)
-    vkDestroyFramebuffer(core->device, framebuffer, nullptr);
-  Pass::destroy();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////

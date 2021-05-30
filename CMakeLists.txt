@@ -134,6 +134,18 @@ target_link_libraries(${LIBRARY_SCENE_NAME} PUBLIC
 )
 
 ###############
+# WINDOW
+###############
+set(LIBRARY_WINDOW_NAME window)
+set(LIBRARY_WINDOW_PATH src/window)
+set(LIBRARY_WINDOW_SOURCES
+    ${LIBRARY_WINDOW_PATH}/window.h
+    ${LIBRARY_WINDOW_PATH}/window.cpp
+)
+add_library(${LIBRARY_WINDOW_NAME} OBJECT ${LIBRARY_WINDOW_SOURCES})
+target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC ${LIBRARY_WINDOW_PATH})
+
+###############
 # RENDER
 ###############
 set(LIBRARY_RENDER_NAME render)
@@ -141,10 +153,14 @@ set(LIBRARY_RENDER_PATH src/engine/render)
 set(LIBRARY_RENDER_SOURCES
     ${LIBRARY_RENDER_PATH}/passes/pass.h
     ${LIBRARY_RENDER_PATH}/passes/pass.cpp
+
     ${LIBRARY_RENDER_PATH}/passes/graphics/graphics.h
     ${LIBRARY_RENDER_PATH}/passes/graphics/graphics.cpp
     ${LIBRARY_RENDER_PATH}/passes/graphics/geometry.h
     ${LIBRARY_RENDER_PATH}/passes/graphics/geometry.cpp
+    ${LIBRARY_RENDER_PATH}/passes/graphics/gui.h
+    ${LIBRARY_RENDER_PATH}/passes/graphics/gui.cpp
+
     ${LIBRARY_RENDER_PATH}/frames/frames.h
     ${LIBRARY_RENDER_PATH}/frames/frames.cpp
 )
@@ -158,19 +174,8 @@ target_link_libraries(${LIBRARY_RENDER_NAME} PUBLIC
     ${LIBRARY_TEXTURES_NAME}
     ${LIBRARY_MODELS_NAME}
     ${LIBRARY_SCENE_NAME}
+    ${LIBRARY_WINDOW_NAME}
 )
-
-###############
-# WINDOW
-###############
-set(LIBRARY_WINDOW_NAME window)
-set(LIBRARY_WINDOW_PATH src/window)
-set(LIBRARY_WINDOW_SOURCES
-    ${LIBRARY_WINDOW_PATH}/window.h
-    ${LIBRARY_WINDOW_PATH}/window.cpp
-)
-add_library(${LIBRARY_WINDOW_NAME} OBJECT ${LIBRARY_WINDOW_SOURCES})
-target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC ${LIBRARY_WINDOW_PATH})
 
 ###############
 # ENGINE
@@ -215,6 +220,27 @@ target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/tol)
 # GLM (Работа с матрицами)
 target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/glm)
 
+# ImGUI (Пользовательский интерфейс)
+
+set(LIBRARY_IMGUI_NAME imgui)
+set(LIBRARY_IMGUI_PATH external/imgui)
+set(LIBRARY_IMGUI_SOURCES
+    ${LIBRARY_IMGUI_PATH}/imconfig.h
+    ${LIBRARY_IMGUI_PATH}/imgui.h
+    ${LIBRARY_IMGUI_PATH}/imgui_internal.h
+    ${LIBRARY_IMGUI_PATH}/imgui.cpp
+    ${LIBRARY_IMGUI_PATH}/imgui_tables.cpp
+    ${LIBRARY_IMGUI_PATH}/imgui_draw.cpp
+    ${LIBRARY_IMGUI_PATH}/imgui_widgets.cpp
+    ${LIBRARY_IMGUI_PATH}/backends/imgui_impl_vulkan.cpp
+    ${LIBRARY_IMGUI_PATH}/backends/imgui_impl_glfw.cpp
+)
+add_library(${LIBRARY_IMGUI_NAME} OBJECT ${LIBRARY_IMGUI_SOURCES})
+target_include_directories(${LIBRARY_IMGUI_NAME} PUBLIC ${LIBRARY_IMGUI_PATH})
+target_link_libraries(${LIBRARY_IMGUI_NAME} PUBLIC ${LIBRARY_WINDOW_NAME} ${LIBRARY_CORE_NAME} )
+
+target_link_libraries(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_IMGUI_NAME})
+
 #================================================================
 # Приложение
 
@@ -231,6 +257,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${LIBRARY_RENDER_NAME}    
     ${LIBRARY_ENGINE_NAME}
     ${LIBRARY_WINDOW_NAME}
+    ${LIBRARY_IMGUI_NAME}
 )
 
 # Копирование шейдеров в рабочую директорию

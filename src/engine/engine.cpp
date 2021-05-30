@@ -8,10 +8,12 @@ Engine::Engine(Window::Manager window) : window(window) {
   initScene();
   initFrames();
   initGeometryPass();
+  initGUIPass();
 }
 
 Engine::~Engine() {
   vkDeviceWaitIdle(core->device);
+  destroyGUIPass();
   destroyGeometryPass();
   destroyFrames();
   destroyScene();
@@ -124,11 +126,11 @@ void Engine::initGeometryPass() {
   geometryPass->textureSampler = scene->objects.front()->texture->sampler;
 
   // Цель вывода прохода рендера
-  geometryPass->colorImageCount = core->swapchainImageCount;
-  geometryPass->colorImageWidth = core->swapchainExtent.width;
-  geometryPass->colorImageHeight = core->swapchainExtent.height;
-  geometryPass->colorImageFormat = core->swapchainFormat;
-  geometryPass->colorImageViews = resources->createImageViews(
+  geometryPass->targetImage.count = core->swapchainImageCount;
+  geometryPass->targetImage.width = core->swapchainExtent.width;
+  geometryPass->targetImage.height = core->swapchainExtent.height;
+  geometryPass->targetImage.format = core->swapchainFormat;
+  geometryPass->targetImage.views = resources->createImageViews(
       core->swapchainImages,
       core->swapchainFormat,
       VK_IMAGE_ASPECT_COLOR_BIT);
@@ -143,10 +145,41 @@ void Engine::initGeometryPass() {
 }
 
 void Engine::destroyGeometryPass() {
-  resources->destroyImageViews(geometryPass->colorImageViews);
+  resources->destroyImageViews(geometryPass->targetImage.views);
   geometryPass->destroy();
   delete geometryPass;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Engine::initGUIPass() {
+  guiPass = new GUIPass();
+
+  // Цель вывода прохода рендера
+  guiPass->targetImage.count = core->swapchainImageCount;
+  guiPass->targetImage.width = core->swapchainExtent.width;
+  guiPass->targetImage.height = core->swapchainExtent.height;
+  guiPass->targetImage.format = core->swapchainFormat;
+  guiPass->targetImage.views = resources->createImageViews(
+      core->swapchainImages,
+      core->swapchainFormat,
+      VK_IMAGE_ASPECT_COLOR_BIT);
+
+  GUIPass::init_t data;
+  data.core = core;
+  data.resources = resources;
+  data.commands = commands;
+  data.window = window;
+  guiPass->init(data);
+}
+
+void Engine::destroyGUIPass() {
+  resources->destroyImageViews(guiPass->targetImage.views);
+  guiPass->destroy();
+  delete guiPass;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::resizeSwapchain() {
   vkDeviceWaitIdle(core->device);
@@ -157,14 +190,23 @@ void Engine::resizeSwapchain() {
   core->createSwapchain();
 
   // Обновим все проходы рендера
-  resources->destroyImageViews(geometryPass->colorImageViews);
-  geometryPass->colorImageWidth = core->swapchainExtent.width;
-  geometryPass->colorImageHeight = core->swapchainExtent.height;
-  geometryPass->colorImageViews = resources->createImageViews(
+  resources->destroyImageViews(geometryPass->targetImage.views);
+  geometryPass->targetImage.width = core->swapchainExtent.width;
+  geometryPass->targetImage.height = core->swapchainExtent.height;
+  geometryPass->targetImage.views = resources->createImageViews(
       core->swapchainImages,
       core->swapchainFormat,
       VK_IMAGE_ASPECT_COLOR_BIT);
   geometryPass->resize();
+
+  resources->destroyImageViews(guiPass->targetImage.views);
+  guiPass->targetImage.width = core->swapchainExtent.width;
+  guiPass->targetImage.height = core->swapchainExtent.height;
+  guiPass->targetImage.views = resources->createImageViews(
+      core->swapchainImages,
+      core->swapchainFormat,
+      VK_IMAGE_ASPECT_COLOR_BIT);
+  guiPass->resize();
 
   // Обновим соотношение сторон для камеры
   auto camera = scene->getCamera();
@@ -226,8 +268,9 @@ void Engine::drawFrame() {
   camera->update(deltaFrame);
 
   // Обновим данные прохода рендера
-  glm::float4x4 modelViewProj = camera->projectionMatrix * camera->viewMatrix * object->modelMatrix;
-  geometryPass->updateUniformDescriptors(swapchainImageIndex, modelViewProj);
+  geometryPass->uniform.modelViewProj = camera->projectionMatrix * camera->viewMatrix * object->modelMatrix;
+  geometryPass->update(swapchainImageIndex);
+  guiPass->update(swapchainImageIndex);
 
   // Укажем необходимые вершины для отрисовки
   GeometryPass::record_t data;
@@ -237,6 +280,11 @@ void Engine::drawFrame() {
   data.indices = object->model->indexBuffer;
   data.vertices = object->model->vertexBuffer;
   geometryPass->record(data);
+
+  GUIPass::record_t data1;
+  data1.cmd = cmdBuffer;
+  data1.imageIndex = swapchainImageIndex;
+  guiPass->record(data1);
 
   if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS) {
     throw std::runtime_error("ERROR: ailed to record command buffer!");

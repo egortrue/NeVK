@@ -7,9 +7,9 @@
 #include "resources.h"
 #include "shaders.h"
 #include "scene.h"
-
 #include "render/frames/frames.h"
 #include "render/passes/graphics/geometry.h"
+#include "render/passes/graphics/gui.h"
 
 // Стандартные библиотеки
 #include <string>
@@ -58,6 +58,10 @@ class Engine {
   GeometryPass* geometryPass;
   void initGeometryPass();
   void destroyGeometryPass();
+
+  GUIPass* guiPass;
+  void initGUIPass();
+  void destroyGUIPass();
 
   void resizeSwapchain();
 };

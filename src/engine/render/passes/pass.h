@@ -26,9 +26,9 @@ class Pass {
   } pipeline;
 
   virtual void init();
-  virtual void reload();
-  virtual void resize();
   virtual void destroy();
+  virtual void reload();  // Полная перезагрузка
+  virtual void resize();  // Частичная перезагрузка
 
   virtual void createPipeline() = 0;
   virtual void createRenderPass() = 0;

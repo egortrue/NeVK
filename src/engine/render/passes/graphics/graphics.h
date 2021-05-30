@@ -6,9 +6,10 @@
 class GraphicsPass : public Pass {
  protected:
   virtual void init();
+  virtual void destroy();
   virtual void reload();
   virtual void resize();
-  virtual void destroy();
+  virtual void update(uint32_t index) = 0;
 
   virtual void createPipeline();
 
@@ -23,7 +24,17 @@ class GraphicsPass : public Pass {
   virtual void setVertexBinding();
   virtual void setVertexAttributes();
 
+ public:
   // Цель рендера
+  struct {
+    VkFormat format;
+    uint32_t width;
+    uint32_t height;
+    uint32_t count;
+    std::vector<VkImageView> views;
+  } targetImage;
+
+ protected:
   std::vector<VkFramebuffer> framebuffers;
   VkFramebuffer createFramebuffer(std::vector<VkImageView>&, uint32_t width, uint32_t height);
   virtual void createFramebuffers() = 0;

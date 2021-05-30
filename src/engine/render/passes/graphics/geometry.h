@@ -12,6 +12,9 @@
 #include <chrono>
 
 class GeometryPass : public GraphicsPass {
+  Models::Manager models;
+  Textures::Manager textures;
+
  public:
   struct init_t {
     Core::Manager core;
@@ -31,17 +34,15 @@ class GeometryPass : public GraphicsPass {
 
   void init(init_t&);
   void record(record_t&);
-  void reload();
-  void resize();
-  void destroy();
-
- private:
-  Models::Manager models;
-  Textures::Manager textures;
+  void reload() override;
+  void resize() override;
+  void destroy() override;
+  void update(uint32_t index) override;
 
   //=========================================================================
   // Конвейер и проход рендера
 
+ private:
   void setVertexBinding() override;
   void setVertexAttributes() override;
   void createRenderPass() override;
@@ -49,48 +50,35 @@ class GeometryPass : public GraphicsPass {
   //=========================================================================
   // Выделенные ресурсы, привязанные к конвейеру
 
- private:
-  void createDescriptorSetsLayout() override;
-  void createDescriptorSets() override;
-  void updateDescriptorSets() override;
-
  public:
-  // Текстуры
-  VkImageView textureImageView;
-  VkSampler textureSampler;
-
- private:
-  // Буферы
   struct uniform_t {
     glm::float4x4 modelViewProj;
-  } uniform;
+  } uniform;                     // ~ cbuffer
+  VkImageView textureImageView;  // ~ Texture2D
+  VkSampler textureSampler;      // ~ SamplerState
+
+ private:
   std::vector<VkBuffer> uniformBuffers;
   std::vector<VkDeviceMemory> uniformBuffersMemory;
 
   void createUniformDescriptors();
   void destroyUniformDescriptors();
+  void updateUniformDescriptors(uint32_t index);
 
- public:
-  void updateUniformDescriptors(uint32_t imageIndex, glm::float4x4& modelViewProj);
+  void createDescriptorSetsLayout() override;
+  void createDescriptorSets() override;
+  void updateDescriptorSets() override;
 
   //=========================================================================
   // Наборы изображений для фреймбуфера
 
- public:
-  // Буферы цвета
-  VkFormat colorImageFormat;
-  uint32_t colorImageWidth;
-  uint32_t colorImageHeight;
-  uint32_t colorImageCount;
-  std::vector<VkImageView> colorImageViews;
-
  private:
-  // Буфер глубины
-  VkImage depthImage;
-  VkDeviceMemory depthImageMemory;
-  VkFormat depthImageFormat;
-  VkImageView depthImageView;
-
+  struct {
+    VkImage instance;
+    VkDeviceMemory memory;
+    VkFormat format;
+    VkImageView view;
+  } depthImage;
   void createDepthImage();
   void destroyDepthImage();
 

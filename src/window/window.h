@@ -40,6 +40,10 @@ class Window {
     glfwPollEvents();
   }
 
+  void setTitle(const std::string& title) {
+    glfwSetWindowTitle(instance, title.c_str());
+  }
+
   Window() {
     // Инициализация GLFW
     glfwInit();
