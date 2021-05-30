@@ -42,11 +42,19 @@ void GUIPass::updateUI() {
   {
     ImGui::SetWindowPos(ImVec2(window->width - ImGui::GetWindowWidth() - 10, 10));
 
-    ImGui::Text("Window Title");
+    ImGui::Text("Window");
+    ImGui::Text("   Title");
+    ImGui::SameLine();
     ImGui::InputText("###title", window->title.data(), 255);
     ImGui::SameLine();
     if (ImGui::Button("Change"))
       window->setTitle(window->title.c_str());
+
+    ImGui::TableNextColumn();
+    ImGui::Text("    Size", window->width, window->height);
+    ImGui::SameLine();
+    float window_size[] = {window->width, window->height};
+    ImGui::InputFloat2("###windwo_size", window_size);
 
     ImGui::Separator();
     //================================================
@@ -80,14 +88,14 @@ void GUIPass::updateUI() {
     ImGui::Separator();
     //================================================
 
-    ImGui::Text("  Object");
-    ImGui::SameLine();
-
+    ImGui::Text("Object");
     std::vector<const char*> names;
     names.clear();
     for (auto object : scene->objects)
       names.push_back(object->model->name.c_str());
 
+    ImGui::Text("Instance");
+    ImGui::SameLine();
     ImGui::Combo((const char*)"###object_list", (int*)&scene->currentObject, names.data(), (int)names.size());
     auto object = scene->objects[scene->currentObject];
 
