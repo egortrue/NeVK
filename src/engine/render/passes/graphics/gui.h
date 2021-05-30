@@ -10,6 +10,9 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_vulkan.h"
 
+// Стандартные библиотеки
+#include <vector>
+
 typedef ImGui_ImplVulkan_InitInfo ImGuiInit;
 typedef ImGui_ImplVulkanH_Window ImGuiData;
 
@@ -63,9 +66,9 @@ class GUI : public GraphicsPass {
   void createRenderPass() override;
   void createFramebuffers() override;
 
-  void createDescriptorSetsLayout(){};
-  void createDescriptorSets(){};
-  void updateDescriptorSets(){};
+  void createDescriptorSetsLayout() {}
+  void createDescriptorSets() {}
+  void updateDescriptorSets() {}
 };
 
 static bool mousePressed[2] = {false, false};
@@ -77,7 +80,7 @@ static void glfw_mouse_button_callback(GLFWwindow* window, int button, int actio
 
 static void glfw_scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
   ImGuiIO& io = ImGui::GetIO();
-  io.MouseWheel += (float)yoffset;  // Use fractional mouse wheel, 1.0 unit 5 lines.
+  io.MouseWheel += static_cast<float>(yoffset);  // Use fractional mouse wheel, 1.0 unit 5 lines.
 }
 
 static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -92,5 +95,5 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 
 static void glfw_char_callback(GLFWwindow* window, unsigned int c) {
   if (c > 0 && c < 0x10000)
-    ImGui::GetIO().AddInputCharacter((unsigned short)c);
+    ImGui::GetIO().AddInputCharacter(static_cast<uint16_t>(c));
 }

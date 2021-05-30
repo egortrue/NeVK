@@ -154,7 +154,9 @@ void GUI::updateUI() {
 
     ImGui::Text("Instance");
     ImGui::SameLine();
-    ImGui::Combo((const char*)"###object_list", (int*)&scene->currentObject, names.data(), (int)names.size());
+    ImGui::Combo(reinterpret_cast<const char*>("###object_list"),
+                 reinterpret_cast<int*>(&scene->currentObject),
+                 names.data(), static_cast<int>(names.size()));
     auto object = scene->objects[scene->currentObject];
 
     float object_position[] = {object->transform.position.x,

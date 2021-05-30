@@ -3,6 +3,9 @@
 // Внутренние библиотеки
 #include "core.h"
 
+// Стандартные библиотеки
+#include <vector>
+
 class Resources {
  private:
   Core::Manager core;
@@ -10,7 +13,7 @@ class Resources {
  public:
   typedef Resources* Manager;
 
-  Resources(Core::Manager);
+  explicit Resources(Core::Manager);
   ~Resources();
 
   //=========================================================================

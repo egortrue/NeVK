@@ -10,6 +10,8 @@
 
 // Стандартные библиотеки
 #include <chrono>
+#include <vector>
+#include <string>
 
 class Geometry : public GraphicsPass {
  public:

@@ -4,6 +4,9 @@
 #include "core.h"
 #include "commands.h"
 
+// Стандартные библиотеки
+#include <vector>
+
 class Frames {
  public:
   typedef Frames* Manager;

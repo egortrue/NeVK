@@ -10,6 +10,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include <algorithm>
+#include <string>
 #include <cstring>
 #include <cstdlib>
 #include <optional>

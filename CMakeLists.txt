@@ -209,7 +209,7 @@ target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC Vulkan::Vulkan)
 
 # GLFW (Оконный менеджер)
 target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC external/glfw/include) 
-target_link_libraries(${LIBRARY_WINDOW_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/glfw3.lib")
+target_link_libraries(${LIBRARY_WINDOW_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/glfw3.lib" Vulkan::Vulkan)
 
 # SLANG (Компиляция шейдеров)
 target_include_directories(${LIBRARY_SHADERS_NAME} PUBLIC external/slang/include)

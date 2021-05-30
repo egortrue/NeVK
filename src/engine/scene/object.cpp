@@ -5,9 +5,9 @@ void Object::setPosition(glm::float3 position) {
 }
 
 void Object::setRotation(glm::float3 rotation) {
-  this->transform.rotation.x = rotation.x - 360 * ((int)rotation.x / 360);
-  this->transform.rotation.y = rotation.y - 360 * ((int)rotation.y / 360);
-  this->transform.rotation.z = rotation.z - 360 * ((int)rotation.z / 360);
+  this->transform.rotation.x = rotation.x - 360 * (static_cast<int>(rotation.x) / 360);
+  this->transform.rotation.y = rotation.y - 360 * (static_cast<int>(rotation.y) / 360);
+  this->transform.rotation.z = rotation.z - 360 * (static_cast<int>(rotation.z) / 360);
 }
 
 void Object::setScale(glm::float3 scale) {
