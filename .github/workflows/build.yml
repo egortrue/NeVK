@@ -1,0 +1,44 @@
+name: build
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Download Vulkan SDK
+      shell: bash
+      working-directory: ${{github.workspace}}
+      run: |
+        mkdir VULKAN_SDK; cd VULKAN_SDK
+        mkdir build; cd build
+        git clone https://github.com/KhronosGroup/Vulkan-Headers.git --branch sdk-1.2.176
+        git clone https://github.com/KhronosGroup/Vulkan-Loader.git --branch sdk-1.2.176
+
+    - name: Install Vulkan SDK Headers
+      shell: bash
+      working-directory: ${{github.workspace}}/VULKAN_SDK/build/Vulkan-Headers
+      run: |
+        cmake -DCMAKE_INSTALL_PREFIX=../.. -DCMAKE_BUILD_TYPE=Release .
+        cmake --build . --config Release
+        cmake --install . 
+
+    - name: Install Vulkan SDK Loader
+      shell: bash
+      working-directory: ${{github.workspace}}/VULKAN_SDK/build/Vulkan-Loader
+      run: |
+        cmake -DVULKAN_HEADERS_INSTALL_DIR=../.. -DCMAKE_INSTALL_PREFIX=../.. -DCMAKE_BUILD_TYPE=Release .
+        cmake --build . --config Release
+        cmake --install . 
+
+    - name: Create and build project
+      shell: bash
+      working-directory: ${{github.workspace}}
+      run: |
+        export VULKAN_SDK=$(pwd)/VULKAN_SDK
+        mkdir build; cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DVULKAN_SDK=$VULKAN_SDK ..
+        cmake --build .
+

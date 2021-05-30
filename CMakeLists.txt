@@ -16,7 +16,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
 #===============================================================================================
 # Требования
 
-find_package(Vulkan REQUIRED) # Необходим Vulkan SDK на локальном ПК
+if (NOT DEFINED VULKAN_SDK)
+    find_package(Vulkan REQUIRED) # Необходим Vulkan SDK на локальном ПК
+endif()
 
 #===============================================================================================
 # Внутренние библиотеки
@@ -205,11 +207,18 @@ target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC
 # Сторонние библиотеки
 
 # Vulkan (Графический драйвер)
-target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC Vulkan::Vulkan)
+if (NOT DEFINED VULKAN_SDK)
+    target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC Vulkan::Vulkan)
+else()
+    target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC "${VULKAN_SDK}/lib/vulkan-1.lib")
+    target_include_directories(${LIBRARY_CORE_NAME} PUBLIC "${VULKAN_SDK}/include") 
+    message(STATUS "VULKAN LIBRARY: ${VULKAN_SDK}/lib/vulkan-1.lib")
+    message(STATUS "VULKAN INCLUDE: ${VULKAN_SDK}/include")
+endif()
 
 # GLFW (Оконный менеджер)
 target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC external/glfw/include) 
-target_link_libraries(${LIBRARY_WINDOW_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/glfw3.lib" Vulkan::Vulkan)
+target_link_libraries(${LIBRARY_WINDOW_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/glfw3.lib" ${LIBRARY_CORE_NAME})
 
 # SLANG (Компиляция шейдеров)
 target_include_directories(${LIBRARY_SHADERS_NAME} PUBLIC external/slang/include)
