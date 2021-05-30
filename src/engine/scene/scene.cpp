@@ -46,6 +46,7 @@ void Scene::destroyTextures() {
 void Scene::initModels() {
   models = new Models(commands, resources);
   loadObject("misc/models/teapot.obj", "misc/textures/default.png");
+  loadObject("misc/models/cube.obj", "misc/textures/default.png");
 }
 
 void Scene::destroyModels() {

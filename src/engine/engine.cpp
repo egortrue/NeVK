@@ -170,6 +170,7 @@ void Engine::initGUIPass() {
   data.resources = resources;
   data.commands = commands;
   data.window = window;
+  data.scene = scene;
   guiPass->init(data);
 }
 
@@ -259,9 +260,9 @@ void Engine::drawFrame() {
   timeFrameStart = timeFrame;
 
   // Получим объекты сцены
-  auto object = scene->objects.front();
-  object->setPosition({0, sin(deltaGlobal) / 10, 0});
-  object->setRotation({0, deltaGlobal * 10.0f, 0});
+  auto object = scene->objects[scene->currentObject];
+  object->setPosition({object->transform.position.x, sin(deltaGlobal) / 10, object->transform.position.z});
+  object->setRotation({object->transform.rotation.x, deltaGlobal * 10.0f, object->transform.rotation.z});
   object->update();
 
   auto camera = scene->getCamera();

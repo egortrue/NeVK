@@ -18,6 +18,7 @@ class Scene {
   Scene(Core::Manager, Commands::Manager, Resources::Manager);
   ~Scene();
 
+  uint32_t currentObject = 0;
   std::vector<PhysicalObject::Instance> objects;
   void loadObject(const char* model, const char* texture);
   void loadObject(const std::string& model, const std::string& texture);

@@ -26,22 +26,96 @@ void GUIPass::destroy() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GUIPass::updateUI() {
-  ImGuiIO& io = ImGui::GetIO();
-
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
-  if (ImGui::Begin("Common options", nullptr,
-                   ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                       ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize)) {
+  enum flags {
+    WINDOW_NORESIZE = ImGuiWindowFlags_NoResize,
+    WINDOW_NOMOVE = ImGuiWindowFlags_NoMove,
+    WINDOW_NODECOR = ImGuiWindowFlags_NoDecoration,
+    WINDOW_AUTOSIZE = ImGuiWindowFlags_AlwaysAutoResize,
+  };
+
+  ImGui::Begin("Common options", nullptr,
+               WINDOW_NORESIZE | WINDOW_NOMOVE | WINDOW_NODECOR | WINDOW_AUTOSIZE);
+  {
     ImGui::SetWindowPos(ImVec2(window->width - ImGui::GetWindowWidth() - 10, 10));
 
-    ImGui::Text("Window title");
-    ImGui::InputText("", window->title.data(), 100);
-    if (ImGui::Button("Change")) {
+    ImGui::Text("Window Title");
+    ImGui::InputText("###title", window->title.data(), 255);
+    ImGui::SameLine();
+    if (ImGui::Button("Change"))
       window->setTitle(window->title.c_str());
-    }
+
+    ImGui::Separator();
+    //================================================
+
+    ImGui::Text("Camera");
+    auto camera = scene->getCamera();
+    float position[] = {camera->transform.position.x,
+                        camera->transform.position.y,
+                        camera->transform.position.z};
+    ImGui::Text("Position");
+    ImGui::SameLine();
+    ImGui::InputFloat3("###camera_position", position);
+    camera->transform.position = {position[0], position[1], position[2]};
+
+    float rotation[] = {camera->transform.rotation.x,
+                        camera->transform.rotation.y,
+                        camera->transform.rotation.z};
+    ImGui::Text("Rotation");
+    ImGui::SameLine();
+    ImGui::InputFloat3("###camera_rotation", rotation);
+    camera->transform.rotation = {rotation[0], rotation[1], rotation[2]};
+
+    float scale[] = {camera->transform.scale.x,
+                     camera->transform.scale.y,
+                     camera->transform.scale.z};
+    ImGui::Text("   Scale");
+    ImGui::SameLine();
+    ImGui::InputFloat3("###camera_scale", scale);
+    camera->transform.scale = {scale[0], scale[1], scale[2]};
+
+    ImGui::Separator();
+    //================================================
+
+    ImGui::Text("  Object");
+    ImGui::SameLine();
+
+    std::vector<const char*> names;
+    names.clear();
+    for (auto object : scene->objects)
+      names.push_back(object->model->name.c_str());
+
+    ImGui::Combo((const char*)"###object_list", (int*)&scene->currentObject, names.data(), (int)names.size());
+    auto object = scene->objects[scene->currentObject];
+
+    float object_position[] = {object->transform.position.x,
+                               object->transform.position.y,
+                               object->transform.position.z};
+    ImGui::Text("Position");
+    ImGui::SameLine();
+    ImGui::InputFloat3("###object_position", object_position);
+    object->transform.position = {object_position[0], object_position[1], object_position[2]};
+
+    float object_rotation[] = {object->transform.rotation.x,
+                               object->transform.rotation.y,
+                               object->transform.rotation.z};
+    ImGui::Text("Rotation");
+    ImGui::SameLine();
+    ImGui::InputFloat3("###object_rotation", object_rotation);
+    object->transform.rotation = {object_rotation[0], object_rotation[1], object_rotation[2]};
+
+    float object_scale[] = {object->transform.scale.x,
+                            object->transform.scale.y,
+                            object->transform.scale.z};
+    ImGui::Text("   Scale");
+    ImGui::SameLine();
+    ImGui::InputFloat3("###object_scale", object_scale);
+    object->transform.scale = {object_scale[0], object_scale[1], object_scale[2]};
+
+    ImGui::Separator();
 
     ImGui::End();
   }
@@ -54,6 +128,7 @@ void GUIPass::init(init_t& data) {
   this->commands = data.commands;
   this->resources = data.resources;
   this->window = data.window;
+  this->scene = data.scene;
 
   createRenderPass();
   createFramebuffers();
@@ -63,10 +138,11 @@ void GUIPass::init(init_t& data) {
 
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
+  ImGui::StyleColorsDark();
 
-  ImGuiIO& io = ImGui::GetIO();
-  io.DisplaySize = ImVec2(window->width, window->height);
-  io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+  imgui.io = ImGui::GetIO();
+  imgui.io.DisplaySize = ImVec2(window->width, window->height);
+  imgui.io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
   // Основые параметры инициализации
   imgui.init.Instance = core->instance;
@@ -80,8 +156,6 @@ void GUIPass::init(init_t& data) {
 
   ImGui_ImplGlfw_InitForVulkan(window->instance, true);
   ImGui_ImplVulkan_Init(&imgui.init, pipeline.pass);
-
-  // Upload Fonts
   loadFonts();
 }
 

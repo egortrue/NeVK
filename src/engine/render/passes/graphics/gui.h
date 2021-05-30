@@ -1,8 +1,9 @@
 #pragma once
 
 // Внутренние библиотеки
-#include "window.h"
 #include "graphics.h"
+#include "window.h"
+#include "scene.h"
 
 // Сторонние библиотеки
 #include "imgui.h"
@@ -19,6 +20,7 @@ class GUIPass : public GraphicsPass {
     Commands::Manager commands;
     Resources::Manager resources;
     Window::Manager window;
+    Scene::Manager scene;
   };
 
   struct record_t {
@@ -35,6 +37,7 @@ class GUIPass : public GraphicsPass {
 
  private:
   Window::Manager window;
+  Scene::Manager scene;
 
   //=========================================================================
   // ImGUI

@@ -54,8 +54,10 @@ void Camera::rotate(double xpos, double ypos) {
 }
 
 void Camera::update(float deltaTime) {
-  if (!(move.left || move.right || move.up || move.down || move.forward || move.back))
+  if (!(move.left || move.right || move.up || move.down || move.forward || move.back)) {
+    updateView();
     return;
+  }
 
   float shift = speed.movement * deltaTime;
 
@@ -76,6 +78,5 @@ void Camera::update(float deltaTime) {
 
   if (move.back)
     transform.position -= shift * direction.front;
-
   updateView();
 }
