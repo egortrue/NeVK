@@ -49,10 +49,10 @@ void GUI::init(init_t& data) {
   // Основые параметры инициализации
   imgui.init.Instance = core->instance;
   imgui.init.Device = core->device;
-  imgui.init.PhysicalDevice = core->physicalDevice;
+  imgui.init.PhysicalDevice = core->physicalDevice.handler;
   imgui.init.Queue = core->graphicsQueue;
   imgui.init.QueueFamily = core->queueFamily.graphicsFamily.value();
-  imgui.init.ImageCount = core->swapchainImageCount;
+  imgui.init.ImageCount = core->swapchain.count;
   imgui.init.MinImageCount = 2;
   imgui.init.DescriptorPool = resources->descriptorPool;
 
@@ -97,6 +97,7 @@ void GUI::updateUI() {
   ImGui::Begin("Menu", nullptr, WINDOW_NOMOVE | WINDOW_AUTOSIZE);
   {
     ImGui::SetWindowPos(ImVec2(window->width - ImGui::GetWindowWidth() - 10, 10));
+    imgui.menuHovered = ImGui::IsWindowHovered();
 
     ImGui::Text("Window");
     ImGui::Text("   Title");
@@ -109,8 +110,9 @@ void GUI::updateUI() {
     ImGui::TableNextColumn();
     ImGui::Text("    Size", window->width, window->height);
     ImGui::SameLine();
-    float window_size[] = {window->width, window->height};
-    ImGui::InputFloat2("###windwo_size", window_size);
+    float window_size[] = {static_cast<float>(window->width),
+                           static_cast<float>(window->height)};
+    ImGui::InputFloat2("###window_size", window_size);
 
     ImGui::Separator();
     //================================================

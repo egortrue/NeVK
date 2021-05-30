@@ -20,6 +20,8 @@ class Render {
   void reload();
   void draw();
 
+  GUI::Pass getInterface();
+
  private:
   Window::Manager window;
   Core::Manager core;

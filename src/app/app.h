@@ -55,7 +55,16 @@ class Application {
   }
 
   static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getScene()->getCamera();
+    auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+
+    if (action != GLFW_RELEASE) {
+      // При использованиии меню срабатывает другой callback
+      auto interface = app->engine->getRender()->getInterface();
+      if (interface->imgui.menuHovered)
+        return;
+    }
+
+    auto camera = app->engine->getScene()->getCamera();
     const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
     switch (key) {
       case GLFW_KEY_W:
@@ -96,7 +105,7 @@ class Application {
   static void mouseMoveCallback(GLFWwindow* window, double xpos, double ypos) {
     auto camera = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window))->engine->getScene()->getCamera();
     if (camera->mouse.right)
-      camera->rotate(xpos, ypos);
+      camera->updateRotation(xpos, ypos);
   }
 
   static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {

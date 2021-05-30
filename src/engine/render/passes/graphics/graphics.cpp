@@ -149,16 +149,16 @@ void GraphicsPass::createPipeline() {
   // Область вывода
   VkViewport viewport{};
   viewport.x = 0.0f;
-  viewport.y = core->swapchainExtent.height;
-  viewport.width = core->swapchainExtent.width;
-  viewport.height = -core->swapchainExtent.height;
+  viewport.y = core->swapchain.extent.height;
+  viewport.width = core->swapchain.extent.width;
+  viewport.height = -core->swapchain.extent.height;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
   // Область вывода для теста ножниц
   VkRect2D scissor{};
   scissor.offset = {0, 0};
-  scissor.extent = {core->swapchainExtent.width, core->swapchainExtent.height};
+  scissor.extent = {core->swapchain.extent.width, core->swapchain.extent.height};
 
   VkPipelineViewportStateCreateInfo viewportState{};
   viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;

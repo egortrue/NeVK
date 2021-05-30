@@ -1,7 +1,7 @@
 #include "resources.h"
 
 Resources::Resources(Core::Manager core) {
-  vkGetPhysicalDeviceMemoryProperties(core->physicalDevice, &memoryProperties);
+  vkGetPhysicalDeviceMemoryProperties(core->physicalDevice.handler, &memoryProperties);
   this->core = core;
   this->descriptorPool = createDescriptorPool();
 };
@@ -23,7 +23,7 @@ uint32_t Resources::findMemoryTypeIndex(uint32_t type, VkMemoryPropertyFlags pro
 VkFormat Resources::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
   for (VkFormat format : candidates) {
     VkFormatProperties props;
-    vkGetPhysicalDeviceFormatProperties(core->physicalDevice, format, &props);
+    vkGetPhysicalDeviceFormatProperties(core->physicalDevice.handler, format, &props);
 
     if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
       return format;

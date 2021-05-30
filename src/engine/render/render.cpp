@@ -65,22 +65,22 @@ void Render::destroyFrames() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Render::initGeometry() {
-  geometry = new GeometryPass();
+  geometry = new Geometry();
 
   geometry->textureImageView = scene->objects.front()->texture->view;
   geometry->textureSampler = scene->objects.front()->texture->sampler;
 
   // Цель вывода прохода рендера
-  geometry->targetImage.count = core->swapchainImageCount;
-  geometry->targetImage.width = core->swapchainExtent.width;
-  geometry->targetImage.height = core->swapchainExtent.height;
-  geometry->targetImage.format = core->swapchainFormat;
+  geometry->targetImage.count = core->swapchain.count;
+  geometry->targetImage.width = core->swapchain.extent.width;
+  geometry->targetImage.height = core->swapchain.extent.height;
+  geometry->targetImage.format = core->swapchain.format;
   geometry->targetImage.views = resources->createImageViews(
-      core->swapchainImages,
-      core->swapchainFormat,
+      core->swapchain.images,
+      core->swapchain.format,
       VK_IMAGE_ASPECT_COLOR_BIT);
 
-  GeometryPass::init_t data;
+  Geometry::init_t data;
   data.core = core;
   data.resources = resources;
   data.commands = commands;
@@ -91,11 +91,11 @@ void Render::initGeometry() {
 
 void Render::reloadGeometry() {
   resources->destroyImageViews(geometry->targetImage.views);
-  geometry->targetImage.width = core->swapchainExtent.width;
-  geometry->targetImage.height = core->swapchainExtent.height;
+  geometry->targetImage.width = core->swapchain.extent.width;
+  geometry->targetImage.height = core->swapchain.extent.height;
   geometry->targetImage.views = resources->createImageViews(
-      core->swapchainImages,
-      core->swapchainFormat,
+      core->swapchain.images,
+      core->swapchain.format,
       VK_IMAGE_ASPECT_COLOR_BIT);
   geometry->resize();
 }
@@ -109,19 +109,19 @@ void Render::destroyGeometry() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Render::initInterface() {
-  interface = new GUIPass();
+  interface = new GUI();
 
   // Цель вывода прохода рендера
-  interface->targetImage.count = core->swapchainImageCount;
-  interface->targetImage.width = core->swapchainExtent.width;
-  interface->targetImage.height = core->swapchainExtent.height;
-  interface->targetImage.format = core->swapchainFormat;
+  interface->targetImage.count = core->swapchain.count;
+  interface->targetImage.width = core->swapchain.extent.width;
+  interface->targetImage.height = core->swapchain.extent.height;
+  interface->targetImage.format = core->swapchain.format;
   interface->targetImage.views = resources->createImageViews(
-      core->swapchainImages,
-      core->swapchainFormat,
+      core->swapchain.images,
+      core->swapchain.format,
       VK_IMAGE_ASPECT_COLOR_BIT);
 
-  GUIPass::init_t data;
+  GUI::init_t data;
   data.core = core;
   data.resources = resources;
   data.commands = commands;
@@ -132,11 +132,11 @@ void Render::initInterface() {
 
 void Render::reloadInterface() {
   resources->destroyImageViews(interface->targetImage.views);
-  interface->targetImage.width = core->swapchainExtent.width;
-  interface->targetImage.height = core->swapchainExtent.height;
+  interface->targetImage.width = core->swapchain.extent.width;
+  interface->targetImage.height = core->swapchain.extent.height;
   interface->targetImage.views = resources->createImageViews(
-      core->swapchainImages,
-      core->swapchainFormat,
+      core->swapchain.images,
+      core->swapchain.format,
       VK_IMAGE_ASPECT_COLOR_BIT);
   interface->resize();
 }
@@ -145,6 +145,10 @@ void Render::destroyInterface() {
   resources->destroyImageViews(interface->targetImage.views);
   interface->destroy();
   delete interface;
+}
+
+GUI::Pass Render::getInterface() {
+  return interface;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -157,7 +161,7 @@ void Render::draw() {
   // Получение изображения из списка показа
 
   uint32_t swapchainImageIndex;
-  VkResult result = vkAcquireNextImageKHR(core->device, core->swapchain, UINT64_MAX, currentFrame->imageAvailable, VK_NULL_HANDLE, &swapchainImageIndex);
+  VkResult result = vkAcquireNextImageKHR(core->device, core->swapchain.handler, UINT64_MAX, currentFrame->imageAvailable, VK_NULL_HANDLE, &swapchainImageIndex);
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
     reload();
     return;
@@ -168,18 +172,7 @@ void Render::draw() {
   auto targetFrame = frames->getFrame(swapchainImageIndex);
 
   //=========================================================================
-  // Генерация команд рендера
-
-  VkCommandBuffer cmdBuffer = targetFrame->cmdBuffer;
-  commands->resetCommandBuffer(cmdBuffer);
-
-  VkCommandBufferBeginInfo cmdBeginInfo = {};
-  cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  cmdBeginInfo.pNext = nullptr;
-  cmdBeginInfo.pInheritanceInfo = nullptr;
-  cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-  vkBeginCommandBuffer(cmdBuffer, &cmdBeginInfo);
+  // Подготовка проходов рендера перед генерацией команд
 
   // Получим время
   static auto timeGlobalStart = std::chrono::high_resolution_clock::now();
@@ -205,30 +198,45 @@ void Render::draw() {
   geometry->update(swapchainImageIndex);
   interface->update(swapchainImageIndex);
 
+  //=========================================================================
+  // Генерация команд рендера
+
+  VkCommandBuffer cmd = targetFrame->cmdBuffer;
+  commands->resetCommandBuffer(cmd);
+
+  VkCommandBufferBeginInfo cmdBeginInfo = {};
+  cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  cmdBeginInfo.pNext = nullptr;
+  cmdBeginInfo.pInheritanceInfo = nullptr;
+  cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+
   // Укажем необходимые вершины для отрисовки
-  GeometryPass::record_t data;
-  data.cmd = cmdBuffer;
-  data.imageIndex = swapchainImageIndex;
-  data.indicesCount = object->model->verticesCount;
-  data.indices = object->model->indexBuffer;
-  data.vertices = object->model->vertexBuffer;
-  geometry->record(data);
+  Geometry::record_t geoData;
+  geoData.cmd = cmd;
+  geoData.imageIndex = swapchainImageIndex;
+  geoData.indicesCount = object->model->verticesCount;
+  geoData.indices = object->model->indexBuffer;
+  geoData.vertices = object->model->vertexBuffer;
+  geometry->record(geoData);
 
-  GUIPass::record_t data1;
-  data1.cmd = cmdBuffer;
-  data1.imageIndex = swapchainImageIndex;
-  interface->record(data1);
+  GUI::record_t guiData;
+  guiData.cmd = cmd;
+  guiData.imageIndex = swapchainImageIndex;
+  interface->record(guiData);
 
-  if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS)
+  if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
     throw std::runtime_error("ERROR: ailed to record command buffer!");
 
   //=========================================================================
-  // Установка команд рендера
-
   // Синхронизация кадров
   if (targetFrame->showing != VK_NULL_HANDLE)
     vkWaitForFences(core->device, 1, &targetFrame->showing, VK_TRUE, UINT64_MAX);
   targetFrame->showing = currentFrame->drawing;
+
+  //=========================================================================
+  // Установка команд рендера
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -238,10 +246,10 @@ void Render::draw() {
   // Синхронизация изображения
   VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
   submitInfo.waitSemaphoreCount = 1;
-  submitInfo.pWaitSemaphores = &currentFrame->imageAvailable;  // Ждем, пока не получим изображение
+  submitInfo.pWaitSemaphores = &currentFrame->imageAvailable;  // ДО: Ждем, пока не получим изображение
   submitInfo.pWaitDstStageMask = waitStages;
   submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores = &currentFrame->imageRendered;  // Укажем, что команды рендера выставлены в очередь
+  submitInfo.pSignalSemaphores = &currentFrame->imageRendered;  // ПОСЛЕ: Укажем, что команды рендера выставлены в очередь
 
   vkResetFences(core->device, 1, &currentFrame->drawing);
   if (vkQueueSubmit(core->graphicsQueue, 1, &submitInfo, currentFrame->drawing) != VK_SUCCESS)
@@ -255,7 +263,7 @@ void Render::draw() {
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = &currentFrame->imageRendered;  // Ждем команды рендера
   presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains = &core->swapchain;
+  presentInfo.pSwapchains = &core->swapchain.handler;
   presentInfo.pImageIndices = &swapchainImageIndex;
 
   result = vkQueuePresentKHR(core->presentQueue, &presentInfo);
@@ -266,5 +274,5 @@ void Render::draw() {
   }
 
   frames->currentFrameIndex += 1;
-  frames->currentFrameIndex %= core->swapchainImageCount;
+  frames->currentFrameIndex %= core->swapchain.count;
 }

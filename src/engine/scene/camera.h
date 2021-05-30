@@ -54,7 +54,10 @@ class Camera : public Object {
   ~Camera() = default;
 
   void update(float deltaTime);
-  void rotate(double dx, double dy);
+  void updatePosition(float deltaTime);
+  void updateRotation(double dx, double dy);
+
+  void updateDirections();
 
   void updateView();
   void updateProjection();

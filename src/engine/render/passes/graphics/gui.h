@@ -44,13 +44,17 @@ class GUI : public GraphicsPass {
   //=========================================================================
   // ImGUI
 
+ public:
   struct {
     ImGuiIO io;
     ImGuiData data;
     ImGuiInit init;
     ImGuiStyle style;
+
+    bool menuHovered;
   } imgui;
 
+ private:
   void loadFonts();
   void updateUI();
 

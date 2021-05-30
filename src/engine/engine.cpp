@@ -33,14 +33,14 @@ void Engine::initCore() {
   core->init();
 
   // Поверхность вывода изображений
-  if (glfwCreateWindowSurface(core->instance, window->instance, nullptr, &core->surface) != VK_SUCCESS)
+  if (glfwCreateWindowSurface(core->instance, window->instance, nullptr, &core->surface.handler) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create window surface!");
   int width, height;
   glfwGetFramebufferSize(window->instance, &width, &height);
   window->width = width;
   window->height = height;
-  core->surfaceWidth = width;
-  core->surfaceHeight = height;
+  core->surface.width = width;
+  core->surface.height = height;
 
   core->configure();
 }

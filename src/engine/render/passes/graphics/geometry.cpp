@@ -121,8 +121,8 @@ void Geometry::createDepthImage() {
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
   resources->createImage(
-      core->swapchainExtent.width,
-      core->swapchainExtent.height,
+      core->swapchain.extent.width,
+      core->swapchain.extent.height,
       depthImage.format,
       VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,

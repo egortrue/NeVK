@@ -1,5 +1,11 @@
 #include "camera.h"
 
+void Camera::update(float deltaTime) {
+  updatePosition(deltaTime);
+  updateDirections();
+  updateView();
+}
+
 void Camera::updateView() {
   viewMatrix = glm::lookAt(
       transform.position,                    // Позция камеры
@@ -23,7 +29,7 @@ void Camera::updateProjection(Projection& projection) {
   updateProjection();
 }
 
-void Camera::rotate(double xpos, double ypos) {
+void Camera::updateRotation(double xpos, double ypos) {
   // Смещение мыши
   double xoffset = xpos - mouse.pos.x;
   double yoffset = mouse.pos.y - ypos;
@@ -42,6 +48,11 @@ void Camera::rotate(double xpos, double ypos) {
   if (transform.rotation.x < -89.0f)
     transform.rotation.x = -89.0f;
 
+  updateDirections();
+  updateView();
+}
+
+void Camera::updateDirections() {
   // Обновим векторы направления движения (вектор вверх всегда константен)
   glm::float3 front;
   front.x = sin(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
@@ -49,13 +60,10 @@ void Camera::rotate(double xpos, double ypos) {
   front.z = -cos(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
   direction.front = glm::normalize(front);
   direction.right = glm::normalize(glm::cross(direction.front, direction.upper));
-
-  updateView();
 }
 
-void Camera::update(float deltaTime) {
+void Camera::updatePosition(float deltaTime) {
   if (!(move.left || move.right || move.up || move.down || move.forward || move.back)) {
-    updateView();
     return;
   }
 
@@ -78,5 +86,4 @@ void Camera::update(float deltaTime) {
 
   if (move.back)
     transform.position -= shift * direction.front;
-  updateView();
 }
