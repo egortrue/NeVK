@@ -1,10 +1,10 @@
 #include "gui.h"
 
-void GUIPass::update(uint32_t index) {
+void GUI::update(uint32_t index) {
   updateUI();
 }
 
-void GUIPass::reload() {
+void GUI::reload() {
   for (auto framebuffer : framebuffers)
     vkDestroyFramebuffer(core->device, framebuffer, nullptr);
   vkDestroyRenderPass(core->device, pipeline.pass, nullptr);
@@ -13,11 +13,11 @@ void GUIPass::reload() {
   createFramebuffers();
 }
 
-void GUIPass::resize() {
+void GUI::resize() {
   reload();
 }
 
-void GUIPass::destroy() {
+void GUI::destroy() {
   GraphicsPass::destroy();
   ImGui_ImplVulkan_Shutdown();
   ImGui::DestroyContext();
@@ -25,20 +25,76 @@ void GUIPass::destroy() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GUIPass::updateUI() {
+void GUI::init(init_t& data) {
+  this->core = data.core;
+  this->commands = data.commands;
+  this->resources = data.resources;
+  this->window = data.window;
+  this->scene = data.scene;
+
+  createRenderPass();
+  createFramebuffers();
+
+  //==================================
+  // ImGUI
+
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGui::StyleColorsDark();
+
+  imgui.io = ImGui::GetIO();
+  imgui.io.DisplaySize = ImVec2(window->width, window->height);
+  imgui.io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+
+  // Основые параметры инициализации
+  imgui.init.Instance = core->instance;
+  imgui.init.Device = core->device;
+  imgui.init.PhysicalDevice = core->physicalDevice;
+  imgui.init.Queue = core->graphicsQueue;
+  imgui.init.QueueFamily = core->queueFamily.graphicsFamily.value();
+  imgui.init.ImageCount = core->swapchainImageCount;
+  imgui.init.MinImageCount = 2;
+  imgui.init.DescriptorPool = resources->descriptorPool;
+
+  ImGui_ImplGlfw_InitForVulkan(window->instance, true);
+  ImGui_ImplVulkan_Init(&imgui.init, pipeline.pass);
+  loadFonts();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void GUI::loadFonts() {
+  VkCommandBuffer cmd = commands->beginSingleTimeCommands();
+
+  ImGui_ImplVulkan_CreateFontsTexture(cmd);
+
+  VkSubmitInfo submitInfo = {};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &cmd;
+  vkEndCommandBuffer(cmd);
+
+  vkQueueSubmit(core->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+  vkDeviceWaitIdle(core->device);
+
+  ImGui_ImplVulkan_DestroyFontUploadObjects();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void GUI::updateUI() {
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
-  enum flags {
+  enum {
     WINDOW_NORESIZE = ImGuiWindowFlags_NoResize,
     WINDOW_NOMOVE = ImGuiWindowFlags_NoMove,
     WINDOW_NODECOR = ImGuiWindowFlags_NoDecoration,
     WINDOW_AUTOSIZE = ImGuiWindowFlags_AlwaysAutoResize,
   };
 
-  ImGui::Begin("Common options", nullptr,
-               WINDOW_NORESIZE | WINDOW_NOMOVE | WINDOW_NODECOR | WINDOW_AUTOSIZE);
+  ImGui::Begin("Menu", nullptr, WINDOW_NOMOVE | WINDOW_AUTOSIZE);
   {
     ImGui::SetWindowPos(ImVec2(window->width - ImGui::GetWindowWidth() - 10, 10));
 
@@ -131,64 +187,7 @@ void GUIPass::updateUI() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GUIPass::init(init_t& data) {
-  this->core = data.core;
-  this->commands = data.commands;
-  this->resources = data.resources;
-  this->window = data.window;
-  this->scene = data.scene;
-
-  createRenderPass();
-  createFramebuffers();
-
-  //==================================
-  // ImGUI
-
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGui::StyleColorsDark();
-
-  imgui.io = ImGui::GetIO();
-  imgui.io.DisplaySize = ImVec2(window->width, window->height);
-  imgui.io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-
-  // Основые параметры инициализации
-  imgui.init.Instance = core->instance;
-  imgui.init.Device = core->device;
-  imgui.init.PhysicalDevice = core->physicalDevice;
-  imgui.init.Queue = core->graphicsQueue;
-  imgui.init.QueueFamily = core->queueFamily.graphicsFamily.value();
-  imgui.init.ImageCount = core->swapchainImageCount;
-  imgui.init.MinImageCount = 2;
-  imgui.init.DescriptorPool = resources->descriptorPool;
-
-  ImGui_ImplGlfw_InitForVulkan(window->instance, true);
-  ImGui_ImplVulkan_Init(&imgui.init, pipeline.pass);
-  loadFonts();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void GUIPass::loadFonts() {
-  VkCommandBuffer cmd = commands->beginSingleTimeCommands();
-
-  ImGui_ImplVulkan_CreateFontsTexture(cmd);
-
-  VkSubmitInfo submitInfo = {};
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &cmd;
-  vkEndCommandBuffer(cmd);
-
-  vkQueueSubmit(core->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-  vkDeviceWaitIdle(core->device);
-
-  ImGui_ImplVulkan_DestroyFontUploadObjects();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void GUIPass::record(record_t& data) {
+void GUI::record(record_t& data) {
   ImGui::Render();
   ImDrawData* draw_data = ImGui::GetDrawData();
 
@@ -215,7 +214,7 @@ void GUIPass::record(record_t& data) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GUIPass::createFramebuffers() {
+void GUI::createFramebuffers() {
   framebuffers.resize(targetImage.count);
   for (size_t i = 0; i < targetImage.count; ++i) {
     std::vector<VkImageView> attachment = {targetImage.views[i]};
@@ -225,7 +224,7 @@ void GUIPass::createFramebuffers() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GUIPass::createRenderPass() {
+void GUI::createRenderPass() {
   //=================================================================================
   // Описание цветового подключения - выходного изображения конвейера
 

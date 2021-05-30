@@ -1,6 +1,6 @@
 #include "geometry.h"
 
-void GeometryPass::init(init_t& data) {
+void Geometry::init(init_t& data) {
   this->core = data.core;
   this->commands = data.commands;
   this->resources = data.resources;
@@ -12,11 +12,11 @@ void GeometryPass::init(init_t& data) {
   GraphicsPass::init();
 }
 
-void GeometryPass::update(uint32_t index) {
+void Geometry::update(uint32_t index) {
   updateUniformDescriptors(index);
 }
 
-void GeometryPass::reload() {
+void Geometry::reload() {
   destroyDepthImage();
   destroyUniformDescriptors();
   createDepthImage();
@@ -24,13 +24,13 @@ void GeometryPass::reload() {
   GraphicsPass::reload();
 }
 
-void GeometryPass::resize() {
+void Geometry::resize() {
   destroyDepthImage();
   createDepthImage();
   GraphicsPass::resize();
 }
 
-void GeometryPass::destroy() {
+void Geometry::destroy() {
   GraphicsPass::destroy();
   destroyDepthImage();
   destroyUniformDescriptors();
@@ -38,7 +38,7 @@ void GeometryPass::destroy() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::record(record_t& data) {
+void Geometry::record(record_t& data) {
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass = pipeline.pass;
@@ -85,7 +85,7 @@ void GeometryPass::record(record_t& data) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createUniformDescriptors() {
+void Geometry::createUniformDescriptors() {
   VkDeviceSize bufferSize = sizeof(uniform_t);
   uniformBuffers.resize(targetImage.count);
   uniformBuffersMemory.resize(targetImage.count);
@@ -99,12 +99,12 @@ void GeometryPass::createUniformDescriptors() {
   }
 }
 
-void GeometryPass::destroyUniformDescriptors() {
+void Geometry::destroyUniformDescriptors() {
   for (uint32_t i = 0; i < targetImage.count; ++i)
     resources->destroyBuffer(uniformBuffers[i], uniformBuffersMemory[i]);
 }
 
-void GeometryPass::updateUniformDescriptors(uint32_t imageIndex) {
+void Geometry::updateUniformDescriptors(uint32_t imageIndex) {
   // Скопируем данне структуры в памяти устройства
   void* data;
   vkMapMemory(core->device, uniformBuffersMemory[imageIndex], 0, sizeof(uniform_t), 0, &data);
@@ -114,7 +114,7 @@ void GeometryPass::updateUniformDescriptors(uint32_t imageIndex) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createDepthImage() {
+void Geometry::createDepthImage() {
   depthImage.format = resources->findSupportedFormat(
       {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
       VK_IMAGE_TILING_OPTIMAL,
@@ -135,14 +135,14 @@ void GeometryPass::createDepthImage() {
       VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void GeometryPass::destroyDepthImage() {
+void Geometry::destroyDepthImage() {
   resources->destroyImageView(depthImage.view);
   resources->destroyImage(depthImage.instance, depthImage.memory);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createFramebuffers() {
+void Geometry::createFramebuffers() {
   framebuffers.resize(targetImage.count);
   for (uint32_t i = 0; i < targetImage.count; ++i) {
     std::vector<VkImageView> attachment = {targetImage.views[i], depthImage.view};
@@ -152,14 +152,14 @@ void GeometryPass::createFramebuffers() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::setVertexBinding() {
+void Geometry::setVertexBinding() {
   // Описание структур, содержащихся в вершинном буфере
   vertexBindingDescription.binding = 0;                        // Уникальный id
   vertexBindingDescription.stride = sizeof(Models::vertex_t);  // Расстояние между началами структур (размер структуры)
   vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 }
 
-void GeometryPass::setVertexAttributes() {
+void Geometry::setVertexAttributes() {
   // Описание членов структур, содержащихся в вершинном буфере
   VkVertexInputAttributeDescription attributeDescription{};
   attributeDescription.binding = 0;                                    // Уникальный id структуры
@@ -177,7 +177,7 @@ void GeometryPass::setVertexAttributes() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createRenderPass() {
+void Geometry::createRenderPass() {
   //=================================================================================
   // Описание цветового подключения - выходного изображения конвейера
 
@@ -273,7 +273,7 @@ void GeometryPass::createRenderPass() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createDescriptorSetsLayout() {
+void Geometry::createDescriptorSetsLayout() {
   VkDescriptorSetLayoutBinding uniformLayout{};
   uniformLayout.binding = 0;
   uniformLayout.descriptorCount = 1;
@@ -315,13 +315,13 @@ void GeometryPass::createDescriptorSetsLayout() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GeometryPass::createDescriptorSets() {
+void Geometry::createDescriptorSets() {
   descriptorSets.resize(targetImage.count);
   for (size_t i = 0; i < targetImage.count; ++i)
     descriptorSets[i] = resources->createDesciptorSet(descriptorSetsLayout[0]);
 }
 
-void GeometryPass::updateDescriptorSets() {
+void Geometry::updateDescriptorSets() {
   for (size_t i = 0; i < targetImage.count; ++i) {
     //=========================================================================
     // Инициализация ресурсов

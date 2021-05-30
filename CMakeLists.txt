@@ -22,6 +22,18 @@ find_package(Vulkan REQUIRED) # Необходим Vulkan SDK на локаль�
 # Внутренние библиотеки
 
 ###############
+# WINDOW
+###############
+set(LIBRARY_WINDOW_NAME window)
+set(LIBRARY_WINDOW_PATH src/window)
+set(LIBRARY_WINDOW_SOURCES
+    ${LIBRARY_WINDOW_PATH}/window.h
+    ${LIBRARY_WINDOW_PATH}/window.cpp
+)
+add_library(${LIBRARY_WINDOW_NAME} OBJECT ${LIBRARY_WINDOW_SOURCES})
+target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC ${LIBRARY_WINDOW_PATH})
+
+###############
 # CORE
 ###############
 set(LIBRARY_CORE_NAME core)
@@ -33,7 +45,6 @@ set(LIBRARY_CORE_SOURCES
 )
 add_library(${LIBRARY_CORE_NAME} OBJECT ${LIBRARY_CORE_SOURCES})
 target_include_directories(${LIBRARY_CORE_NAME} PUBLIC ${LIBRARY_CORE_PATH})
-target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC Vulkan::Vulkan)
 
 ###############
 # RESOURCES
@@ -52,7 +63,7 @@ target_link_libraries(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_CORE_NAME})
 # COMMANDS
 ###############
 set(LIBRARY_COMMANDS_NAME commands)
-set(LIBRARY_COMMANDS_PATH src/engine/commands)
+set(LIBRARY_COMMANDS_PATH src/engine/resources/commands)
 set(LIBRARY_COMMANDS_SOURCES
     ${LIBRARY_COMMANDS_PATH}/commands.h
     ${LIBRARY_COMMANDS_PATH}/commands.cpp
@@ -134,35 +145,25 @@ target_link_libraries(${LIBRARY_SCENE_NAME} PUBLIC
 )
 
 ###############
-# WINDOW
-###############
-set(LIBRARY_WINDOW_NAME window)
-set(LIBRARY_WINDOW_PATH src/window)
-set(LIBRARY_WINDOW_SOURCES
-    ${LIBRARY_WINDOW_PATH}/window.h
-    ${LIBRARY_WINDOW_PATH}/window.cpp
-)
-add_library(${LIBRARY_WINDOW_NAME} OBJECT ${LIBRARY_WINDOW_SOURCES})
-target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC ${LIBRARY_WINDOW_PATH})
-
-###############
 # RENDER
 ###############
 set(LIBRARY_RENDER_NAME render)
 set(LIBRARY_RENDER_PATH src/engine/render)
 set(LIBRARY_RENDER_SOURCES
+    ${LIBRARY_RENDER_PATH}/render.h
+    ${LIBRARY_RENDER_PATH}/render.cpp
+
+    ${LIBRARY_RENDER_PATH}/frames/frames.h
+    ${LIBRARY_RENDER_PATH}/frames/frames.cpp
+
     ${LIBRARY_RENDER_PATH}/passes/pass.h
     ${LIBRARY_RENDER_PATH}/passes/pass.cpp
-
     ${LIBRARY_RENDER_PATH}/passes/graphics/graphics.h
     ${LIBRARY_RENDER_PATH}/passes/graphics/graphics.cpp
     ${LIBRARY_RENDER_PATH}/passes/graphics/geometry.h
     ${LIBRARY_RENDER_PATH}/passes/graphics/geometry.cpp
     ${LIBRARY_RENDER_PATH}/passes/graphics/gui.h
     ${LIBRARY_RENDER_PATH}/passes/graphics/gui.cpp
-
-    ${LIBRARY_RENDER_PATH}/frames/frames.h
-    ${LIBRARY_RENDER_PATH}/frames/frames.cpp
 )
 add_library(${LIBRARY_RENDER_NAME} OBJECT ${LIBRARY_RENDER_SOURCES})
 target_include_directories(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_RENDER_PATH})
@@ -203,6 +204,9 @@ target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC
 #===============================================================================================
 # Сторонние библиотеки
 
+# Vulkan (Графический драйвер)
+target_link_libraries(${LIBRARY_CORE_NAME} PUBLIC Vulkan::Vulkan)
+
 # GLFW (Оконный менеджер)
 target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC external/glfw/include) 
 target_link_libraries(${LIBRARY_WINDOW_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/glfw3.lib")
@@ -221,7 +225,6 @@ target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/tol)
 target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/glm)
 
 # ImGUI (Пользовательский интерфейс)
-
 set(LIBRARY_IMGUI_NAME imgui)
 set(LIBRARY_IMGUI_PATH external/imgui)
 set(LIBRARY_IMGUI_SOURCES
@@ -237,11 +240,11 @@ set(LIBRARY_IMGUI_SOURCES
 )
 add_library(${LIBRARY_IMGUI_NAME} OBJECT ${LIBRARY_IMGUI_SOURCES})
 target_include_directories(${LIBRARY_IMGUI_NAME} PUBLIC ${LIBRARY_IMGUI_PATH})
-target_link_libraries(${LIBRARY_IMGUI_NAME} PUBLIC ${LIBRARY_WINDOW_NAME} ${LIBRARY_CORE_NAME} )
+target_link_libraries(${LIBRARY_IMGUI_NAME} PUBLIC ${LIBRARY_WINDOW_NAME} ${LIBRARY_CORE_NAME})
 
 target_link_libraries(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_IMGUI_NAME})
 
-#================================================================
+#===============================================================================================
 # Приложение
 
 add_executable(${PROJECT_NAME} src/app/app.cpp)

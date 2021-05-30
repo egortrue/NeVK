@@ -23,7 +23,7 @@ class Application {
   void run() {
     while (!window->isClosed()) {
       window->checkActions();
-      engine->drawFrame();
+      engine->getRender()->draw();
     }
   }
 

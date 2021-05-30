@@ -11,11 +11,10 @@
 // Стандартные библиотеки
 #include <chrono>
 
-class GeometryPass : public GraphicsPass {
-  Models::Manager models;
-  Textures::Manager textures;
-
+class Geometry : public GraphicsPass {
  public:
+  typedef Geometry* Pass;
+
   struct init_t {
     Core::Manager core;
     Commands::Manager commands;
@@ -38,6 +37,10 @@ class GeometryPass : public GraphicsPass {
   void resize() override;
   void destroy() override;
   void update(uint32_t index) override;
+
+ private:
+  Models::Manager models;
+  Textures::Manager textures;
 
   //=========================================================================
   // Конвейер и проход рендера

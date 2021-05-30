@@ -13,8 +13,10 @@
 typedef ImGui_ImplVulkan_InitInfo ImGuiInit;
 typedef ImGui_ImplVulkanH_Window ImGuiData;
 
-class GUIPass : public GraphicsPass {
+class GUI : public GraphicsPass {
  public:
+  typedef GUI* Pass;
+
   struct init_t {
     Core::Manager core;
     Commands::Manager commands;
