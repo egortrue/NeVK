@@ -112,8 +112,8 @@ void Core::destroyDebugMessenger() {
 
 // Поверхность вывода создается сторонней оконной библиотекой
 void Core::destroySurface() {
-  if (surface != VK_NULL_HANDLE)
-    vkDestroySurfaceKHR(instance, surface, nullptr);
+  if (surface.handler != VK_NULL_HANDLE)
+    vkDestroySurfaceKHR(instance, surface.handler, nullptr);
 }
 
 //=============================================================================
@@ -130,15 +130,15 @@ void Core::choosePhysicalDevice() {
   // Выбор подходящего устройства
   for (const auto& currentDevice : devices) {
     if (isDeviceSuitable(currentDevice)) {
-      this->physicalDevice = currentDevice;
-      vkGetPhysicalDeviceProperties(this->physicalDevice, &(this->physicalDeviceProperties));
-      vkGetPhysicalDeviceFeatures(this->physicalDevice, &(this->physicalDeviceFeatures));
-      std::cout << "GPU: " << this->physicalDeviceProperties.deviceName << std::endl;
+      this->physicalDevice.handler = currentDevice;
+      vkGetPhysicalDeviceProperties(this->physicalDevice.handler, &(this->physicalDevice.properties));
+      vkGetPhysicalDeviceFeatures(this->physicalDevice.handler, &(this->physicalDevice.features));
+      std::cout << "GPU: " << this->physicalDevice.properties.deviceName << std::endl;
       break;
     }
   }
 
-  if (this->physicalDevice == VK_NULL_HANDLE)
+  if (this->physicalDevice.handler == VK_NULL_HANDLE)
     throw std::runtime_error("ERROR: Failed to find a suitable GPU!");
 }
 
@@ -211,7 +211,7 @@ Core::QueueFamilyIndices Core::findQueueFamilies(VkPhysicalDevice device) {
 
     // Поиск семейства с поддержкой работы с поверхностями вывода
     VkBool32 presentSupport = false;
-    vkGetPhysicalDeviceSurfaceSupportKHR(device, familyIndex, surface, &presentSupport);
+    vkGetPhysicalDeviceSurfaceSupportKHR(device, familyIndex, surface.handler, &presentSupport);
     if (presentSupport)
       indices.presentFamily = familyIndex;
 
@@ -227,7 +227,7 @@ Core::QueueFamilyIndices Core::findQueueFamilies(VkPhysicalDevice device) {
 //=============================================================================
 
 void Core::createDevice() {
-  queueFamily = findQueueFamilies(physicalDevice);
+  queueFamily = findQueueFamilies(physicalDevice.handler);
 
   // Описание очередей задач
   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -250,7 +250,7 @@ void Core::createDevice() {
     VkPhysicalDeviceFeatures2 deviceFeatures{};
     deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     deviceFeatures.pNext = &indexingFeatures;
-    vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
+    vkGetPhysicalDeviceFeatures2(physicalDevice.handler, &deviceFeatures);
   }
 
   // Описание особенностей логического устройства
@@ -283,7 +283,7 @@ void Core::createDevice() {
   }
 
   // Создание логического устройства
-  if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS)
+  if (vkCreateDevice(physicalDevice.handler, &createInfo, nullptr, &device) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create logical device!");
 
   // Получение очередей задач от логического устройства
@@ -299,7 +299,7 @@ void Core::destroyDevice() {
 //=============================================================================
 
 void Core::createSwapchain() {
-  SwapchainSupportDetails swapchainSupport = querySwapchainSupport(physicalDevice);
+  SwapchainSupportDetails swapchainSupport = querySwapchainSupport(physicalDevice.handler);
 
   VkSurfaceFormatKHR surfaceFormat = chooseSwapchainSurfaceFormat(swapchainSupport.formats);
   VkPresentModeKHR presentMode = chooseSwapchainPresentMode(swapchainSupport.presentModes);
@@ -314,7 +314,7 @@ void Core::createSwapchain() {
   // Описание списка показа
   VkSwapchainCreateInfoKHR createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  createInfo.surface = surface;
+  createInfo.surface = surface.handler;
   createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
   createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
   createInfo.presentMode = presentMode;
@@ -339,38 +339,38 @@ void Core::createSwapchain() {
   }
 
   // Создание списка показа
-  if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain) != VK_SUCCESS)
+  if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain.handler) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create swap chain!");
 
   // Получение списка изображений, через которые будет проводится показ
-  vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, nullptr);
-  swapchainImages.resize(swapchainImageCount);
-  vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, swapchainImages.data());
-  swapchainImages.shrink_to_fit();
+  vkGetSwapchainImagesKHR(device, swapchain.handler, &swapchain.count, nullptr);
+  swapchain.images.resize(swapchain.count);
+  vkGetSwapchainImagesKHR(device, swapchain.handler, &swapchain.count, swapchain.images.data());
+  swapchain.images.shrink_to_fit();
 
   // Сохраним формат и размер изображений
-  swapchainFormat = surfaceFormat.format;
-  swapchainExtent = extent;
+  swapchain.format = surfaceFormat.format;
+  swapchain.extent = extent;
 }
 
 void Core::destroySwapchain() {
-  if (swapchain != VK_NULL_HANDLE)
-    vkDestroySwapchainKHR(device, swapchain, nullptr);
+  if (swapchain.handler != VK_NULL_HANDLE)
+    vkDestroySwapchainKHR(device, swapchain.handler, nullptr);
 }
 
 Core::SwapchainSupportDetails Core::querySwapchainSupport(VkPhysicalDevice device) {
   SwapchainSupportDetails details;
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface.handler, &details.capabilities);
 
   uint32_t formatCount;
-  vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+  vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface.handler, &formatCount, nullptr);
   details.formats.resize(formatCount);
-  vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+  vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface.handler, &formatCount, details.formats.data());
 
   uint32_t presentModeCount;
-  vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+  vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface.handler, &presentModeCount, nullptr);
   details.presentModes.resize(presentModeCount);
-  vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+  vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface.handler, &presentModeCount, details.presentModes.data());
 
   return details;
 }
@@ -396,8 +396,8 @@ VkExtent2D Core::chooseSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilit
     return capabilities.currentExtent;
   } else {
     VkExtent2D actualExtent;
-    actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, surfaceWidth));
-    actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, surfaceHeight));
+    actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, surface.width));
+    actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, surface.height));
     return actualExtent;
   }
 }

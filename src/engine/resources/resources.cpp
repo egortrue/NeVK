@@ -1,7 +1,7 @@
 #include "resources.h"
 
 Resources::Resources(Core::Manager core) {
-  vkGetPhysicalDeviceMemoryProperties(core->physicalDevice, &memoryProperties);
+  vkGetPhysicalDeviceMemoryProperties(core->physicalDevice.handler, &memoryProperties);
   this->core = core;
   this->descriptorPool = createDescriptorPool();
 };
@@ -23,7 +23,7 @@ uint32_t Resources::findMemoryTypeIndex(uint32_t type, VkMemoryPropertyFlags pro
 VkFormat Resources::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
   for (VkFormat format : candidates) {
     VkFormatProperties props;
-    vkGetPhysicalDeviceFormatProperties(core->physicalDevice, format, &props);
+    vkGetPhysicalDeviceFormatProperties(core->physicalDevice.handler, format, &props);
 
     if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
       return format;
@@ -67,6 +67,20 @@ VkDescriptorPool Resources::createDescriptorPool() {
 
 void Resources::destroyDescriptorPool(VkDescriptorPool descPool) {
   vkDestroyDescriptorPool(core->device, descPool, nullptr);
+}
+
+VkDescriptorSet Resources::createDesciptorSet(VkDescriptorSetLayout layout) {
+  VkDescriptorSetAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  allocInfo.descriptorPool = descriptorPool;
+  allocInfo.descriptorSetCount = 1;
+  allocInfo.pSetLayouts = &layout;
+
+  VkDescriptorSet descriptorSet;
+  if (vkAllocateDescriptorSets(core->device, &allocInfo, &descriptorSet) != VK_SUCCESS)
+    throw std::runtime_error("ERROR: Failed to allocate descriptor set!");
+
+  return descriptorSet;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////

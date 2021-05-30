@@ -4,6 +4,9 @@
 #include <slang.h>
 #include <slang-com-ptr.h>
 
+// Внутренние библиотеки
+#include "core.h"
+
 // Стандартные библиотеки
 #include <cstdio>
 #include <vector>
@@ -15,32 +18,32 @@
 class Shaders {
  public:
   typedef Shaders* Manager;
+  Core::Manager core;
+
   typedef struct shader_t {
-    // Путь до шейдера
     std::string name;
+    std::string entryPoint;
 
-    // Вершинный шейдер
-    std::string vertexName;
-    std::vector<char> vertexCode;
-
-    // Фрагментный шейдер
-    std::string fragmentName;
-    std::vector<char> fragmentCode;
-
+    SlangStage stage;
+    std::vector<char> code;
+    VkShaderModule module;
   } * Instance;
 
- public:
-  Shaders();
-  ~Shaders();
-
-  Instance loadShader(const std::string& name, const std::string& vertexName, const std::string& fragmentName);
-  void reloadShader(const std::string& name);
-  void reload();
-
  private:
+  SlangSession* slangSession = nullptr;
   std::vector<Instance> handlers;
   std::unordered_map<std::string, uint32_t> idList;
 
-  SlangSession* slangSession = nullptr;
+ public:
+  Shaders(Core::Manager core);
+  ~Shaders();
+  void reload();
+
+  Instance loadShader(const std::string& name, const std::string& entryPoint, SlangStage);
+  void reloadShader(const std::string& name, const std::string& entryPoint);
+  void destroyShader(const std::string& name, const std::string& entryPoint);
+
+ private:
   void compileShader(Instance, SlangStage);
+  void destroyShader(Instance);
 };

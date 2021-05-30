@@ -45,7 +45,9 @@ void Scene::destroyTextures() {
 
 void Scene::initModels() {
   models = new Models(commands, resources);
+  loadObject("misc/models/cube.obj", "misc/textures/default.png");
   loadObject("misc/models/teapot.obj", "misc/textures/default.png");
+  loadObject("misc/models/pine.obj", "misc/textures/default.png");
 }
 
 void Scene::destroyModels() {
@@ -62,7 +64,7 @@ void Scene::initCamera() {
   camera->projection.near = 0.1f;
   camera->projection.far = 256.0f;
   camera->updateProjection();
-  camera->setPosition({0, 0.5f, 3});
+  camera->setPosition({0, 0, 3});
   camera->updateView();
 }
 

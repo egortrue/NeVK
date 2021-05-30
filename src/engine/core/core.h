@@ -40,9 +40,11 @@ class Core {
 
  public:
   // Физическое устройство (GPU)
-  VkPhysicalDevice physicalDevice;
-  VkPhysicalDeviceProperties physicalDeviceProperties;
-  VkPhysicalDeviceFeatures physicalDeviceFeatures;
+  struct {
+    VkPhysicalDevice handler;
+    VkPhysicalDeviceProperties properties;
+    VkPhysicalDeviceFeatures features;
+  } physicalDevice;
 
   // Логическое устройство (Интерфейс)
   VkDevice device;
@@ -89,8 +91,11 @@ class Core {
   // Требует расширения VK_KHR_surface
 
  public:
-  VkSurfaceKHR surface;
-  uint32_t surfaceWidth, surfaceHeight;
+  struct {
+    VkSurfaceKHR handler;
+    uint32_t width;
+    uint32_t height;
+  } surface;
 
  private:
   void destroySurface();
@@ -100,13 +105,13 @@ class Core {
   // Требует расширения VK_KHR_swapchain
 
  public:
-  VkSwapchainKHR swapchain;
-  VkExtent2D swapchainExtent;
-  VkFormat swapchainFormat;
-
-  // Буферы списка показа
-  uint32_t swapchainImageCount;
-  std::vector<VkImage> swapchainImages;
+  struct {
+    VkSwapchainKHR handler;
+    VkExtent2D extent;
+    VkFormat format;
+    uint32_t count;
+    std::vector<VkImage> images;
+  } swapchain;
 
   void createSwapchain();
   void destroySwapchain();

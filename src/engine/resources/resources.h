@@ -27,6 +27,8 @@ class Resources {
   VkDescriptorPool createDescriptorPool();
   void destroyDescriptorPool(VkDescriptorPool);
 
+  VkDescriptorSet createDesciptorSet(VkDescriptorSetLayout);
+
   //=========================================================================
   // Буферы - простейшее хранилище неструктурированных данных
 

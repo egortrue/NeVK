@@ -5,11 +5,8 @@
 #include "core.h"
 #include "commands.h"
 #include "resources.h"
-#include "shaders.h"
 #include "scene.h"
-
-#include "render/frames/frames.h"
-#include "render/passes/geometry.h"
+#include "render.h"
 
 // Стандартные библиотеки
 #include <string>
@@ -21,42 +18,35 @@ class Engine {
 
   Engine(Window::Manager);
   ~Engine();
-  void drawFrame();
 
   Scene::Manager getScene();
+  Render::Manager getRender();
 
  private:
   Window::Manager window;
 
+  // Менеджер ядра - экземпляры, устройства, поверхности вывода
   Core::Manager core;
   void initCore();
   void destroyCore();
 
+  // Менеджер ресурсов - выделение и уничтожение буферов, изображений
   Resources::Manager resources;
   void initResources();
   void destroyResources();
 
+  // Менеджер команд - генерация и хранение базовых команд устройства
   Commands::Manager commands;
   void initCommands();
   void destroyCommands();
 
-  Shaders::Manager shaders;
-  void initShaders();
-  void destroyShaders();
-
+  // Менеджер сцены - загрузка моделей, текстур, хранилище объектов
   Scene::Manager scene;
   void initScene();
   void destroyScene();
 
-  Frames::Manager frames;
-  void initFrames();
-  void destroyFrames();
-
-  //=======================
-
-  GeometryPass geometryPass;
-  void initGeometryPass();
-  void destroyGeometryPass();
-
-  void resizeSwapchain();
+  // Менеджер рендеринга - генерация команд для отрисовки
+  Render::Manager render;
+  void initRender();
+  void destroyRender();
 };

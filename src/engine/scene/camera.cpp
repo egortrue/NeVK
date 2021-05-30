@@ -1,5 +1,11 @@
 #include "camera.h"
 
+void Camera::update(float deltaTime) {
+  updatePosition(deltaTime);
+  updateDirections();
+  updateView();
+}
+
 void Camera::updateView() {
   viewMatrix = glm::lookAt(
       transform.position,                    // Позция камеры
@@ -23,7 +29,7 @@ void Camera::updateProjection(Projection& projection) {
   updateProjection();
 }
 
-void Camera::rotate(double xpos, double ypos) {
+void Camera::updateRotation(double xpos, double ypos) {
   // Смещение мыши
   double xoffset = xpos - mouse.pos.x;
   double yoffset = mouse.pos.y - ypos;
@@ -42,20 +48,24 @@ void Camera::rotate(double xpos, double ypos) {
   if (transform.rotation.x < -89.0f)
     transform.rotation.x = -89.0f;
 
-  // Обновим векторы направления движения (вектор вверх всегда константен)
-  glm::float3 front;
-  front.x = cos(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
-  front.y = sin(glm::radians(transform.rotation.x));
-  front.z = sin(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
-  direction.front = glm::normalize(front);
-  direction.right = glm::normalize(glm::cross(direction.front, direction.upper));
-
+  updateDirections();
   updateView();
 }
 
-void Camera::update(float deltaTime) {
-  if (!(move.left || move.right || move.up || move.down || move.forward || move.back))
+void Camera::updateDirections() {
+  // Обновим векторы направления движения (вектор вверх всегда константен)
+  glm::float3 front;
+  front.x = sin(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
+  front.y = sin(glm::radians(transform.rotation.x));
+  front.z = -cos(glm::radians(transform.rotation.y)) * cos(glm::radians(transform.rotation.x));
+  direction.front = glm::normalize(front);
+  direction.right = glm::normalize(glm::cross(direction.front, direction.upper));
+}
+
+void Camera::updatePosition(float deltaTime) {
+  if (!(move.left || move.right || move.up || move.down || move.forward || move.back)) {
     return;
+  }
 
   float shift = speed.movement * deltaTime;
 
@@ -76,6 +86,4 @@ void Camera::update(float deltaTime) {
 
   if (move.back)
     transform.position -= shift * direction.front;
-
-  updateView();
 }

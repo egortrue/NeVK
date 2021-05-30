@@ -11,63 +11,36 @@
 #include <string>
 #include <vector>
 
-class RenderPass {
- public:
+class Pass {
+ protected:
   Core::Manager core;
   Commands::Manager commands;
   Resources::Manager resources;
   Shaders::Manager shaders;
 
+  struct pipeline_t {
+    VkPipeline instance;
+    VkPipelineLayout layout;
+    VkPipelineCache cache;
+    VkRenderPass pass;
+  } pipeline;
+
   virtual void init();
   virtual void destroy();
-  virtual void resize() = 0;
+  virtual void reload();  // Полная перезагрузка
+  virtual void resize();  // Частичная перезагрузка
 
-  //=========================================================================
-  // Конвейер и проходы рендера
-
- protected:
-  VkRenderPass renderPass;
-  VkPipeline pipeline;
-  VkPipelineLayout pipelineLayout;
+  virtual void createPipeline() = 0;
   virtual void createRenderPass() = 0;
-  virtual void createGraphicsPipeline() = 0;
 
-  //=========================================================================
-  // Шейдеры - подпрограммы конвейера
-
- public:
+  // Шейдеры
   std::string shaderName;
-  void reloadShader();
+  virtual void createShaderModules() = 0;
 
- protected:
-  VkShaderModule vertexShader = VK_NULL_HANDLE;
-  VkShaderModule fragmentShader = VK_NULL_HANDLE;
-  VkShaderModule createModule(const char* code, uint32_t codeSize);
-  void createShaderModules();
-
-  //=========================================================================
-  // Множества ресурсов, привязанные к конвейеру
-
- protected:
-  std::vector<VkDescriptorSet> descriptorSets;  // Множества ресурсов
-  VkDescriptorSetLayout descriptorSetLayout;    // Описание множества
-
-  void createDescriptorSets();
-  virtual void createDescriptorSetLayout() = 0;
-  virtual void updateDescriptorSets() = 0;
-
-  //=========================================================================
-  // Наборы изображений, в которые будет идти результат
-
- public:
-  // Цветовые подключения - посутпают извне прохода
-  uint32_t colorImageCount;
-  uint32_t colorImageWidth, colorImageHeight;
-  VkFormat colorImageFormat;
-  std::vector<VkImageView> colorImageViews;
-
- protected:
-  std::vector<VkFramebuffer> framebuffers;
-  void createFramebuffer(std::vector<VkImageView>&, uint32_t index);
-  virtual void createFramebuffers() = 0;
+  // Подключаемые ресурсы
+  std::vector<VkDescriptorSet> descriptorSets;
+  std::vector<VkDescriptorSetLayout> descriptorSetsLayout;
+  virtual void createDescriptorSetsLayout() = 0;  // Описание используемых ресурсов
+  virtual void createDescriptorSets() = 0;        // Выделение памяти под ресурсы
+  virtual void updateDescriptorSets() = 0;        // Подключение данных к выделенной памяти
 };

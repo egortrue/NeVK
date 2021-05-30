@@ -12,7 +12,7 @@ Frames::Frames(Core::Manager core, Commands::Manager commands) {
   semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
   currentFrameIndex = 0;
-  for (uint32_t i = 0; i < core->swapchainImageCount; ++i) {
+  for (uint32_t i = 0; i < core->swapchain.count; ++i) {
     auto frame = new frame_t;
     frame->cmdPool = commands->createCommandBufferPool();
     frame->cmdBuffer = commands->createCommandBuffer(frame->cmdPool);
