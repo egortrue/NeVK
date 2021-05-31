@@ -23,10 +23,11 @@ class GraphicsPass : public Pass {
   void createShaderModules() override;
 
   // Состояние входных данных вершин
-  VkVertexInputBindingDescription vertexBindingDescription;
-  std::vector<VkVertexInputAttributeDescription> vertexAttributesDescription;
-  virtual void setVertexBinding();
-  virtual void setVertexAttributes();
+  virtual VkVertexInputBindingDescription getVertexBinding() = 0;
+  virtual std::vector<VkVertexInputAttributeDescription> getVertexAttributes() = 0;
+
+  // Константы шейдера
+  virtual VkPushConstantRange getPushConstantRange() = 0;
 
  public:
   // Цель рендера

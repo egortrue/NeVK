@@ -67,7 +67,9 @@ void Render::destroyFrames() {
 void Render::initGeometry() {
   geometry = new Geometry();
 
-  geometry->textureImageView = scene->objects.front()->texture->view;
+  for (auto object : scene->objects)
+    geometry->textureImageViews.push_back(object->texture->view);
+
   geometry->textureSampler = scene->objects.front()->texture->sampler;
 
   // Цель вывода прохода рендера
@@ -194,8 +196,11 @@ void Render::draw() {
   camera->update(deltaFrame);
 
   // Обновим данные прохода рендера
-  geometry->uniform.modelViewProj = camera->projectionMatrix * camera->viewMatrix * object->modelMatrix;
+  geometry->uniform.cameraView = camera->viewMatrix;
+  geometry->uniform.cameraProjection = camera->projectionMatrix;
+  geometry->uniform.model = object->modelMatrix;
   geometry->update(swapchainImageIndex);
+
   interface->update(swapchainImageIndex);
 
   //=========================================================================
@@ -216,9 +221,7 @@ void Render::draw() {
   Geometry::record_t geoData;
   geoData.cmd = cmd;
   geoData.imageIndex = swapchainImageIndex;
-  geoData.indicesCount = object->model->verticesCount;
-  geoData.indices = object->model->indexBuffer;
-  geoData.vertices = object->model->vertexBuffer;
+  geoData.scene = scene;
   geometry->record(geoData);
 
   GUI::record_t guiData;

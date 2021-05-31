@@ -50,6 +50,7 @@ void Shaders::compileShader(Instance shader, SlangStage stage) {
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   createInfo.codeSize = dataSize;
   createInfo.pCode = reinterpret_cast<const uint32_t*>(data);
+
   if (vkCreateShaderModule(core->device, &createInfo, nullptr, &shader->module) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create shader module!");
 }
