@@ -14,7 +14,7 @@ static const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation",
 
     // Логирование вызовов функций API с параметрами и возвращаемыми значениями
-    //"VK_LAYER_LUNARG_api_dump",
+    // "VK_LAYER_LUNARG_api_dump",
 };
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {

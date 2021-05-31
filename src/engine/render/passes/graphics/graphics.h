@@ -3,6 +3,10 @@
 // Внутренние библиотеки
 #include "passes/pass.h"
 
+// Стандартные библиотеки
+#include <vector>
+#include <string>
+
 class GraphicsPass : public Pass {
  protected:
   virtual void init();

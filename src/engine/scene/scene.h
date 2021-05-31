@@ -9,6 +9,7 @@
 
 // Стандартные библиотеки
 #include <list>
+#include <vector>
 #include <string>
 
 class Scene {

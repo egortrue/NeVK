@@ -80,7 +80,7 @@ Textures::Instance Textures::createTexture(const std::string& name) {
   texture->sampler = commonSampler;
 
   return texture;
-};
+}
 
 void Textures::destroyTexture(const std::string& name) {
   auto el = idList.find(name);

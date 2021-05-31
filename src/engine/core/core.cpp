@@ -79,7 +79,7 @@ void Core::createInstance() {
     // Вывод дебаг-информации о создании экземпляра
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
     populateDebugMessengerCreateInfo(debugCreateInfo);
-    instanceInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+    instanceInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
   }
 
   // Создание экземпляра

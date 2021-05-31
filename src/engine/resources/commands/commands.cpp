@@ -4,7 +4,7 @@ Commands::Commands(Core::Manager core, Resources::Manager resources) {
   this->core = core;
   this->resources = resources;
   this->singleTimeCommandBufferPool = createCommandBufferPool(true);
-};
+}
 
 Commands::~Commands() {
   destroyCommandBufferPool(this->singleTimeCommandBufferPool);
