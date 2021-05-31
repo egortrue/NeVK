@@ -10,6 +10,9 @@
 #include "passes/graphics/geometry.h"
 #include "passes/graphics/gui.h"
 
+// Стандартные библиотеки
+#include <string>
+
 class Render {
  public:
   typedef Render* Manager;

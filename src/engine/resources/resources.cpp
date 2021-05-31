@@ -4,7 +4,7 @@ Resources::Resources(Core::Manager core) {
   vkGetPhysicalDeviceMemoryProperties(core->physicalDevice.handler, &memoryProperties);
   this->core = core;
   this->descriptorPool = createDescriptorPool();
-};
+}
 
 Resources::~Resources() {
   destroyDescriptorPool(this->descriptorPool);

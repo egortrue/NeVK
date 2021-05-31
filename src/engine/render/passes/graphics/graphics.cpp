@@ -49,7 +49,6 @@ void GraphicsPass::createShaderModules() {
     }
 
     std::cout << "Shader \"" << shaderName << "\" was loaded successfully" << std::endl;
-
   } catch (std::exception& error) {
     // Выведем ошибку компиляции шейдера
     std::cerr << error.what();

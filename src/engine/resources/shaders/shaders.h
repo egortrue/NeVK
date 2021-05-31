@@ -13,6 +13,7 @@
 #include <string>
 #include <iostream>
 #include <list>
+#include <utility>
 #include <unordered_map>
 
 class Shaders {
@@ -35,7 +36,7 @@ class Shaders {
   std::unordered_map<std::string, uint32_t> idList;
 
  public:
-  Shaders(Core::Manager core);
+  explicit Shaders(Core::Manager core);
   ~Shaders();
   void reload();
 

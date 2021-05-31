@@ -56,9 +56,9 @@ void Geometry::record(record_t& data) {
   // Новое разрешение вывода
   VkViewport viewport{};
   viewport.x = 0;
-  viewport.y = (float)targetImage.height;
-  viewport.width = (float)targetImage.width;
-  viewport.height = -(float)targetImage.height;
+  viewport.y = static_cast<float>(targetImage.height);
+  viewport.width = static_cast<float>(targetImage.width);
+  viewport.height = -static_cast<float>(targetImage.height);
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 

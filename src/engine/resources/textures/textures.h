@@ -10,6 +10,9 @@
 
 // Стандартные библиотеки
 #include <list>
+#include <string>
+#include <vector>
+#include <utility>
 #include <unordered_map>
 
 class Textures {

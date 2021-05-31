@@ -16,7 +16,7 @@ class Engine {
  public:
   typedef Engine* Manager;
 
-  Engine(Window::Manager);
+  explicit Engine(Window::Manager);
   ~Engine();
 
   Scene::Manager getScene();
