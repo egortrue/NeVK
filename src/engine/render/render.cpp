@@ -67,7 +67,9 @@ void Render::destroyFrames() {
 void Render::initGeometry() {
   geometry = new Geometry();
 
-  geometry->textureImageView = scene->objects.front()->texture->view;
+  for (auto object : scene->objects)
+    geometry->textureImageViews.push_back(object->texture->view);
+
   geometry->textureSampler = scene->objects.front()->texture->sampler;
 
   // Цель вывода прохода рендера
@@ -216,6 +218,7 @@ void Render::draw() {
   Geometry::record_t geoData;
   geoData.cmd = cmd;
   geoData.imageIndex = swapchainImageIndex;
+  geoData.objectID = scene->currentObject;
   geoData.indicesCount = object->model->verticesCount;
   geoData.indices = object->model->indexBuffer;
   geoData.vertices = object->model->vertexBuffer;

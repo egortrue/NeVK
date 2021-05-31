@@ -28,8 +28,9 @@ class Geometry : public GraphicsPass {
   struct record_t {
     VkCommandBuffer cmd;
     uint32_t imageIndex;
-    uint32_t indicesCount;
+    uint32_t objectID;
     VkBuffer indices;
+    uint32_t indicesCount;
     VkBuffer vertices;
   };
 
@@ -58,9 +59,9 @@ class Geometry : public GraphicsPass {
  public:
   struct uniform_t {
     glm::float4x4 modelViewProj;
-  } uniform;                     // ~ cbuffer
-  VkImageView textureImageView;  // ~ Texture2D
-  VkSampler textureSampler;      // ~ SamplerState
+  } uniform;                                   // ~ cbuffer
+  VkSampler textureSampler;                    // ~ SamplerState
+  std::vector<VkImageView> textureImageViews;  // ~ Texture2D
 
  private:
   std::vector<VkBuffer> uniformBuffers;

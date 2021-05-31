@@ -77,6 +77,9 @@ void Geometry::record(record_t& data) {
   vkCmdBindVertexBuffers(data.cmd, 0, 1, vertexBuffers, offsets);
   vkCmdBindIndexBuffer(data.cmd, data.indices, 0, VK_INDEX_TYPE_UINT32);
 
+  constants.objectID = data.objectID;
+  vkCmdPushConstants(data.cmd, pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(constants_t), &constants);
+
   // Операция рендера
   vkCmdDrawIndexed(data.cmd, data.indicesCount, 1, 0, 0, 0);
 
@@ -283,7 +286,7 @@ void Geometry::createDescriptorSetsLayout() {
 
   VkDescriptorSetLayoutBinding textureImageLayout{};
   textureImageLayout.binding = 1;
-  textureImageLayout.descriptorCount = 1;
+  textureImageLayout.descriptorCount = static_cast<uint32_t>(textureImageViews.size());
   textureImageLayout.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
   textureImageLayout.pImmutableSamplers = nullptr;
   textureImageLayout.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -330,9 +333,11 @@ void Geometry::updateDescriptorSets() {
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(uniform_t);
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = textureImageView;
+    std::vector<VkDescriptorImageInfo> imageInfo(textureImageViews.size());
+    for (uint32_t textureID = 0; textureID < textureImageViews.size(); ++textureID) {
+      imageInfo[textureID].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      imageInfo[textureID].imageView = textureImageViews[textureID];
+    }
 
     VkDescriptorImageInfo samplerInfo{};
     samplerInfo.sampler = textureSampler;
@@ -352,8 +357,8 @@ void Geometry::updateDescriptorSets() {
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
+    descriptorWrites[1].descriptorCount = static_cast<uint32_t>(textureImageViews.size());
+    descriptorWrites[1].pImageInfo = imageInfo.data();
     descriptorWrites[1].dstSet = descriptorSets[i];
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 

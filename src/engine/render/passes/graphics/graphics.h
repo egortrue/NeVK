@@ -22,6 +22,11 @@ class GraphicsPass : public Pass {
   VkShaderModule fragmentShader = VK_NULL_HANDLE;
   void createShaderModules() override;
 
+  // Константы шейдера
+  struct constants_t {
+    uint32_t objectID;
+  } constants;
+
   // Состояние входных данных вершин
   VkVertexInputBindingDescription vertexBindingDescription;
   std::vector<VkVertexInputAttributeDescription> vertexAttributesDescription;

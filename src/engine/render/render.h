@@ -12,6 +12,7 @@
 
 // Стандартные библиотеки
 #include <string>
+#include <vector>
 
 class Render {
  public:

@@ -257,15 +257,25 @@ void GraphicsPass::createPipeline() {
   dynamicState.pDynamicStates = states.data();
 
   //=================================================================================
-  // Создание конвейера
+  // Раскладка конвейера
+
+  VkPushConstantRange pushConstant;
+  pushConstant.offset = 0;
+  pushConstant.size = sizeof(constants_t);
+  pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  pipelineLayoutInfo.pushConstantRangeCount = 1;
+  pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
   pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetsLayout.size());
   pipelineLayoutInfo.pSetLayouts = descriptorSetsLayout.data();
 
   if (vkCreatePipelineLayout(core->device, &pipelineLayoutInfo, nullptr, &pipeline.layout) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create pipeline layout!");
+
+  //=================================================================================
+  // Создание конвейера
 
   VkGraphicsPipelineCreateInfo pipelineInfo{};
   pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
