@@ -11,16 +11,19 @@ struct PS_INPUT {
 };
 
 // Константы, задаваемые в начале каждого кадра
-struct constants {
-    int objectID;
+struct constants_t {
+    float4x4 objectModel;
+    int objectTexture;
 };
-[[vk::push_constant]] ConstantBuffer<constants> constValues;
+[[vk::push_constant]] ConstantBuffer<constants_t> instance;
 
 
 // Ресурсу, привязанные к конвейеру
 cbuffer ubo // VkBuffer
 {
-    float4x4 modelViewProj;
+    float4x4 cameraView;
+    float4x4 cameraProjection;
+    float4x4 model;
 }
 Texture2D gTexture[]; // VkImageView
 SamplerState gSampler; // VkSampler
@@ -31,6 +34,7 @@ PS_INPUT vertexMain(VS_INPUT vertex)
 {
     PS_INPUT data;
 
+    float4x4 modelViewProj = mul(cameraProjection, mul(cameraView, instance.objectModel));
     data.position = mul(modelViewProj, float4(vertex.position, 1.0f));
     data.uv = vertex.uv;
 
@@ -40,5 +44,5 @@ PS_INPUT vertexMain(VS_INPUT vertex)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT data) : SV_TARGET
 {
-    return float4(gTexture[NonUniformResourceIndex(constValues.objectID)].Sample(gSampler, data.uv));
+    return float4(gTexture[NonUniformResourceIndex(instance.objectTexture)].Sample(gSampler, data.uv));
 }

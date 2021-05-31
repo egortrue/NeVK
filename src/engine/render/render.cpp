@@ -196,8 +196,11 @@ void Render::draw() {
   camera->update(deltaFrame);
 
   // Обновим данные прохода рендера
-  geometry->uniform.modelViewProj = camera->projectionMatrix * camera->viewMatrix * object->modelMatrix;
+  geometry->uniform.cameraView = camera->viewMatrix;
+  geometry->uniform.cameraProjection = camera->projectionMatrix;
+  geometry->uniform.model = object->modelMatrix;
   geometry->update(swapchainImageIndex);
+
   interface->update(swapchainImageIndex);
 
   //=========================================================================
@@ -218,10 +221,7 @@ void Render::draw() {
   Geometry::record_t geoData;
   geoData.cmd = cmd;
   geoData.imageIndex = swapchainImageIndex;
-  geoData.objectID = scene->currentObject;
-  geoData.indicesCount = object->model->verticesCount;
-  geoData.indices = object->model->indexBuffer;
-  geoData.vertices = object->model->vertexBuffer;
+  geoData.scene = scene;
   geometry->record(geoData);
 
   GUI::record_t guiData;

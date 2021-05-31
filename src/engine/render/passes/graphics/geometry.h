@@ -5,8 +5,7 @@
 
 // Внутренние библиотеки
 #include "graphics.h"
-#include "textures.h"
-#include "models.h"
+#include "scene.h"
 
 // Стандартные библиотеки
 #include <chrono>
@@ -28,10 +27,7 @@ class Geometry : public GraphicsPass {
   struct record_t {
     VkCommandBuffer cmd;
     uint32_t imageIndex;
-    uint32_t objectID;
-    VkBuffer indices;
-    uint32_t indicesCount;
-    VkBuffer vertices;
+    Scene::Manager scene;
   };
 
   void init(init_t&);
@@ -41,25 +37,36 @@ class Geometry : public GraphicsPass {
   void destroy() override;
   void update(uint32_t index) override;
 
- private:
-  Models::Manager models;
-  Textures::Manager textures;
-
   //=========================================================================
   // Конвейер и проход рендера
 
  private:
-  void setVertexBinding() override;
-  void setVertexAttributes() override;
+  // Состояние входных данных вершин
+  VkVertexInputBindingDescription getVertexBinding() override;
+  std::vector<VkVertexInputAttributeDescription> getVertexAttributes() override;
+
+  // Константы шейдера
+  VkPushConstantRange getPushConstantRange() override;
+
   void createRenderPass() override;
 
   //=========================================================================
   // Выделенные ресурсы, привязанные к конвейеру
 
  public:
+  // ~ ConstantBuffer
+  struct constants_t {
+    glm::float4x4 objectModel;
+    uint32_t objectTexture;
+  } instance;
+
+  // ~ cbuffer
   struct uniform_t {
-    glm::float4x4 modelViewProj;
-  } uniform;                                   // ~ cbuffer
+    glm::float4x4 cameraView;
+    glm::float4x4 cameraProjection;
+    glm::float4x4 model;
+  } uniform;
+
   VkSampler textureSampler;                    // ~ SamplerState
   std::vector<VkImageView> textureImageViews;  // ~ Texture2D
 

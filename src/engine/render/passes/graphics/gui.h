@@ -66,9 +66,15 @@ class GUI : public GraphicsPass {
   void createRenderPass() override;
   void createFramebuffers() override;
 
-  void createDescriptorSetsLayout() {}
-  void createDescriptorSets() {}
-  void updateDescriptorSets() {}
+  void createDescriptorSetsLayout() override {}
+  void createDescriptorSets() override {}
+  void updateDescriptorSets() override {}
+
+  VkVertexInputBindingDescription getVertexBinding() override { return {}; }
+
+  std::vector<VkVertexInputAttributeDescription> getVertexAttributes() override { return {}; }
+
+  VkPushConstantRange getPushConstantRange() override { return {}; }
 };
 
 static bool mousePressed[2] = {false, false};

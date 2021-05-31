@@ -71,17 +71,21 @@ void Geometry::record(record_t& data) {
   // Подключение множества ресурсов, используемых в конвейере
   vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.layout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
 
-  // Буферы вершин
-  VkBuffer vertexBuffers[] = {data.vertices};
-  VkDeviceSize offsets[] = {0};
-  vkCmdBindVertexBuffers(data.cmd, 0, 1, vertexBuffers, offsets);
-  vkCmdBindIndexBuffer(data.cmd, data.indices, 0, VK_INDEX_TYPE_UINT32);
+  int i = 0;
+  for (auto object : data.scene->objects) {
+    // Буферы вершин
+    VkBuffer vertexBuffers[] = {object->model->vertexBuffer};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(data.cmd, 0, 1, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(data.cmd, object->model->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-  constants.objectID = data.objectID;
-  vkCmdPushConstants(data.cmd, pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(constants_t), &constants);
+    instance.objectModel = object->modelMatrix;
+    instance.objectTexture = i++;
+    vkCmdPushConstants(data.cmd, pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(constants_t), &instance);
 
-  // Операция рендера
-  vkCmdDrawIndexed(data.cmd, data.indicesCount, 1, 0, 0, 0);
+    // Операция рендера
+    vkCmdDrawIndexed(data.cmd, object->model->verticesCount, 1, 0, 0, 0);
+  }
 
   vkCmdEndRenderPass(data.cmd);
 }
@@ -155,27 +159,41 @@ void Geometry::createFramebuffers() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Geometry::setVertexBinding() {
+VkVertexInputBindingDescription Geometry::getVertexBinding() {
   // Описание структур, содержащихся в вершинном буфере
-  vertexBindingDescription.binding = 0;                        // Уникальный id
-  vertexBindingDescription.stride = sizeof(Models::vertex_t);  // Расстояние между началами структур (размер структуры)
-  vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+  VkVertexInputBindingDescription bindingDescription{};
+  bindingDescription.binding = 0;                        // Уникальный id
+  bindingDescription.stride = sizeof(Models::vertex_t);  // Расстояние между началами структур (размер структуры)
+  bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+  return bindingDescription;
 }
 
-void Geometry::setVertexAttributes() {
+std::vector<VkVertexInputAttributeDescription> Geometry::getVertexAttributes() {
+  std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
+
   // Описание членов структур, содержащихся в вершинном буфере
   VkVertexInputAttributeDescription attributeDescription{};
   attributeDescription.binding = 0;                                    // Уникальный id структуры
   attributeDescription.location = 0;                                   // Уникальный id для каждого члена структуры
   attributeDescription.offset = offsetof(Models::vertex_t, position);  // Смещение от начала структуры
   attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-  vertexAttributesDescription.emplace_back(attributeDescription);
+  attributeDescriptions.emplace_back(attributeDescription);
 
   attributeDescription.binding = 0;                              // Уникальный id структуры
   attributeDescription.location = 1;                             // Уникальный id для каждого члена структуры
   attributeDescription.offset = offsetof(Models::vertex_t, uv);  // Смещение от начала структуры
   attributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
-  vertexAttributesDescription.emplace_back(attributeDescription);
+  attributeDescriptions.emplace_back(attributeDescription);
+
+  return attributeDescriptions;
+}
+
+VkPushConstantRange Geometry::getPushConstantRange() {
+  VkPushConstantRange pushConstant{};
+  pushConstant.offset = 0;
+  pushConstant.size = sizeof(constants_t);
+  pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+  return pushConstant;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////

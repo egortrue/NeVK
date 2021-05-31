@@ -1,8 +1,6 @@
 #include "graphics.h"
 
 void GraphicsPass::init() {
-  setVertexBinding();
-  setVertexAttributes();
   Pass::init();
   createFramebuffers();
 }
@@ -86,21 +84,21 @@ VkFramebuffer GraphicsPass::createFramebuffer(std::vector<VkImageView>& attachme
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GraphicsPass::setVertexBinding() {
-  vertexBindingDescription.binding = 0;
-  vertexBindingDescription.stride = sizeof(float) * 3;
-  vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-}
+// void GraphicsPass::setVertexBinding() {
+//   vertexBindingDescription.binding = 0;
+//   vertexBindingDescription.stride = sizeof(float) * 3;
+//   vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+// }
 
-void GraphicsPass::setVertexAttributes() {
-  vertexAttributesDescription.clear();
-  VkVertexInputAttributeDescription attributeDescription;
-  attributeDescription.binding = 0;
-  attributeDescription.location = 0;
-  attributeDescription.offset = 0;
-  attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-  vertexAttributesDescription.emplace_back(attributeDescription);
-}
+// void GraphicsPass::setVertexAttributes() {
+//   vertexAttributesDescription.clear();
+//   VkVertexInputAttributeDescription attributeDescription;
+//   attributeDescription.binding = 0;
+//   attributeDescription.location = 0;
+//   attributeDescription.offset = 0;
+//   attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+//   vertexAttributesDescription.emplace_back(attributeDescription);
+// }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -126,6 +124,9 @@ void GraphicsPass::createPipeline() {
 
   //=================================================================================
   // Размещение геометрических данных в памяти
+
+  auto vertexBindingDescription = getVertexBinding();
+  auto vertexAttributesDescription = getVertexAttributes();
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -259,15 +260,12 @@ void GraphicsPass::createPipeline() {
   //=================================================================================
   // Раскладка конвейера
 
-  VkPushConstantRange pushConstant;
-  pushConstant.offset = 0;
-  pushConstant.size = sizeof(constants_t);
-  pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+  auto pushConstantRange = getPushConstantRange();
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.pushConstantRangeCount = 1;
-  pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+  pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
   pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetsLayout.size());
   pipelineLayoutInfo.pSetLayouts = descriptorSetsLayout.data();
 
