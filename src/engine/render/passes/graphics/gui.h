@@ -57,8 +57,14 @@ class GUI : public GraphicsPass {
     bool menuHovered;
   } imgui;
 
+  enum {
+    WINDOW_NORESIZE = ImGuiWindowFlags_NoResize,
+    WINDOW_NOMOVE = ImGuiWindowFlags_NoMove,
+    WINDOW_NODECOR = ImGuiWindowFlags_NoDecoration,
+    WINDOW_AUTOSIZE = ImGuiWindowFlags_AlwaysAutoResize,
+  };
+
  private:
-  void loadFonts();
   void updateUI();
 
   //=========================================================================
@@ -71,35 +77,6 @@ class GUI : public GraphicsPass {
   void updateDescriptorSets() override {}
 
   VkVertexInputBindingDescription getVertexBinding() override { return {}; }
-
   std::vector<VkVertexInputAttributeDescription> getVertexAttributes() override { return {}; }
-
   VkPushConstantRange getPushConstantRange() override { return {}; }
 };
-
-static bool mousePressed[2] = {false, false};
-
-static void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-  if (action == GLFW_PRESS && button >= 0 && button < 2)
-    mousePressed[button] = true;
-}
-
-static void glfw_scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-  ImGuiIO& io = ImGui::GetIO();
-  io.MouseWheel += static_cast<float>(yoffset);  // Use fractional mouse wheel, 1.0 unit 5 lines.
-}
-
-static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-  ImGuiIO& io = ImGui::GetIO();
-  if (action == GLFW_PRESS)
-    io.KeysDown[key] = true;
-  if (action == GLFW_RELEASE)
-    io.KeysDown[key] = false;
-  io.KeyCtrl = (mods & GLFW_MOD_CONTROL) != 0;
-  io.KeyShift = (mods & GLFW_MOD_SHIFT) != 0;
-}
-
-static void glfw_char_callback(GLFWwindow* window, unsigned int c) {
-  if (c > 0 && c < 0x10000)
-    ImGui::GetIO().AddInputCharacter(static_cast<uint16_t>(c));
-}

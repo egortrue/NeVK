@@ -58,25 +58,11 @@ void GUI::init(init_t& data) {
 
   ImGui_ImplGlfw_InitForVulkan(window->instance, true);
   ImGui_ImplVulkan_Init(&imgui.init, pipeline.pass);
-  loadFonts();
-}
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void GUI::loadFonts() {
+  // Загрузка стандартных шрифтов
   VkCommandBuffer cmd = commands->beginSingleTimeCommands();
-
   ImGui_ImplVulkan_CreateFontsTexture(cmd);
-
-  VkSubmitInfo submitInfo = {};
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &cmd;
-  vkEndCommandBuffer(cmd);
-
-  vkQueueSubmit(core->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-  vkDeviceWaitIdle(core->device);
-
+  commands->endSingleTimeCommands(cmd);
   ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
@@ -86,13 +72,6 @@ void GUI::updateUI() {
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
-
-  enum {
-    WINDOW_NORESIZE = ImGuiWindowFlags_NoResize,
-    WINDOW_NOMOVE = ImGuiWindowFlags_NoMove,
-    WINDOW_NODECOR = ImGuiWindowFlags_NoDecoration,
-    WINDOW_AUTOSIZE = ImGuiWindowFlags_AlwaysAutoResize,
-  };
 
   ImGui::Begin("Menu", nullptr, WINDOW_NOMOVE | WINDOW_AUTOSIZE);
   {
