@@ -49,6 +49,16 @@ class Render {
   void reloadGeometry();
   void destroyGeometry();
 
+  struct {
+    VkFormat format;
+    uint32_t width, height;
+    std::vector<VkImage> images;
+    std::vector<VkImageView> views;
+    std::vector<VkDeviceMemory> memory;
+  } geometryData;
+  void createGeometryData();
+  void destroyGeometryData();
+
   // Пользовательский интерфейс - отрисовка меню управления
   GUI::Pass interface;
   void initInterface();

@@ -67,20 +67,18 @@ void Render::destroyFrames() {
 void Render::initGeometry() {
   geometry = new Geometry();
 
+  // Дискрипторы прохода рендера
   for (auto object : scene->objects)
     geometry->textureImageViews.push_back(object->texture->view);
-
   geometry->textureSampler = scene->objects.front()->texture->sampler;
 
   // Цель вывода прохода рендера
-  geometry->targetImage.count = core->swapchain.count;
-  geometry->targetImage.width = core->swapchain.extent.width;
-  geometry->targetImage.height = core->swapchain.extent.height;
-  geometry->targetImage.format = core->swapchain.format;
-  geometry->targetImage.views = resources->createImageViews(
-      core->swapchain.images,
-      core->swapchain.format,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+  createGeometryData();
+  geometry->targetImage.count = geometryData.images.size();
+  geometry->targetImage.width = geometryData.width;
+  geometry->targetImage.height = geometryData.height;
+  geometry->targetImage.format = geometryData.format;
+  geometry->targetImage.views = geometryData.views;
 
   Geometry::init_t data;
   data.core = core;
@@ -92,20 +90,50 @@ void Render::initGeometry() {
 }
 
 void Render::reloadGeometry() {
-  resources->destroyImageViews(geometry->targetImage.views);
-  geometry->targetImage.width = core->swapchain.extent.width;
-  geometry->targetImage.height = core->swapchain.extent.height;
-  geometry->targetImage.views = resources->createImageViews(
-      core->swapchain.images,
-      core->swapchain.format,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+  destroyGeometryData();
+  createGeometryData();
+  geometry->targetImage.count = geometryData.images.size();
+  geometry->targetImage.width = geometryData.width;
+  geometry->targetImage.height = geometryData.height;
+  geometry->targetImage.format = geometryData.format;
+  geometry->targetImage.views = geometryData.views;
   geometry->resize();
 }
 
 void Render::destroyGeometry() {
-  resources->destroyImageViews(geometry->targetImage.views);
+  destroyGeometryData();
   geometry->destroy();
   delete geometry;
+}
+
+void Render::createGeometryData() {
+  uint32_t count = core->swapchain.count;
+  geometryData.width = core->swapchain.extent.width;
+  geometryData.height = core->swapchain.extent.height;
+  geometryData.format = core->swapchain.format;
+  geometryData.images.resize(count);
+  geometryData.memory.resize(count);
+  geometryData.views.resize(count);
+  for (uint32_t i = 0; i < count; ++i) {
+    resources->createImage(
+        geometryData.width, geometryData.height, geometryData.format,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        geometryData.images[i], geometryData.memory[i]);
+
+    geometryData.views[i] = resources->createImageView(
+        geometryData.images[i],
+        core->swapchain.format,
+        VK_IMAGE_ASPECT_COLOR_BIT);
+  }
+}
+
+void Render::destroyGeometryData() {
+  for (uint32_t i = 0; i < geometryData.images.size(); ++i) {
+    resources->destroyImageView(geometryData.views[i]);
+    resources->destroyImage(geometryData.images[i], geometryData.memory[i]);
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
