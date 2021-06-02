@@ -51,47 +51,60 @@ class Render {
   //=========================================================================
   // Проход геометрии - основной механизм отрисовки объектов
 
-  Geometry::Pass geometry;
+  struct {
+    Geometry::Pass pass;
+    struct {
+      VkFormat format;
+      uint32_t width, height;
+      std::vector<VkImageView> views;
+
+      std::vector<VkImage> images;
+      std::vector<VkDeviceMemory> memory;
+    } data;
+  } geometry;
+
   void initGeometry();
   void reinitGeometry();
   void destroyGeometry();
 
-  struct {
-    VkFormat format;
-    uint32_t width, height;
-    std::vector<VkImage> images;
-    std::vector<VkImageView> views;
-    std::vector<VkDeviceMemory> memory;
-  } geometryData;
   void createGeometryData();
   void destroyGeometryData();
 
   //=========================================================================
   // Проход полноэкранного треугольника - промежуточная стадия
 
-  Fullscreen::Pass fullscreen;
+  struct {
+    Fullscreen::Pass pass;
+    struct {
+      VkFormat format;
+      uint32_t width, height;
+      std::vector<VkImageView> views;
+    } data;
+  } fullscreen;
+
   void initFullscreen();
   void reinitFullscreen();
   void destroyFullscreen();
 
-  struct {
-    VkSampler sampler;
-    std::vector<VkImageView> views;
-  } fullscreenData;
   void createFullscreenData();
   void destroyFullscreenData();
 
   //=========================================================================
   // Проход интерфейса - отрисовка меню управления
 
-  GUI::Pass interface;
+  struct {
+    GUI::Pass pass;
+    struct {
+      VkFormat format;
+      uint32_t width, height;
+      std::vector<VkImageView> views;
+    } data;
+  } interface;
+
   void initInterface();
   void reinitInterface();
   void destroyInterface();
 
-  struct {
-    std::vector<VkImageView> views;
-  } interfaceData;
   void createInterfaceData();
   void destroyInterfaceData();
 };

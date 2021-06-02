@@ -1,12 +1,6 @@
 #include "geometry.h"
 
-void Geometry::init(init_t& data) {
-  this->core = data.core;
-  this->commands = data.commands;
-  this->resources = data.resources;
-  this->shaders = data.shaders;
-  this->shaderName = data.shaderName;
-
+void Geometry::init() {
   createDepthImage();
   createUniformDescriptors();
   GraphicsPass::init();
@@ -38,13 +32,13 @@ void Geometry::destroy() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Geometry::record(record_t& data) {
+void Geometry::record(uint32_t index, VkCommandBuffer cmd) {
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass = pipeline.pass;
-  renderPassInfo.framebuffer = framebuffers[data.imageIndex];
+  renderPassInfo.framebuffer = framebuffers[index];
   renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent = {targetImage.width, targetImage.height};
+  renderPassInfo.renderArea.extent = {target.width, target.height};
 
   // Заливка цвета вне всех примитивов
   std::array<VkClearValue, 2> clearValues{};
@@ -56,48 +50,49 @@ void Geometry::record(record_t& data) {
   // Новое разрешение вывода
   VkViewport viewport{};
   viewport.x = 0;
-  viewport.y = static_cast<float>(targetImage.height);
-  viewport.width = static_cast<float>(targetImage.width);
-  viewport.height = -static_cast<float>(targetImage.height);
+  viewport.y = static_cast<float>(target.height);
+  viewport.width = static_cast<float>(target.width);
+  viewport.height = -static_cast<float>(target.height);
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
-  vkCmdBeginRenderPass(data.cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
   // Подключение конвейера и настройка его динамических частей
-  vkCmdBindPipeline(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.instance);
-  vkCmdSetViewport(data.cmd, 0, 1, &viewport);
+  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.instance);
+  vkCmdSetViewport(cmd, 0, 1, &viewport);
 
   // Подключение множества ресурсов, используемых в конвейере
-  vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.layout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.layout, 0, 1, &descriptor.sets[index], 0, nullptr);
 
   int i = 0;
-  for (auto object : data.scene->objects) {
+  for (auto object : scene->objects) {
     // Буферы вершин
     VkBuffer vertexBuffers[] = {object->model->vertexBuffer};
     VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(data.cmd, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(data.cmd, object->model->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(cmd, object->model->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     instance.objectModel = object->modelMatrix;
     instance.objectTexture = i++;
-    vkCmdPushConstants(data.cmd, pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(constants_t), &instance);
+    vkCmdPushConstants(cmd, pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(instance_t), &instance);
 
     // Операция рендера
-    vkCmdDrawIndexed(data.cmd, object->model->verticesCount, 1, 0, 0, 0);
+    vkCmdDrawIndexed(cmd, object->model->verticesCount, 1, 0, 0, 0);
   }
 
-  vkCmdEndRenderPass(data.cmd);
+  vkCmdEndRenderPass(cmd);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Geometry::createUniformDescriptors() {
+  uint32_t count = target.views.size();
   VkDeviceSize bufferSize = sizeof(uniform_t);
-  uniformBuffers.resize(targetImage.count);
-  uniformBuffersMemory.resize(targetImage.count);
+  uniformBuffers.resize(count);
+  uniformBuffersMemory.resize(count);
 
-  for (uint32_t i = 0; i < targetImage.count; ++i) {
+  for (uint32_t i = 0; i < count; ++i) {
     resources->createBuffer(
         bufferSize,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -107,7 +102,7 @@ void Geometry::createUniformDescriptors() {
 }
 
 void Geometry::destroyUniformDescriptors() {
-  for (uint32_t i = 0; i < targetImage.count; ++i)
+  for (uint32_t i = 0; i < target.views.size(); ++i)
     resources->destroyBuffer(uniformBuffers[i], uniformBuffersMemory[i]);
 }
 
@@ -122,7 +117,7 @@ void Geometry::updateUniformDescriptors(uint32_t imageIndex) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Geometry::createDepthImage() {
-  depthImage.format = resources->findSupportedFormat(
+  depth.format = resources->findSupportedFormat(
       {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
       VK_IMAGE_TILING_OPTIMAL,
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
@@ -130,30 +125,30 @@ void Geometry::createDepthImage() {
   resources->createImage(
       core->swapchain.extent.width,
       core->swapchain.extent.height,
-      depthImage.format,
+      depth.format,
       VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-      depthImage.instance, depthImage.memory);
+      depth.image, depth.memory);
 
-  depthImage.view = resources->createImageView(
-      depthImage.instance,
-      depthImage.format,
+  depth.view = resources->createImageView(
+      depth.image,
+      depth.format,
       VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 void Geometry::destroyDepthImage() {
-  resources->destroyImageView(depthImage.view);
-  resources->destroyImage(depthImage.instance, depthImage.memory);
+  resources->destroyImageView(depth.view);
+  resources->destroyImage(depth.image, depth.memory);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Geometry::createFramebuffers() {
-  framebuffers.resize(targetImage.count);
-  for (uint32_t i = 0; i < targetImage.count; ++i) {
-    std::vector<VkImageView> attachment = {targetImage.views[i], depthImage.view};
-    framebuffers[i] = createFramebuffer(attachment, targetImage.width, targetImage.height);
+  framebuffers.resize(target.views.size());
+  for (uint32_t i = 0; i < target.views.size(); ++i) {
+    std::vector<VkImageView> attachment = {target.views[i], depth.view};
+    framebuffers[i] = createFramebuffer(attachment, target.width, target.height);
   }
 }
 
@@ -191,7 +186,7 @@ std::vector<VkVertexInputAttributeDescription> Geometry::getVertexAttributes() {
 VkPushConstantRange Geometry::getPushConstantRange() {
   VkPushConstantRange pushConstant{};
   pushConstant.offset = 0;
-  pushConstant.size = sizeof(constants_t);
+  pushConstant.size = sizeof(instance_t);
   pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
   return pushConstant;
 }
@@ -203,7 +198,7 @@ void Geometry::createRenderPass() {
   // Описание цветового подключения - выходного изображения конвейера
 
   VkAttachmentDescription colorAttachment{};
-  colorAttachment.format = targetImage.format;
+  colorAttachment.format = target.format;
 
   // Действия при работе с изображением
   colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -229,7 +224,7 @@ void Geometry::createRenderPass() {
   // Описание изобржения глубины
 
   VkAttachmentDescription depthAttachment{};
-  depthAttachment.format = depthImage.format;
+  depthAttachment.format = depth.format;
 
   // Действия при работе с изображением
   depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -294,7 +289,7 @@ void Geometry::createRenderPass() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Geometry::createDescriptorSetsLayout() {
+void Geometry::createDescriptorLayouts() {
   VkDescriptorSetLayoutBinding uniformLayout{};
   uniformLayout.binding = 0;
   uniformLayout.descriptorCount = 1;
@@ -331,19 +326,19 @@ void Geometry::createDescriptorSetsLayout() {
   if (vkCreateDescriptorSetLayout(core->device, &layoutInfo, nullptr, &layout) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create descriptor set layout!");
 
-  descriptorSetsLayout.push_back(layout);
+  descriptor.layouts.push_back(layout);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Geometry::createDescriptorSets() {
-  descriptorSets.resize(targetImage.count);
-  for (size_t i = 0; i < targetImage.count; ++i)
-    descriptorSets[i] = resources->createDesciptorSet(descriptorSetsLayout[0]);
+  descriptor.sets.resize(target.views.size());
+  for (size_t i = 0; i < target.views.size(); ++i)
+    descriptor.sets[i] = resources->createDesciptorSet(descriptor.layouts[0]);
 }
 
 void Geometry::updateDescriptorSets() {
-  for (size_t i = 0; i < targetImage.count; ++i) {
+  for (size_t i = 0; i < target.views.size(); ++i) {
     //=========================================================================
     // Инициализация ресурсов
     VkDescriptorBufferInfo bufferInfo{};
@@ -369,7 +364,7 @@ void Geometry::updateDescriptorSets() {
     descriptorWrites[0].dstArrayElement = 0;
     descriptorWrites[0].descriptorCount = 1;
     descriptorWrites[0].pBufferInfo = &bufferInfo;
-    descriptorWrites[0].dstSet = descriptorSets[i];
+    descriptorWrites[0].dstSet = descriptor.sets[i];
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -377,7 +372,7 @@ void Geometry::updateDescriptorSets() {
     descriptorWrites[1].dstArrayElement = 0;
     descriptorWrites[1].descriptorCount = static_cast<uint32_t>(textureImageViews.size());
     descriptorWrites[1].pImageInfo = imageInfo.data();
-    descriptorWrites[1].dstSet = descriptorSets[i];
+    descriptorWrites[1].dstSet = descriptor.sets[i];
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 
     descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -385,7 +380,7 @@ void Geometry::updateDescriptorSets() {
     descriptorWrites[2].dstArrayElement = 0;
     descriptorWrites[2].descriptorCount = 1;
     descriptorWrites[2].pImageInfo = &samplerInfo;
-    descriptorWrites[2].dstSet = descriptorSets[i];
+    descriptorWrites[2].dstSet = descriptor.sets[i];
     descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
 
     vkUpdateDescriptorSets(core->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);

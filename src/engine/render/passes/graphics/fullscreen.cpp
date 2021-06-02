@@ -1,12 +1,6 @@
 #include "fullscreen.h"
 
-void Fullscreen::init(init_t& data) {
-  this->core = data.core;
-  this->commands = data.commands;
-  this->resources = data.resources;
-  this->shaders = data.shaders;
-  this->shaderName = data.shaderName;
-
+void Fullscreen::init() {
   GraphicsPass::init();
 }
 
@@ -25,13 +19,13 @@ void Fullscreen::destroy() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Fullscreen::record(record_t& data) {
+void Fullscreen::record(uint32_t index, VkCommandBuffer cmd) {
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass = pipeline.pass;
-  renderPassInfo.framebuffer = framebuffers[data.imageIndex];
+  renderPassInfo.framebuffer = framebuffers[index];
   renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent = {targetImage.width, targetImage.height};
+  renderPassInfo.renderArea.extent = {target.width, target.height};
 
   // Заливка цвета вне всех примитивов
   std::array<VkClearValue, 2> clearValues{};
@@ -42,25 +36,25 @@ void Fullscreen::record(record_t& data) {
 
   VkViewport viewport{};
   viewport.x = 0;
-  viewport.y = (float)targetImage.height;
-  viewport.width = (float)targetImage.width;
-  viewport.height = -(float)targetImage.height;
+  viewport.y = (float)target.height;
+  viewport.width = (float)target.width;
+  viewport.height = -(float)target.height;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
-  vkCmdBeginRenderPass(data.cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
   // Подключение конвейера и настройка его динамических частей
-  vkCmdBindPipeline(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.instance);
-  vkCmdSetViewport(data.cmd, 0, 1, &viewport);
+  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.instance);
+  vkCmdSetViewport(cmd, 0, 1, &viewport);
 
   // Подключение множества ресурсов, используемых в конвейере
-  vkCmdBindDescriptorSets(data.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.layout, 0, 1, &descriptorSets[data.imageIndex], 0, nullptr);
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.layout, 0, 1, &descriptor.sets[index], 0, nullptr);
 
   // Операция рендера
-  vkCmdDraw(data.cmd, 3, 1, 0, 0);
+  vkCmdDraw(cmd, 3, 1, 0, 0);
 
-  vkCmdEndRenderPass(data.cmd);
+  vkCmdEndRenderPass(cmd);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -97,10 +91,10 @@ VkPushConstantRange Fullscreen::getPushConstantRange() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Fullscreen::createFramebuffers() {
-  framebuffers.resize(targetImage.count);
-  for (uint32_t i = 0; i < targetImage.count; ++i) {
-    std::vector<VkImageView> attachment = {targetImage.views[i]};
-    framebuffers[i] = createFramebuffer(attachment, targetImage.width, targetImage.height);
+  framebuffers.resize(target.views.size());
+  for (uint32_t i = 0; i < target.views.size(); ++i) {
+    std::vector<VkImageView> attachment = {target.views[i]};
+    framebuffers[i] = createFramebuffer(attachment, target.width, target.height);
   }
 }
 
@@ -111,7 +105,7 @@ void Fullscreen::createRenderPass() {
   // Описание цветового подключения - выходного изображения конвейера
 
   VkAttachmentDescription colorAttachment{};
-  colorAttachment.format = targetImage.format;
+  colorAttachment.format = target.format;
 
   // Действия при работе с изображением
   colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -173,7 +167,7 @@ void Fullscreen::createRenderPass() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Fullscreen::createDescriptorSetsLayout() {
+void Fullscreen::createDescriptorLayouts() {
   VkDescriptorSetLayoutBinding textureImageLayout{};
   textureImageLayout.binding = 0;
   textureImageLayout.descriptorCount = 1;
@@ -202,21 +196,21 @@ void Fullscreen::createDescriptorSetsLayout() {
   if (vkCreateDescriptorSetLayout(core->device, &layoutInfo, nullptr, &layout) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create descriptor set layout!");
 
-  descriptorSetsLayout.push_back(layout);
+  descriptor.layouts.push_back(layout);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Fullscreen::createDescriptorSets() {
-  descriptorSets.resize(targetImage.count);
-  for (size_t i = 0; i < targetImage.count; ++i)
-    descriptorSets[i] = resources->createDesciptorSet(descriptorSetsLayout[0]);
+  descriptor.sets.resize(target.views.size());
+  for (size_t i = 0; i < target.views.size(); ++i)
+    descriptor.sets[i] = resources->createDesciptorSet(descriptor.layouts[0]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Fullscreen::updateDescriptorSets() {
-  for (size_t i = 0; i < targetImage.count; ++i) {
+  for (size_t i = 0; i < target.views.size(); ++i) {
     //=========================================================================
     // Инициализация ресурсов
 
@@ -237,7 +231,7 @@ void Fullscreen::updateDescriptorSets() {
     descriptorWrites[0].dstArrayElement = 0;
     descriptorWrites[0].descriptorCount = 1;
     descriptorWrites[0].pImageInfo = &colorImageInfo;
-    descriptorWrites[0].dstSet = descriptorSets[i];
+    descriptorWrites[0].dstSet = descriptor.sets[i];
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -245,7 +239,7 @@ void Fullscreen::updateDescriptorSets() {
     descriptorWrites[1].dstArrayElement = 0;
     descriptorWrites[1].descriptorCount = 1;
     descriptorWrites[1].pImageInfo = &samplerInfo;
-    descriptorWrites[1].dstSet = descriptorSets[i];
+    descriptorWrites[1].dstSet = descriptor.sets[i];
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
 
     vkUpdateDescriptorSets(core->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);

@@ -33,12 +33,12 @@ void GraphicsPass::createShaderModules() {
 
   try {
     // Попытка (пере)компиляции новых шейдеров в SPIR-V
-    Shaders::Instance vertexInstance = shaders->loadShader(shaderName, std::string("vertexMain"), SLANG_STAGE_VERTEX);
-    Shaders::Instance fragmentInstance = shaders->loadShader(shaderName, std::string("fragmentMain"), SLANG_STAGE_FRAGMENT);
+    Shaders::Instance instanceVertex = shader.manager->loadShader(shader.name, std::string("vertexMain"), SLANG_STAGE_VERTEX);
+    Shaders::Instance instanceFragment = shader.manager->loadShader(shader.name, std::string("fragmentMain"), SLANG_STAGE_FRAGMENT);
 
     // Подключение модулей
-    vertexShader = vertexInstance->module;
-    fragmentShader = fragmentInstance->module;
+    vertexShader = instanceVertex->module;
+    fragmentShader = instanceFragment->module;
 
     // Удаление старых модулей
     if (oldVS != VK_NULL_HANDLE && oldFS != VK_NULL_HANDLE) {
@@ -46,7 +46,7 @@ void GraphicsPass::createShaderModules() {
       vkDestroyShaderModule(core->device, oldFS, nullptr);
     }
 
-    std::cout << "Shader \"" << shaderName << "\" was loaded successfully" << std::endl;
+    std::cout << "Shader \"" << shader.name << "\" was loaded successfully" << std::endl;
   } catch (std::exception& error) {
     // Выведем ошибку компиляции шейдера
     std::cerr << error.what();
@@ -56,7 +56,7 @@ void GraphicsPass::createShaderModules() {
       vertexShader = oldVS;
       fragmentShader = oldFS;
     } else {
-      throw std::runtime_error("ERROR: shader was never loaded: " + shaderName);
+      throw std::runtime_error("ERROR: shader was never loaded: " + shader.name);
     }
   }
 }
@@ -81,24 +81,6 @@ VkFramebuffer GraphicsPass::createFramebuffer(std::vector<VkImageView>& attachme
 
   return framebuffer;
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// void GraphicsPass::setVertexBinding() {
-//   vertexBindingDescription.binding = 0;
-//   vertexBindingDescription.stride = sizeof(float) * 3;
-//   vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-// }
-
-// void GraphicsPass::setVertexAttributes() {
-//   vertexAttributesDescription.clear();
-//   VkVertexInputAttributeDescription attributeDescription;
-//   attributeDescription.binding = 0;
-//   attributeDescription.location = 0;
-//   attributeDescription.offset = 0;
-//   attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-//   vertexAttributesDescription.emplace_back(attributeDescription);
-// }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -266,8 +248,8 @@ void GraphicsPass::createPipeline() {
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.pushConstantRangeCount = 1;
   pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-  pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetsLayout.size());
-  pipelineLayoutInfo.pSetLayouts = descriptorSetsLayout.data();
+  pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptor.layouts.size());
+  pipelineLayoutInfo.pSetLayouts = descriptor.layouts.data();
 
   if (vkCreatePipelineLayout(core->device, &pipelineLayoutInfo, nullptr, &pipeline.layout) != VK_SUCCESS)
     throw std::runtime_error("ERROR: Failed to create pipeline layout!");

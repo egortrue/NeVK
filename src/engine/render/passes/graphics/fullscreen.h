@@ -11,37 +11,39 @@ class Fullscreen : public GraphicsPass {
  public:
   typedef Fullscreen* Pass;
 
-  struct init_t {
-    Core::Manager core;
-    Commands::Manager commands;
-    Resources::Manager resources;
-    Shaders::Manager shaders;
-    std::string shaderName;
-  };
-
-  struct record_t {
-    VkCommandBuffer cmd;
-    uint32_t imageIndex;
-  };
-
-  VkImageView colorImageView;   // ~ Texture2D
-  VkSampler colorImageSampler;  // ~ SamplerState
-
-  void init(init_t&);
-  void record(record_t&);
+  void init() override;
+  void destroy() override;
   void reload() override;
   void resize() override;
-  void destroy() override;
-  void update(uint32_t index) override {}
+
+  void record(uint32_t index, VkCommandBuffer);
+
+  //=========================================================================
+  // Обработчики конвейера и прохода рендера
+
+ private:
+  void createRenderPass() override;
 
   VkVertexInputBindingDescription getVertexBinding() override;
   std::vector<VkVertexInputAttributeDescription> getVertexAttributes() override;
   VkPushConstantRange getPushConstantRange() override;
-  void createRenderPass() override;
 
-  void createDescriptorSetsLayout() override;
+  //=========================================================================
+  // Выделенные ресурсы, привязанные к конвейеру
+
+ public:
+  VkImageView colorImageView;   // ~ Texture2D
+  VkSampler colorImageSampler;  // ~ SamplerState
+
+ private:
+  void createDescriptorLayouts() override;
   void createDescriptorSets() override;
   void updateDescriptorSets() override;
 
+  //=========================================================================
+  // Фреймбуфер - целевой объект графического рендера
+
   void createFramebuffers() override;
+
+  //=========================================================================
 };

@@ -14,47 +14,32 @@
 class Geometry : public GraphicsPass {
  public:
   typedef Geometry* Pass;
+  Scene::Manager scene;
 
-  struct init_t {
-    Core::Manager core;
-    Commands::Manager commands;
-    Resources::Manager resources;
-    Shaders::Manager shaders;
-    std::string shaderName;
-  };
-
-  struct record_t {
-    VkCommandBuffer cmd;
-    uint32_t imageIndex;
-    Scene::Manager scene;
-  };
-
-  void init(init_t&);
-  void record(record_t&);
+  void init() override;
+  void destroy() override;
   void reload() override;
   void resize() override;
-  void destroy() override;
-  void update(uint32_t index) override;
+
+  void update(uint32_t index);
+  void record(uint32_t index, VkCommandBuffer);
 
   //=========================================================================
-  // Конвейер и проход рендера
+  // Обработчики конвейера и прохода рендера
 
  private:
-  // Состояние входных данных вершин
+  void createRenderPass() override;
+
   VkVertexInputBindingDescription getVertexBinding() override;
   std::vector<VkVertexInputAttributeDescription> getVertexAttributes() override;
-
-  // Константы шейдера
   VkPushConstantRange getPushConstantRange() override;
-
-  void createRenderPass() override;
 
   //=========================================================================
   // Выделенные ресурсы, привязанные к конвейеру
 
  public:
   // ~ ConstantBuffer
-  struct constants_t {
+  struct instance_t {
     glm::float4x4 objectModel;
     uint32_t objectTexture;
   } instance;
@@ -63,11 +48,13 @@ class Geometry : public GraphicsPass {
   struct uniform_t {
     glm::float4x4 cameraView;
     glm::float4x4 cameraProjection;
-    glm::float4x4 model;
   } uniform;
 
-  VkSampler textureSampler;                    // ~ SamplerState
-  std::vector<VkImageView> textureImageViews;  // ~ Texture2D
+  // ~ Texture2D
+  std::vector<VkImageView> textureImageViews;
+
+  // ~ SamplerState
+  VkSampler textureSampler;
 
  private:
   std::vector<VkBuffer> uniformBuffers;
@@ -77,22 +64,25 @@ class Geometry : public GraphicsPass {
   void destroyUniformDescriptors();
   void updateUniformDescriptors(uint32_t index);
 
-  void createDescriptorSetsLayout() override;
+  void createDescriptorLayouts() override;
   void createDescriptorSets() override;
   void updateDescriptorSets() override;
 
   //=========================================================================
-  // Наборы изображений для фреймбуфера
+  // Фреймбуфер - целевой объект графического рендера
 
  private:
+  void createFramebuffers() override;
+
+  // Изображение для теста глубины
   struct {
-    VkImage instance;
-    VkDeviceMemory memory;
-    VkFormat format;
+    VkImage image;
     VkImageView view;
-  } depthImage;
+    VkFormat format;
+    VkDeviceMemory memory;
+  } depth;
   void createDepthImage();
   void destroyDepthImage();
 
-  void createFramebuffers() override;
+  //=========================================================================
 };

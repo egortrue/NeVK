@@ -1,7 +1,7 @@
 #include "pass.h"
 
 void Pass::init() {
-  createDescriptorSetsLayout();
+  createDescriptorLayouts();
   createDescriptorSets();
   updateDescriptorSets();
   createShaderModules();
@@ -14,8 +14,8 @@ void Pass::destroy() {
   vkDestroyPipelineLayout(core->device, pipeline.layout, nullptr);
   vkDestroyRenderPass(core->device, pipeline.pass, nullptr);
 
-  for (auto desciptorSetLayout : descriptorSetsLayout)
-    vkDestroyDescriptorSetLayout(core->device, desciptorSetLayout, nullptr);
+  for (auto layout : descriptor.layouts)
+    vkDestroyDescriptorSetLayout(core->device, layout, nullptr);
 }
 
 void Pass::reload() {

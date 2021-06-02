@@ -19,30 +19,16 @@ typedef ImGui_ImplVulkanH_Window ImGuiData;
 class GUI : public GraphicsPass {
  public:
   typedef GUI* Pass;
-
-  struct init_t {
-    Core::Manager core;
-    Commands::Manager commands;
-    Resources::Manager resources;
-    Window::Manager window;
-    Scene::Manager scene;
-  };
-
-  struct record_t {
-    VkCommandBuffer cmd;
-    uint32_t imageIndex;
-  };
-
-  void init(init_t&);
-  void record(record_t&);
-  void reload() override;
-  void resize() override;
-  void destroy() override;
-  void update(uint32_t index) override;
-
- private:
   Window::Manager window;
   Scene::Manager scene;
+
+  void init() override;
+  void destroy() override;
+  void reload() override;
+  void resize() override;
+
+  void update(uint32_t index);
+  void record(uint32_t index, VkCommandBuffer);
 
   //=========================================================================
   // ImGUI
@@ -68,11 +54,12 @@ class GUI : public GraphicsPass {
   void updateUI();
 
   //=========================================================================
+  // Большую часть работы при создании конвейера ImGUI делает сам
 
   void createRenderPass() override;
   void createFramebuffers() override;
 
-  void createDescriptorSetsLayout() override {}
+  void createDescriptorLayouts() override {}
   void createDescriptorSets() override {}
   void updateDescriptorSets() override {}
 

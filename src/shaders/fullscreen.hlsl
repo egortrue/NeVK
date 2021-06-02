@@ -11,8 +11,8 @@ struct PS_INPUT
     float2 uv;
 };
 
-Texture2D colorImage; // VkImageView
-SamplerState samplerImage; // VkSampler
+Texture2D imageColor; // VkImageView
+SamplerState imageSampler; // VkSampler
 
 [shader("vertex")]
 PS_INPUT vertexMain(VS_INPUT vertex)
@@ -28,6 +28,6 @@ PS_INPUT vertexMain(VS_INPUT vertex)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT fragment) : SV_TARGET
 {
-    return float4(colorImage.Sample(samplerImage, fragment.uv));
+    return float4(imageColor.Sample(imageSampler, fragment.uv));
     //return float4(gTexture.Sample(gSampler, input.uv)) + float4(gPrevTexture.Sample(gSampler, input.uv));
 }

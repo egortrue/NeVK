@@ -47,9 +47,9 @@ void Render::reloadShaders() {
   vkDeviceWaitIdle(core->device);
 
   // Перезагрузим все проходы рендера
-  geometry->reload();
-  fullscreen->reload();
-  interface->reload();
+  geometry.pass->reload();
+  fullscreen.pass->reload();
+  interface.pass->reload();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -77,182 +77,190 @@ void Render::destroyFrames() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Render::initGeometry() {
-  geometry = new Geometry();
+  geometry.pass = new Geometry();
   createGeometryData();
 
-  // Дискрипторы прохода рендера
+  // Основные параметры
+  geometry.pass->core = core;
+  geometry.pass->resources = resources;
+  geometry.pass->commands = commands;
+  geometry.pass->scene = scene;
+  geometry.pass->shader.manager = shaders;
+  geometry.pass->shader.name = std::string("shaders/geometry.hlsl");
+
+  // Дескрипторы прохода рендера
   for (auto object : scene->objects)
-    geometry->textureImageViews.push_back(object->texture->view);
-  geometry->textureSampler = scene->objects.front()->texture->sampler;
+    geometry.pass->textureImageViews.push_back(object->texture->view);
+  geometry.pass->textureSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_REPEAT);
 
   // Цель вывода прохода рендера
-  geometry->targetImage.count = geometryData.images.size();
-  geometry->targetImage.width = geometryData.width;
-  geometry->targetImage.height = geometryData.height;
-  geometry->targetImage.format = geometryData.format;
-  geometry->targetImage.views = geometryData.views;
+  geometry.pass->target.format = geometry.data.format;
+  geometry.pass->target.width = geometry.data.width;
+  geometry.pass->target.height = geometry.data.height;
+  geometry.pass->target.views = geometry.data.views;
 
-  Geometry::init_t data;
-  data.core = core;
-  data.resources = resources;
-  data.commands = commands;
-  data.shaders = shaders;
-  data.shaderName = std::string("shaders/geometry.hlsl");
-  geometry->init(data);
+  geometry.pass->init();
 }
 
 void Render::reinitGeometry() {
   destroyGeometryData();
   createGeometryData();
-  geometry->targetImage.count = geometryData.images.size();
-  geometry->targetImage.width = geometryData.width;
-  geometry->targetImage.height = geometryData.height;
-  geometry->targetImage.format = geometryData.format;
-  geometry->targetImage.views = geometryData.views;
-  geometry->resize();
+  geometry.pass->target.format = geometry.data.format;
+  geometry.pass->target.width = geometry.data.width;
+  geometry.pass->target.height = geometry.data.height;
+  geometry.pass->target.views = geometry.data.views;
+  geometry.pass->resize();
 }
 
 void Render::destroyGeometry() {
+  resources->destroyImageSampler(geometry.pass->textureSampler);
   destroyGeometryData();
-  geometry->destroy();
-  delete geometry;
+  geometry.pass->destroy();
+  delete geometry.pass;
 }
 
 void Render::createGeometryData() {
+  geometry.data.width = core->swapchain.extent.width;
+  geometry.data.height = core->swapchain.extent.height;
+  geometry.data.format = core->swapchain.format;
+
   uint32_t count = core->swapchain.count;
-  geometryData.width = core->swapchain.extent.width;
-  geometryData.height = core->swapchain.extent.height;
-  geometryData.format = core->swapchain.format;
-  geometryData.images.resize(count);
-  geometryData.memory.resize(count);
-  geometryData.views.resize(count);
+  geometry.data.images.resize(count);
+  geometry.data.memory.resize(count);
+  geometry.data.views.resize(count);
   for (uint32_t i = 0; i < count; ++i) {
     resources->createImage(
-        geometryData.width, geometryData.height, geometryData.format,
+        geometry.data.width, geometry.data.height, geometry.data.format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        geometryData.images[i], geometryData.memory[i]);
-    geometryData.views[i] = resources->createImageView(
-        geometryData.images[i],
+        geometry.data.images[i], geometry.data.memory[i]);
+    geometry.data.views[i] = resources->createImageView(
+        geometry.data.images[i],
         core->swapchain.format,
         VK_IMAGE_ASPECT_COLOR_BIT);
   }
 }
 
 void Render::destroyGeometryData() {
-  for (uint32_t i = 0; i < geometryData.images.size(); ++i) {
-    resources->destroyImageView(geometryData.views[i]);
-    resources->destroyImage(geometryData.images[i], geometryData.memory[i]);
+  for (uint32_t i = 0; i < geometry.data.images.size(); ++i) {
+    resources->destroyImageView(geometry.data.views[i]);
+    resources->destroyImage(geometry.data.images[i], geometry.data.memory[i]);
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Render::initFullscreen() {
-  fullscreen = new Fullscreen();
+  fullscreen.pass = new Fullscreen();
   createFullscreenData();
 
-  // Дискрипторы прохода рендера
-  fullscreen->colorImageView = geometryData.views[0];
-  fullscreen->colorImageSampler = fullscreenData.sampler;
+  // Основные параметры
+  fullscreen.pass->core = core;
+  fullscreen.pass->resources = resources;
+  fullscreen.pass->commands = commands;
+  fullscreen.pass->shader.manager = shaders;
+  fullscreen.pass->shader.name = std::string("shaders/fullscreen.hlsl");
+
+  // Дескрипторы прохода рендера
+  fullscreen.pass->colorImageView = geometry.data.views[0];
+  fullscreen.pass->colorImageSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_REPEAT);
 
   // Указание изображений, в которые будет идти результат
-  fullscreen->targetImage.count = core->swapchain.count;
-  fullscreen->targetImage.width = core->swapchain.extent.width;
-  fullscreen->targetImage.height = core->swapchain.extent.height;
-  fullscreen->targetImage.format = core->swapchain.format;
-  fullscreen->targetImage.views = fullscreenData.views;
+  fullscreen.pass->target.width = fullscreen.data.width;
+  fullscreen.pass->target.height = fullscreen.data.height;
+  fullscreen.pass->target.format = fullscreen.data.format;
+  fullscreen.pass->target.views = fullscreen.data.views;
 
-  Fullscreen::init_t data;
-  data.core = core;
-  data.resources = resources;
-  data.commands = commands;
-  data.shaders = shaders;
-  data.shaderName = std::string("shaders/fullscreen.hlsl");
-  fullscreen->init(data);
+  fullscreen.pass->init();
 }
 
 void Render::destroyFullscreen() {
+  resources->destroyImageSampler(fullscreen.pass->colorImageSampler);
   destroyFullscreenData();
-  fullscreen->destroy();
-  delete fullscreen;
+  fullscreen.pass->destroy();
+  delete fullscreen.pass;
 }
 
 void Render::reinitFullscreen() {
   destroyFullscreenData();
   createFullscreenData();
-  fullscreen->colorImageView = geometryData.views[0];
-  fullscreen->colorImageSampler = fullscreenData.sampler;
-  fullscreen->targetImage.width = core->swapchain.extent.width;
-  fullscreen->targetImage.height = core->swapchain.extent.height;
-  fullscreen->targetImage.views = fullscreenData.views;
-  fullscreen->resize();
+  fullscreen.pass->colorImageView = geometry.data.views[0];
+  fullscreen.pass->target.width = fullscreen.data.width;
+  fullscreen.pass->target.height = fullscreen.data.height;
+  fullscreen.pass->target.format = fullscreen.data.format;
+  fullscreen.pass->target.views = fullscreen.data.views;
+  fullscreen.pass->resize();
 }
 
 void Render::createFullscreenData() {
-  fullscreenData.sampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-  fullscreenData.views = resources->createImageViews(
+  fullscreen.data.format = core->swapchain.format;
+  fullscreen.data.width = core->swapchain.extent.width;
+  fullscreen.data.height = core->swapchain.extent.height;
+  fullscreen.data.views = resources->createImageViews(
       core->swapchain.images,
       core->swapchain.format,
       VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Render::destroyFullscreenData() {
-  resources->destroyImageViews(fullscreen->targetImage.views);
-  resources->destroyImageSampler(fullscreen->colorImageSampler);
+  resources->destroyImageViews(fullscreen.data.views);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Render::initInterface() {
-  interface = new GUI();
+  interface.pass = new GUI();
   createInterfaceData();
 
-  // Цель вывода прохода рендера
-  interface->targetImage.count = core->swapchain.count;
-  interface->targetImage.width = core->swapchain.extent.width;
-  interface->targetImage.height = core->swapchain.extent.height;
-  interface->targetImage.format = core->swapchain.format;
-  interface->targetImage.views = interfaceData.views;
+  // Основные параметры
+  interface.pass->core = core;
+  interface.pass->resources = resources;
+  interface.pass->commands = commands;
+  interface.pass->window = window;
+  interface.pass->scene = scene;
 
-  GUI::init_t data;
-  data.core = core;
-  data.resources = resources;
-  data.commands = commands;
-  data.window = window;
-  data.scene = scene;
-  interface->init(data);
+  // Цель вывода прохода рендера
+  interface.pass->target.width = interface.data.width;
+  interface.pass->target.height = interface.data.height;
+  interface.pass->target.format = interface.data.format;
+  interface.pass->target.views = interface.data.views;
+
+  interface.pass->init();
 }
 
 void Render::reinitInterface() {
   destroyInterfaceData();
   createInterfaceData();
-  interface->targetImage.width = core->swapchain.extent.width;
-  interface->targetImage.height = core->swapchain.extent.height;
-  interface->targetImage.views = interfaceData.views;
-  interface->resize();
+  interface.pass->target.width = interface.data.width;
+  interface.pass->target.height = interface.data.height;
+  interface.pass->target.format = interface.data.format;
+  interface.pass->target.views = interface.data.views;
+  interface.pass->resize();
 }
 
 void Render::destroyInterface() {
   destroyInterfaceData();
-  interface->destroy();
-  delete interface;
+  interface.pass->destroy();
+  delete interface.pass;
 }
 
 void Render::createInterfaceData() {
-  interfaceData.views = resources->createImageViews(
+  interface.data.format = core->swapchain.format;
+  interface.data.width = core->swapchain.extent.width;
+  interface.data.height = core->swapchain.extent.height;
+  interface.data.views = resources->createImageViews(
       core->swapchain.images,
       core->swapchain.format,
       VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Render::destroyInterfaceData() {
-  resources->destroyImageViews(interface->targetImage.views);
+  resources->destroyImageViews(interface.data.views);
 }
 
 GUI::Pass Render::getInterface() {
-  return interface;
+  return interface.pass;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -298,15 +306,14 @@ void Render::draw() {
   camera->update(deltaFrame);
 
   // Обновим данные прохода рендера
-  geometry->uniform.cameraView = camera->viewMatrix;
-  geometry->uniform.cameraProjection = camera->projectionMatrix;
-  geometry->uniform.model = object->modelMatrix;
-  geometry->update(swapchainImageIndex);
+  geometry.pass->uniform.cameraView = camera->viewMatrix;
+  geometry.pass->uniform.cameraProjection = camera->projectionMatrix;
+  geometry.pass->update(swapchainImageIndex);
 
-  interface->update(swapchainImageIndex);
+  interface.pass->update(swapchainImageIndex);
 
   //=========================================================================
-  // Генерация команд рендера
+  // Подготовка буфера команд
 
   VkCommandBuffer cmd = targetFrame->cmdBuffer;
   commands->resetCommandBuffer(cmd);
@@ -319,33 +326,29 @@ void Render::draw() {
 
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
-  Geometry::record_t geoData;
-  geoData.cmd = cmd;
-  geoData.imageIndex = swapchainImageIndex;
-  geoData.scene = scene;
-  geometry->record(geoData);
+  //=========================================================================
+  // Генерация команд рендера
+
+  geometry.pass->record(swapchainImageIndex, cmd);
 
   commands->changeImageLayout(
       cmd,
-      geometryData.images[swapchainImageIndex],
+      geometry.data.images[swapchainImageIndex],
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-  Fullscreen::record_t fulData;
-  fulData.cmd = cmd;
-  fulData.imageIndex = swapchainImageIndex;
-  fullscreen->record(fulData);
+  fullscreen.pass->record(swapchainImageIndex, cmd);
+  interface.pass->record(swapchainImageIndex, cmd);
 
-  GUI::record_t guiData;
-  guiData.cmd = cmd;
-  guiData.imageIndex = swapchainImageIndex;
-  interface->record(guiData);
+  //=========================================================================
+  // Завершение буфера команд
 
   if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
     throw std::runtime_error("ERROR: ailed to record command buffer!");
 
   //=========================================================================
   // Синхронизация кадров
+
   if (targetFrame->showing != VK_NULL_HANDLE)
     vkWaitForFences(core->device, 1, &targetFrame->showing, VK_TRUE, UINT64_MAX);
   targetFrame->showing = currentFrame->drawing;

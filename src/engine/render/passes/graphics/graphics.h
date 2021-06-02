@@ -8,39 +8,46 @@
 #include <string>
 
 class GraphicsPass : public Pass {
- protected:
+ public:
   virtual void init();
   virtual void destroy();
   virtual void reload();
   virtual void resize();
-  virtual void update(uint32_t index) = 0;
 
+  //=========================================================================
+  // Обработчики конвейера и прохода рендера
+
+ protected:
   virtual void createPipeline();
 
-  // Шейдеры
-  VkShaderModule vertexShader = VK_NULL_HANDLE;
-  VkShaderModule fragmentShader = VK_NULL_HANDLE;
-  void createShaderModules() override;
-
-  // Состояние входных данных вершин
+  // Опции графического конвейера
   virtual VkVertexInputBindingDescription getVertexBinding() = 0;
   virtual std::vector<VkVertexInputAttributeDescription> getVertexAttributes() = 0;
-
-  // Константы шейдера
   virtual VkPushConstantRange getPushConstantRange() = 0;
 
+  //=========================================================================
+  // Шейдеры - ядро любого прохода
+
+  VkShaderModule vertexShader = VK_NULL_HANDLE;
+  VkShaderModule fragmentShader = VK_NULL_HANDLE;
+
+  void createShaderModules() override;
+
+  //=========================================================================
+  // Фреймбуфер - целевой объект графического рендера
+
  public:
-  // Цель рендера
   struct {
     VkFormat format;
-    uint32_t width;
-    uint32_t height;
-    uint32_t count;
+    uint32_t width, height;
     std::vector<VkImageView> views;
-  } targetImage;
+  } target;
 
  protected:
   std::vector<VkFramebuffer> framebuffers;
-  VkFramebuffer createFramebuffer(std::vector<VkImageView>&, uint32_t width, uint32_t height);
+
   virtual void createFramebuffers() = 0;
+  VkFramebuffer createFramebuffer(std::vector<VkImageView>&, uint32_t width, uint32_t height);
+
+  //=========================================================================
 };
