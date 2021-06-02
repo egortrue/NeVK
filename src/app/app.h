@@ -57,13 +57,18 @@ class Application {
   static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
 
+    // Перезагрузка шейдеров
+    if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
+      app->engine->getRender()->reloadShaders();
+
+    // Использование меню отменяет передвижение камеры
     if (action != GLFW_RELEASE) {
-      // При использованиии меню срабатывает другой callback
       auto interface = app->engine->getRender()->getInterface();
       if (interface->imgui.menuHovered)
         return;
     }
 
+    // Передвижение камеры
     auto camera = app->engine->getScene()->getCamera();
     const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
     switch (key) {

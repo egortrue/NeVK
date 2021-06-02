@@ -12,7 +12,7 @@ Shaders::~Shaders() {
     destroyShader(shader);
 }
 
-void Shaders::compileShader(Instance shader, SlangStage stage) {
+void Shaders::compileShader(Instance shader) {
   SlangCompileRequest* slangRequest = spCreateCompileRequest(slangSession);
 
   // Опции компиляции
@@ -22,10 +22,10 @@ void Shaders::compileShader(Instance shader, SlangStage stage) {
   spSetTargetProfile(slangRequest, targetIndex, profileID);
   int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
   spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, shader->name.c_str());
-  int entryPointIndex = spAddEntryPoint(slangRequest, translationUnitIndex, shader->entryPoint.c_str(), stage);
+  int entryPointIndex = spAddEntryPoint(slangRequest, translationUnitIndex, shader->entryPoint.c_str(), shader->stage);
 
   // Компиляция шейдера в SPIR-V
-  const SlangResult compileRes = spCompile(slangRequest);
+  SlangResult compileRes = spCompile(slangRequest);
   auto diagnostics = spGetDiagnosticOutput(slangRequest);
   if (SLANG_FAILED(compileRes)) {
     spDestroyCompileRequest(slangRequest);
@@ -60,15 +60,18 @@ Shaders::Instance Shaders::loadShader(const std::string& name, const std::string
   auto el = idList.find(name + entryPoint);
   if (el != idList.end()) {
     // Перезагрузка шейдера
-    compileShader(handlers[el->second], handlers[el->second]->stage);
+    compileShader(handlers[el->second]);
     return handlers[el->second];
   }
 
-  // Сохраним новые данные
+  // Создание нового шейдера
   Instance shader = new shader_t;
   shader->name = name;
   shader->entryPoint = entryPoint;
-  compileShader(shader, stage);
+  shader->stage = stage;
+  compileShader(shader);
+
+  // Сохраним новый шейдер
   uint32_t id = static_cast<uint32_t>(handlers.size());
   idList.insert(std::make_pair(name + entryPoint, id));
   handlers.push_back(shader);
@@ -80,12 +83,12 @@ void Shaders::reloadShader(const std::string& name, const std::string& entryPoin
   auto el = idList.find(name + entryPoint);
   if (el == idList.end())
     throw std::runtime_error("ERROR: shader was not loaded: " + name);
-  compileShader(handlers[el->second], handlers[el->second]->stage);
+  compileShader(handlers[el->second]);
 }
 
 void Shaders::reload() {
   for (auto shader : handlers)
-    compileShader(shader, shader->stage);
+    compileShader(shader);
 }
 
 void Shaders::destroyShader(Instance shader) {

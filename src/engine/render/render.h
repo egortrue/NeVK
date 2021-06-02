@@ -8,9 +8,11 @@
 #include "scene.h"
 #include "frames/frames.h"
 #include "passes/graphics/geometry.h"
+#include "passes/graphics/fullscreen.h"
 #include "passes/graphics/gui.h"
 
 // Стандартные библиотеки
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -21,8 +23,10 @@ class Render {
   Render(Window::Manager, Core::Manager, Resources::Manager, Commands::Manager, Scene::Manager);
   ~Render();
 
-  void reload();
   void draw();
+
+  void reloadSwapchain();
+  void reloadShaders();
 
   GUI::Pass getInterface();
 
@@ -32,6 +36,8 @@ class Render {
   Resources::Manager resources;
   Commands::Manager commands;
   Scene::Manager scene;
+
+  //=========================================================================
 
   // Шейдеры - основа любого прохода рендера
   Shaders::Manager shaders;
@@ -43,15 +49,63 @@ class Render {
   void initFrames();
   void destroyFrames();
 
+  //=========================================================================
   // Проход геометрии - основной механизм отрисовки объектов
-  Geometry::Pass geometry;
+
+  struct {
+    Geometry::Pass pass;
+    struct {
+      VkFormat format;
+      uint32_t width, height;
+      std::vector<VkImageView> views;
+
+      std::vector<VkImage> images;
+      std::vector<VkDeviceMemory> memory;
+    } data;
+  } geometry;
+
   void initGeometry();
-  void reloadGeometry();
+  void reinitGeometry();
   void destroyGeometry();
 
-  // Пользовательский интерфейс - отрисовка меню управления
-  GUI::Pass interface;
+  void createGeometryData();
+  void destroyGeometryData();
+
+  //=========================================================================
+  // Проход полноэкранного треугольника - промежуточная стадия
+
+  struct {
+    Fullscreen::Pass pass;
+    struct {
+      VkFormat format;
+      uint32_t width, height;
+      std::vector<VkImageView> views;
+    } data;
+  } fullscreen;
+
+  void initFullscreen();
+  void reinitFullscreen();
+  void destroyFullscreen();
+
+  void createFullscreenData();
+  void destroyFullscreenData();
+
+  //=========================================================================
+  // Проход интерфейса - отрисовка меню управления
+
+  struct {
+    GUI::Pass pass;
+    struct {
+      VkFormat format;
+      uint32_t width, height;
+      std::vector<VkImageView> views;
+    } data;
+  } interface;
+
   void initInterface();
-  void reloadInterface();
+  void reinitInterface();
   void destroyInterface();
+
+  void createInterfaceData();
+  void destroyInterfaceData();
 };

@@ -1,27 +1,21 @@
 #pragma once
 
-// Сторонние библиотеки
-#include <glm/gtx/compatibility.hpp>
-
 // Внутренние библиотеки
 #include "graphics.h"
-#include "scene.h"
 
 // Стандартные библиотеки
 #include <vector>
 #include <string>
 
-class Geometry : public GraphicsPass {
+class Fullscreen : public GraphicsPass {
  public:
-  typedef Geometry* Pass;
-  Scene::Manager scene;
+  typedef Fullscreen* Pass;
 
   void init() override;
   void destroy() override;
   void reload() override;
   void resize() override;
 
-  void update(uint32_t index);
   void record(uint32_t index, VkCommandBuffer);
 
   //=========================================================================
@@ -40,30 +34,13 @@ class Geometry : public GraphicsPass {
  public:
   // ~ ConstantBuffer
   struct instance_t {
-    glm::float4x4 objectModel;
-    uint32_t objectTexture;
+    uint32_t colorImageIndex;
   } instance;
 
-  // ~ cbuffer
-  struct uniform_t {
-    glm::float4x4 cameraView;
-    glm::float4x4 cameraProjection;
-  } uniform;
-
-  // ~ Texture2D
-  std::vector<VkImageView> textureImageViews;
-
-  // ~ SamplerState
-  VkSampler textureSampler;
+  std::vector<VkImageView> colorImageViews;  // ~ Texture2D
+  VkSampler colorImageSampler;               // ~ SamplerState
 
  private:
-  std::vector<VkBuffer> uniformBuffers;
-  std::vector<VkDeviceMemory> uniformBuffersMemory;
-
-  void createUniformDescriptors();
-  void destroyUniformDescriptors();
-  void updateUniformDescriptors(uint32_t index);
-
   void createDescriptorLayouts() override;
   void createDescriptorSets() override;
   void updateDescriptorSets() override;
@@ -71,18 +48,7 @@ class Geometry : public GraphicsPass {
   //=========================================================================
   // Фреймбуфер - целевой объект графического рендера
 
- private:
   void createFramebuffers() override;
-
-  // Изображение для теста глубины
-  struct {
-    VkImage image;
-    VkImageView view;
-    VkFormat format;
-    VkDeviceMemory memory;
-  } depth;
-  void createDepthImage();
-  void destroyDepthImage();
 
   //=========================================================================
 };

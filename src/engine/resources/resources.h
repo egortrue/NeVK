@@ -50,5 +50,8 @@ class Resources {
   std::vector<VkImageView> createImageViews(std::vector<VkImage>&, VkFormat, VkImageAspectFlags);
   void destroyImageViews(std::vector<VkImageView>&);
 
+  VkSampler createImageSampler(VkSamplerAddressMode);
+  void destroyImageSampler(VkSampler);
+
   //=========================================================================
 };

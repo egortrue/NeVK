@@ -164,6 +164,8 @@ set(LIBRARY_RENDER_SOURCES
     ${LIBRARY_RENDER_PATH}/passes/graphics/graphics.cpp
     ${LIBRARY_RENDER_PATH}/passes/graphics/geometry.h
     ${LIBRARY_RENDER_PATH}/passes/graphics/geometry.cpp
+    ${LIBRARY_RENDER_PATH}/passes/graphics/fullscreen.h
+    ${LIBRARY_RENDER_PATH}/passes/graphics/fullscreen.cpp
     ${LIBRARY_RENDER_PATH}/passes/graphics/gui.h
     ${LIBRARY_RENDER_PATH}/passes/graphics/gui.cpp
 )

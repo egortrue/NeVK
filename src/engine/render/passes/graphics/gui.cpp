@@ -25,13 +25,7 @@ void GUI::destroy() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GUI::init(init_t& data) {
-  this->core = data.core;
-  this->commands = data.commands;
-  this->resources = data.resources;
-  this->window = data.window;
-  this->scene = data.scene;
-
+void GUI::init() {
   createRenderPass();
   createFramebuffers();
 
@@ -58,25 +52,11 @@ void GUI::init(init_t& data) {
 
   ImGui_ImplGlfw_InitForVulkan(window->instance, true);
   ImGui_ImplVulkan_Init(&imgui.init, pipeline.pass);
-  loadFonts();
-}
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void GUI::loadFonts() {
+  // Загрузка стандартных шрифтов
   VkCommandBuffer cmd = commands->beginSingleTimeCommands();
-
   ImGui_ImplVulkan_CreateFontsTexture(cmd);
-
-  VkSubmitInfo submitInfo = {};
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &cmd;
-  vkEndCommandBuffer(cmd);
-
-  vkQueueSubmit(core->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-  vkDeviceWaitIdle(core->device);
-
+  commands->endSingleTimeCommands(cmd);
   ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
@@ -86,13 +66,6 @@ void GUI::updateUI() {
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
-
-  enum {
-    WINDOW_NORESIZE = ImGuiWindowFlags_NoResize,
-    WINDOW_NOMOVE = ImGuiWindowFlags_NoMove,
-    WINDOW_NODECOR = ImGuiWindowFlags_NoDecoration,
-    WINDOW_AUTOSIZE = ImGuiWindowFlags_AlwaysAutoResize,
-  };
 
   ImGui::Begin("Menu", nullptr, WINDOW_NOMOVE | WINDOW_AUTOSIZE);
   {
@@ -191,7 +164,7 @@ void GUI::updateUI() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GUI::record(record_t& data) {
+void GUI::record(uint32_t index, VkCommandBuffer cmd) {
   ImGui::Render();
   ImDrawData* draw_data = ImGui::GetDrawData();
 
@@ -204,25 +177,25 @@ void GUI::record(record_t& data) {
   VkRenderPassBeginInfo info = {};
   info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   info.renderPass = pipeline.pass;
-  info.framebuffer = framebuffers[data.imageIndex];
-  info.renderArea.extent.width = targetImage.width;
-  info.renderArea.extent.height = targetImage.height;
+  info.framebuffer = framebuffers[index];
+  info.renderArea.extent.width = target.width;
+  info.renderArea.extent.height = target.height;
   info.clearValueCount = 1;
   info.pClearValues = &imgui.data.ClearValue;
-  vkCmdBeginRenderPass(data.cmd, &info, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(cmd, &info, VK_SUBPASS_CONTENTS_INLINE);
 
-  ImGui_ImplVulkan_RenderDrawData(draw_data, data.cmd);
+  ImGui_ImplVulkan_RenderDrawData(draw_data, cmd);
 
-  vkCmdEndRenderPass(data.cmd);
+  vkCmdEndRenderPass(cmd);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GUI::createFramebuffers() {
-  framebuffers.resize(targetImage.count);
-  for (size_t i = 0; i < targetImage.count; ++i) {
-    std::vector<VkImageView> attachment = {targetImage.views[i]};
-    framebuffers[i] = createFramebuffer(attachment, targetImage.width, targetImage.height);
+  framebuffers.resize(target.views.size());
+  for (size_t i = 0; i < target.views.size(); ++i) {
+    std::vector<VkImageView> attachment = {target.views[i]};
+    framebuffers[i] = createFramebuffer(attachment, target.width, target.height);
   }
 }
 
@@ -233,7 +206,7 @@ void GUI::createRenderPass() {
   // Описание цветового подключения - выходного изображения конвейера
 
   VkAttachmentDescription colorAttachment{};
-  colorAttachment.format = targetImage.format;
+  colorAttachment.format = target.format;
 
   // Действия при работе с изображением
   colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
