@@ -12,11 +12,13 @@ Render::Render(Window::Manager window, Core::Manager core,
   initShaders();
   initFrames();
   initGeometry();
+  initFullscreen();
   initInterface();
 }
 
 Render::~Render() {
   destroyInterface();
+  destroyFullscreen();
   destroyGeometry();
   destroyFrames();
   destroyShaders();
@@ -32,6 +34,7 @@ void Render::reload() {
 
   // Обновим все проходы рендера
   reloadGeometry();
+  reloadFullscreen();
   reloadInterface();
 
   // Обновим соотношение сторон для камеры
@@ -134,6 +137,55 @@ void Render::destroyGeometryData() {
     resources->destroyImageView(geometryData.views[i]);
     resources->destroyImage(geometryData.images[i], geometryData.memory[i]);
   }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Render::initFullscreen() {
+  fullscreen = new Fullscreen();
+
+  // Дискрипторы прохода рендера
+  fullscreen->colorImageView = geometryData.views[0];
+  fullscreen->colorImageSampler = scene->objects.front()->texture->sampler;
+
+  // Указание изображений, в которые будет идти результат
+  fullscreen->targetImage.count = core->swapchain.count;
+  fullscreen->targetImage.width = core->swapchain.extent.width;
+  fullscreen->targetImage.height = core->swapchain.extent.height;
+  fullscreen->targetImage.format = core->swapchain.format;
+  fullscreen->targetImage.views = resources->createImageViews(
+      core->swapchain.images,
+      core->swapchain.format,
+      VK_IMAGE_ASPECT_COLOR_BIT);
+
+  Fullscreen::init_t data;
+  data.core = core;
+  data.resources = resources;
+  data.commands = commands;
+  data.shaders = shaders;
+  data.shaderName = std::string("shaders/fullscreen.hlsl");
+  fullscreen->init(data);
+}
+
+void Render::destroyFullscreen() {
+  resources->destroyImageViews(fullscreen->targetImage.views);
+  fullscreen->destroy();
+  delete fullscreen;
+}
+
+void Render::reloadFullscreen() {
+  resources->destroyImageViews(fullscreen->targetImage.views);
+
+  fullscreen->colorImageView = geometryData.views[0];
+  fullscreen->colorImageSampler = scene->objects.front()->texture->sampler;
+
+  fullscreen->targetImage.width = core->swapchain.extent.width;
+  fullscreen->targetImage.height = core->swapchain.extent.height;
+  fullscreen->targetImage.views = resources->createImageViews(
+      core->swapchain.images,
+      core->swapchain.format,
+      VK_IMAGE_ASPECT_COLOR_BIT);
+  fullscreen->resize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -245,12 +297,22 @@ void Render::draw() {
 
   vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
-  // Укажем необходимые вершины для отрисовки
   Geometry::record_t geoData;
   geoData.cmd = cmd;
   geoData.imageIndex = swapchainImageIndex;
   geoData.scene = scene;
   geometry->record(geoData);
+
+  commands->changeImageLayout(
+      cmd,
+      geometryData.images[swapchainImageIndex],
+      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+  Fullscreen::record_t fulData;
+  fulData.cmd = cmd;
+  fulData.imageIndex = swapchainImageIndex;
+  fullscreen->record(fulData);
 
   GUI::record_t guiData;
   guiData.cmd = cmd;

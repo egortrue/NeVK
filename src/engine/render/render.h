@@ -8,6 +8,7 @@
 #include "scene.h"
 #include "frames/frames.h"
 #include "passes/graphics/geometry.h"
+#include "passes/graphics/fullscreen.h"
 #include "passes/graphics/gui.h"
 
 // Стандартные библиотеки
@@ -58,6 +59,12 @@ class Render {
   } geometryData;
   void createGeometryData();
   void destroyGeometryData();
+
+  // Рендер изображений в полный экран - промежуточный проход
+  Fullscreen::Pass fullscreen;
+  void initFullscreen();
+  void reloadFullscreen();
+  void destroyFullscreen();
 
   // Пользовательский интерфейс - отрисовка меню управления
   GUI::Pass interface;

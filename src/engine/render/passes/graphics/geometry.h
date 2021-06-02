@@ -8,7 +8,6 @@
 #include "scene.h"
 
 // Стандартные библиотеки
-#include <chrono>
 #include <vector>
 #include <string>
 

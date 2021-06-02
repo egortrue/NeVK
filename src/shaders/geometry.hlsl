@@ -10,7 +10,7 @@ struct PS_INPUT {
     float2 uv;
 };
 
-// Константы, задаваемые в начале каждого кадра
+// Константы, задаваемые для каждого объекта
 struct constants_t {
     float4x4 objectModel;
     int objectTexture;
@@ -19,6 +19,7 @@ struct constants_t {
 
 
 // Ресурсу, привязанные к конвейеру
+// (Обновляются в начале кадра)
 cbuffer ubo // VkBuffer
 {
     float4x4 cameraView;
