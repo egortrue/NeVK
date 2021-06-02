@@ -1,7 +1,7 @@
 #pragma once
 
 // Внутренние библиотеки
-#include "graphics.h"
+#include "passes/graphics/graphics.h"
 
 // Стандартные библиотеки
 #include <vector>

@@ -8,7 +8,7 @@
 #include "scene.h"
 #include "frames/frames.h"
 #include "passes/graphics/geometry.h"
-#include "passes/graphics/fullscreen.h"
+#include "passes/graphics/postprocessing/fullscreen.h"
 #include "passes/graphics/gui.h"
 
 // Стандартные библиотеки
