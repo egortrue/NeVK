@@ -146,7 +146,7 @@ void Render::initFullscreen() {
 
   // Дискрипторы прохода рендера
   fullscreen->colorImageView = geometryData.views[0];
-  fullscreen->colorImageSampler = scene->objects.front()->texture->sampler;
+  fullscreen->colorImageSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 
   // Указание изображений, в которые будет идти результат
   fullscreen->targetImage.count = core->swapchain.count;
@@ -169,15 +169,18 @@ void Render::initFullscreen() {
 
 void Render::destroyFullscreen() {
   resources->destroyImageViews(fullscreen->targetImage.views);
+  resources->destroyImageSampler(fullscreen->colorImageSampler);
+
   fullscreen->destroy();
   delete fullscreen;
 }
 
 void Render::reloadFullscreen() {
   resources->destroyImageViews(fullscreen->targetImage.views);
+  resources->destroyImageSampler(fullscreen->colorImageSampler);
 
   fullscreen->colorImageView = geometryData.views[0];
-  fullscreen->colorImageSampler = scene->objects.front()->texture->sampler;
+  fullscreen->colorImageSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 
   fullscreen->targetImage.width = core->swapchain.extent.width;
   fullscreen->targetImage.height = core->swapchain.extent.height;

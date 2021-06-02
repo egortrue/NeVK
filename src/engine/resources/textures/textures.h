@@ -45,7 +45,5 @@ class Textures {
   void destroyTexture(const std::string& name);
 
  private:
-  texture_t* createTexture(const std::string& name);
-  void createTextureSampler();
-  void destroyTextureSampler();
+  Instance createTexture(const std::string& name);
 };
