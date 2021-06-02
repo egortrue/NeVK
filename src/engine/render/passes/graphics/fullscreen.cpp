@@ -36,9 +36,9 @@ void Fullscreen::record(uint32_t index, VkCommandBuffer cmd) {
 
   VkViewport viewport{};
   viewport.x = 0;
-  viewport.y = (float)target.height;
-  viewport.width = (float)target.width;
-  viewport.height = -(float)target.height;
+  viewport.y = static_cast<float>(target.height);
+  viewport.width = static_cast<float>(target.width);
+  viewport.height = -static_cast<float>(target.height);
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 

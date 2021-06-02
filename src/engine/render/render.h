@@ -12,6 +12,7 @@
 #include "passes/graphics/gui.h"
 
 // Стандартные библиотеки
+#include <chrono>
 #include <string>
 #include <vector>
 

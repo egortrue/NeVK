@@ -6,9 +6,6 @@
 // Внутренние библиотеки
 #include "object.h"
 
-// Стандартные библиотеки
-#include <chrono>
-
 class Camera : public Object {
  public:
   typedef Camera* Manager;
