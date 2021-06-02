@@ -45,9 +45,17 @@ void Scene::destroyTextures() {
 
 void Scene::initModels() {
   models = new Models(commands, resources);
+  PhysicalObject::Instance object;
   loadObject("misc/models/cube.obj", "misc/textures/brickwall.png");
   loadObject("misc/models/teapot.obj", "misc/textures/default.png");
+  object = objects.back();
+  object->setPosition({-2, 0, 0});
+  object->update();
   loadObject("misc/models/pine.obj", "misc/textures/grass.jpg");
+  object = objects.back();
+  object->setPosition({2, 0, 0});
+  object->setScale({0.01, 0.01, 0.01});
+  object->update();
 }
 
 void Scene::destroyModels() {

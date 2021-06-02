@@ -169,7 +169,7 @@ void Render::initFullscreen() {
 
   // Дескрипторы прохода рендера
   fullscreen.pass->colorImageViews = geometry.data.views;
-  fullscreen.pass->colorImageSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_REPEAT);
+  fullscreen.pass->colorImageSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 
   // Указание изображений, в которые будет идти результат
   fullscreen.pass->target.width = fullscreen.data.width;
@@ -303,7 +303,6 @@ void Render::draw() {
 
   // Получим объекты сцены
   auto object = scene->objects[scene->currentObject];
-  object->setPosition({object->transform.position.x, sin(deltaGlobal) / 10, object->transform.position.z});
   object->setRotation({object->transform.rotation.x, deltaGlobal * 100.0f, object->transform.rotation.z});
   object->update();
 
