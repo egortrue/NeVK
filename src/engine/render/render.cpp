@@ -24,7 +24,7 @@ Render::~Render() {
   destroyShaders();
 }
 
-void Render::reload() {
+void Render::reloadSwapchain() {
   vkDeviceWaitIdle(core->device);
   window->isResized = false;
 
@@ -33,14 +33,26 @@ void Render::reload() {
   core->createSwapchain();
 
   // Обновим все проходы рендера
-  reloadGeometry();
-  reloadFullscreen();
-  reloadInterface();
+  reinitGeometry();
+  reinitFullscreen();
+  reinitInterface();
 
   // Обновим соотношение сторон для камеры
   auto camera = scene->getCamera();
   camera->projection.aspect = static_cast<float>(window->width) / static_cast<float>(window->height);
   camera->updateProjection();
+}
+
+void Render::reloadShaders() {
+  vkDeviceWaitIdle(core->device);
+
+  // Обновим все шейдеры
+  shaders->reload();
+
+  // Обновим все проходы рендера
+  geometry->reload();
+  fullscreen->reload();
+  interface->reload();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,6 +81,7 @@ void Render::destroyFrames() {
 
 void Render::initGeometry() {
   geometry = new Geometry();
+  createGeometryData();
 
   // Дискрипторы прохода рендера
   for (auto object : scene->objects)
@@ -76,7 +89,6 @@ void Render::initGeometry() {
   geometry->textureSampler = scene->objects.front()->texture->sampler;
 
   // Цель вывода прохода рендера
-  createGeometryData();
   geometry->targetImage.count = geometryData.images.size();
   geometry->targetImage.width = geometryData.width;
   geometry->targetImage.height = geometryData.height;
@@ -92,7 +104,7 @@ void Render::initGeometry() {
   geometry->init(data);
 }
 
-void Render::reloadGeometry() {
+void Render::reinitGeometry() {
   destroyGeometryData();
   createGeometryData();
   geometry->targetImage.count = geometryData.images.size();
@@ -124,7 +136,6 @@ void Render::createGeometryData() {
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         geometryData.images[i], geometryData.memory[i]);
-
     geometryData.views[i] = resources->createImageView(
         geometryData.images[i],
         core->swapchain.format,
@@ -143,20 +154,18 @@ void Render::destroyGeometryData() {
 
 void Render::initFullscreen() {
   fullscreen = new Fullscreen();
+  createFullscreenData();
 
   // Дискрипторы прохода рендера
   fullscreen->colorImageView = geometryData.views[0];
-  fullscreen->colorImageSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+  fullscreen->colorImageSampler = fullscreenData.sampler;
 
   // Указание изображений, в которые будет идти результат
   fullscreen->targetImage.count = core->swapchain.count;
   fullscreen->targetImage.width = core->swapchain.extent.width;
   fullscreen->targetImage.height = core->swapchain.extent.height;
   fullscreen->targetImage.format = core->swapchain.format;
-  fullscreen->targetImage.views = resources->createImageViews(
-      core->swapchain.images,
-      core->swapchain.format,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+  fullscreen->targetImage.views = fullscreenData.views;
 
   Fullscreen::init_t data;
   data.core = core;
@@ -168,43 +177,47 @@ void Render::initFullscreen() {
 }
 
 void Render::destroyFullscreen() {
-  resources->destroyImageViews(fullscreen->targetImage.views);
-  resources->destroyImageSampler(fullscreen->colorImageSampler);
-
+  destroyFullscreenData();
   fullscreen->destroy();
   delete fullscreen;
 }
 
-void Render::reloadFullscreen() {
-  resources->destroyImageViews(fullscreen->targetImage.views);
-  resources->destroyImageSampler(fullscreen->colorImageSampler);
-
+void Render::reinitFullscreen() {
+  destroyFullscreenData();
+  createFullscreenData();
   fullscreen->colorImageView = geometryData.views[0];
-  fullscreen->colorImageSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-
+  fullscreen->colorImageSampler = fullscreenData.sampler;
   fullscreen->targetImage.width = core->swapchain.extent.width;
   fullscreen->targetImage.height = core->swapchain.extent.height;
-  fullscreen->targetImage.views = resources->createImageViews(
+  fullscreen->targetImage.views = fullscreenData.views;
+  fullscreen->resize();
+}
+
+void Render::createFullscreenData() {
+  fullscreenData.sampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+  fullscreenData.views = resources->createImageViews(
       core->swapchain.images,
       core->swapchain.format,
       VK_IMAGE_ASPECT_COLOR_BIT);
-  fullscreen->resize();
+}
+
+void Render::destroyFullscreenData() {
+  resources->destroyImageViews(fullscreen->targetImage.views);
+  resources->destroyImageSampler(fullscreen->colorImageSampler);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Render::initInterface() {
   interface = new GUI();
+  createInterfaceData();
 
   // Цель вывода прохода рендера
   interface->targetImage.count = core->swapchain.count;
   interface->targetImage.width = core->swapchain.extent.width;
   interface->targetImage.height = core->swapchain.extent.height;
   interface->targetImage.format = core->swapchain.format;
-  interface->targetImage.views = resources->createImageViews(
-      core->swapchain.images,
-      core->swapchain.format,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+  interface->targetImage.views = interfaceData.views;
 
   GUI::init_t data;
   data.core = core;
@@ -215,21 +228,30 @@ void Render::initInterface() {
   interface->init(data);
 }
 
-void Render::reloadInterface() {
-  resources->destroyImageViews(interface->targetImage.views);
+void Render::reinitInterface() {
+  destroyInterfaceData();
+  createInterfaceData();
   interface->targetImage.width = core->swapchain.extent.width;
   interface->targetImage.height = core->swapchain.extent.height;
-  interface->targetImage.views = resources->createImageViews(
-      core->swapchain.images,
-      core->swapchain.format,
-      VK_IMAGE_ASPECT_COLOR_BIT);
+  interface->targetImage.views = interfaceData.views;
   interface->resize();
 }
 
 void Render::destroyInterface() {
-  resources->destroyImageViews(interface->targetImage.views);
+  destroyInterfaceData();
   interface->destroy();
   delete interface;
+}
+
+void Render::createInterfaceData() {
+  interfaceData.views = resources->createImageViews(
+      core->swapchain.images,
+      core->swapchain.format,
+      VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+void Render::destroyInterfaceData() {
+  resources->destroyImageViews(interface->targetImage.views);
 }
 
 GUI::Pass Render::getInterface() {
@@ -248,7 +270,7 @@ void Render::draw() {
   uint32_t swapchainImageIndex;
   VkResult result = vkAcquireNextImageKHR(core->device, core->swapchain.handler, UINT64_MAX, currentFrame->imageAvailable, VK_NULL_HANDLE, &swapchainImageIndex);
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-    reload();
+    reloadSwapchain();
     return;
   } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     throw std::runtime_error("ERROR: Failed to acquire swapchain image!");
@@ -364,7 +386,7 @@ void Render::draw() {
 
   result = vkQueuePresentKHR(core->presentQueue, &presentInfo);
   if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window->isResized) {
-    reload();
+    reloadSwapchain();
   } else if (result != VK_SUCCESS) {
     throw std::runtime_error("ERROR: Failed to present swapchain image!");
   }

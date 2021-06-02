@@ -22,8 +22,10 @@ class Render {
   Render(Window::Manager, Core::Manager, Resources::Manager, Commands::Manager, Scene::Manager);
   ~Render();
 
-  void reload();
   void draw();
+
+  void reloadSwapchain();
+  void reloadShaders();
 
   GUI::Pass getInterface();
 
@@ -33,6 +35,8 @@ class Render {
   Resources::Manager resources;
   Commands::Manager commands;
   Scene::Manager scene;
+
+  //=========================================================================
 
   // Шейдеры - основа любого прохода рендера
   Shaders::Manager shaders;
@@ -44,10 +48,12 @@ class Render {
   void initFrames();
   void destroyFrames();
 
+  //=========================================================================
   // Проход геометрии - основной механизм отрисовки объектов
+
   Geometry::Pass geometry;
   void initGeometry();
-  void reloadGeometry();
+  void reinitGeometry();
   void destroyGeometry();
 
   struct {
@@ -60,15 +66,32 @@ class Render {
   void createGeometryData();
   void destroyGeometryData();
 
-  // Рендер изображений в полный экран - промежуточный проход
+  //=========================================================================
+  // Проход полноэкранного треугольника - промежуточная стадия
+
   Fullscreen::Pass fullscreen;
   void initFullscreen();
-  void reloadFullscreen();
+  void reinitFullscreen();
   void destroyFullscreen();
 
-  // Пользовательский интерфейс - отрисовка меню управления
+  struct {
+    VkSampler sampler;
+    std::vector<VkImageView> views;
+  } fullscreenData;
+  void createFullscreenData();
+  void destroyFullscreenData();
+
+  //=========================================================================
+  // Проход интерфейса - отрисовка меню управления
+
   GUI::Pass interface;
   void initInterface();
-  void reloadInterface();
+  void reinitInterface();
   void destroyInterface();
+
+  struct {
+    std::vector<VkImageView> views;
+  } interfaceData;
+  void createInterfaceData();
+  void destroyInterfaceData();
 };
