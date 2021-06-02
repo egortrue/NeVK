@@ -48,6 +48,11 @@ void Camera::updateRotation(double xpos, double ypos) {
   if (transform.rotation.x < -89.0f)
     transform.rotation.x = -89.0f;
 
+  // Нормализация градусной величины
+  transform.rotation.x = transform.rotation.x - 360 * (static_cast<int>(transform.rotation.x) / 360);
+  transform.rotation.y = transform.rotation.y - 360 * (static_cast<int>(transform.rotation.y) / 360);
+  transform.rotation.z = transform.rotation.z - 360 * (static_cast<int>(transform.rotation.z) / 360);
+
   updateDirections();
   updateView();
 }
