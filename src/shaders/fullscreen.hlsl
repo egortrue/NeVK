@@ -11,7 +11,14 @@ struct PS_INPUT
     float2 uv;
 };
 
-Texture2D imageColor; // VkImageView
+// Константы, задаваемые для каждого кадра
+struct constants_t {
+    int imageIndex;
+};
+[[vk::push_constant]] ConstantBuffer<constants_t> instance;
+
+// Ресурсу, привязанные к конвейеру
+Texture2D images[]; // VkImageView
 SamplerState imageSampler; // VkSampler
 
 [shader("vertex")]
@@ -28,6 +35,6 @@ PS_INPUT vertexMain(VS_INPUT vertex)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT fragment) : SV_TARGET
 {
-    return float4(imageColor.Sample(imageSampler, fragment.uv));
+    return float4(images[NonUniformResourceIndex(instance.imageIndex)].Sample(imageSampler, fragment.uv));
     //return float4(gTexture.Sample(gSampler, input.uv)) + float4(gPrevTexture.Sample(gSampler, input.uv));
 }

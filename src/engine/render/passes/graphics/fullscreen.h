@@ -32,8 +32,13 @@ class Fullscreen : public GraphicsPass {
   // Выделенные ресурсы, привязанные к конвейеру
 
  public:
-  VkImageView colorImageView;   // ~ Texture2D
-  VkSampler colorImageSampler;  // ~ SamplerState
+  // ~ ConstantBuffer
+  struct instance_t {
+    uint32_t colorImageIndex;
+  } instance;
+
+  std::vector<VkImageView> colorImageViews;  // ~ Texture2D
+  VkSampler colorImageSampler;               // ~ SamplerState
 
  private:
   void createDescriptorLayouts() override;

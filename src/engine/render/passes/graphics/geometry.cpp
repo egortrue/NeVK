@@ -337,6 +337,8 @@ void Geometry::createDescriptorSets() {
     descriptor.sets[i] = resources->createDesciptorSet(descriptor.layouts[0]);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void Geometry::updateDescriptorSets() {
   for (size_t i = 0; i < target.views.size(); ++i) {
     //=========================================================================

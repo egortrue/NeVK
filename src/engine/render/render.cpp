@@ -139,6 +139,11 @@ void Render::createGeometryData() {
         geometry.data.images[i],
         core->swapchain.format,
         VK_IMAGE_ASPECT_COLOR_BIT);
+    commands->changeImageLayout(
+        nullptr,
+        geometry.data.images[i],
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   }
 }
 
@@ -163,7 +168,7 @@ void Render::initFullscreen() {
   fullscreen.pass->shader.name = std::string("shaders/fullscreen.hlsl");
 
   // Дескрипторы прохода рендера
-  fullscreen.pass->colorImageView = geometry.data.views[0];
+  fullscreen.pass->colorImageViews = geometry.data.views;
   fullscreen.pass->colorImageSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_REPEAT);
 
   // Указание изображений, в которые будет идти результат
@@ -185,7 +190,7 @@ void Render::destroyFullscreen() {
 void Render::reinitFullscreen() {
   destroyFullscreenData();
   createFullscreenData();
-  fullscreen.pass->colorImageView = geometry.data.views[0];
+  fullscreen.pass->colorImageViews = geometry.data.views;
   fullscreen.pass->target.width = fullscreen.data.width;
   fullscreen.pass->target.height = fullscreen.data.height;
   fullscreen.pass->target.format = fullscreen.data.format;
@@ -299,7 +304,7 @@ void Render::draw() {
   // Получим объекты сцены
   auto object = scene->objects[scene->currentObject];
   object->setPosition({object->transform.position.x, sin(deltaGlobal) / 10, object->transform.position.z});
-  object->setRotation({object->transform.rotation.x, deltaGlobal * 10.0f, object->transform.rotation.z});
+  object->setRotation({object->transform.rotation.x, deltaGlobal * 100.0f, object->transform.rotation.z});
   object->update();
 
   auto camera = scene->getCamera();

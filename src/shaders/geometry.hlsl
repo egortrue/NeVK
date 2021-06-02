@@ -19,7 +19,6 @@ struct constants_t {
 
 
 // Ресурсу, привязанные к конвейеру
-// (Обновляются в начале кадра)
 cbuffer ubo // VkBuffer
 {
     float4x4 cameraView;

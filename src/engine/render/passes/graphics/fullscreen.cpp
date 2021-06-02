@@ -51,6 +51,10 @@ void Fullscreen::record(uint32_t index, VkCommandBuffer cmd) {
   // Подключение множества ресурсов, используемых в конвейере
   vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.layout, 0, 1, &descriptor.sets[index], 0, nullptr);
 
+  // Объявление констант шейдера
+  instance.colorImageIndex = index;
+  vkCmdPushConstants(cmd, pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(instance_t), &instance);
+
   // Операция рендера
   vkCmdDraw(cmd, 3, 1, 0, 0);
 
@@ -83,7 +87,7 @@ std::vector<VkVertexInputAttributeDescription> Fullscreen::getVertexAttributes()
 VkPushConstantRange Fullscreen::getPushConstantRange() {
   VkPushConstantRange pushConstant{};
   pushConstant.offset = 0;
-  pushConstant.size = sizeof(float);
+  pushConstant.size = sizeof(instance_t);
   pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
   return pushConstant;
 }
@@ -170,7 +174,7 @@ void Fullscreen::createRenderPass() {
 void Fullscreen::createDescriptorLayouts() {
   VkDescriptorSetLayoutBinding textureImageLayout{};
   textureImageLayout.binding = 0;
-  textureImageLayout.descriptorCount = 1;
+  textureImageLayout.descriptorCount = static_cast<uint32_t>(colorImageViews.size());
   textureImageLayout.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
   textureImageLayout.pImmutableSamplers = nullptr;
   textureImageLayout.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -214,9 +218,11 @@ void Fullscreen::updateDescriptorSets() {
     //=========================================================================
     // Инициализация ресурсов
 
-    VkDescriptorImageInfo colorImageInfo{};
-    colorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    colorImageInfo.imageView = colorImageView;
+    std::vector<VkDescriptorImageInfo> imageInfo(colorImageViews.size());
+    for (uint32_t imageIndex = 0; imageIndex < colorImageViews.size(); ++imageIndex) {
+      imageInfo[imageIndex].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      imageInfo[imageIndex].imageView = colorImageViews[imageIndex];
+    }
 
     VkDescriptorImageInfo samplerInfo{};
     samplerInfo.sampler = colorImageSampler;
@@ -229,8 +235,8 @@ void Fullscreen::updateDescriptorSets() {
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pImageInfo = &colorImageInfo;
+    descriptorWrites[0].descriptorCount = static_cast<uint32_t>(colorImageViews.size());
+    descriptorWrites[0].pImageInfo = imageInfo.data();
     descriptorWrites[0].dstSet = descriptor.sets[i];
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 
