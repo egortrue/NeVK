@@ -11,8 +11,8 @@ struct PS_INPUT
     float2 uv;
 };
 
-Texture2D gTexture; // VkImageView
-SamplerState gSampler; // VkSampler
+Texture2D colorImage; // VkImageView
+SamplerState samplerImage; // VkSampler
 
 [shader("vertex")]
 PS_INPUT vertexMain(VS_INPUT vertex)
@@ -20,14 +20,14 @@ PS_INPUT vertexMain(VS_INPUT vertex)
     PS_INPUT data;
 
     data.uv = float2((vertex.id << 1) & 2, vertex.id & 2);
-    data.position = float4(data.uv * float2(1.0f, -1.0f) + float2(-1.0f, 1.0f), 0.0f, 1.0f);
+    data.position = float4(data.uv * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), 0.0f, 1.0f);
 
     return data;
 }
 
 [shader("fragment")]
-float4 fragmentMain(PS_INPUT input) : SV_TARGET
+float4 fragmentMain(PS_INPUT fragment) : SV_TARGET
 {
-    return float4(gTexture.Sample(gSampler, input.uv));
+    return float4(colorImage.Sample(samplerImage, fragment.uv));
     //return float4(gTexture.Sample(gSampler, input.uv)) + float4(gPrevTexture.Sample(gSampler, input.uv));
 }

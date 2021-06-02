@@ -45,6 +45,6 @@ class Shaders {
   void destroyShader(const std::string& name, const std::string& entryPoint);
 
  private:
-  void compileShader(Instance, SlangStage);
+  void compileShader(Instance);
   void destroyShader(Instance);
 };

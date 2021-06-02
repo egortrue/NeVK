@@ -32,7 +32,7 @@ void Render::reloadSwapchain() {
   core->destroySwapchain();
   core->createSwapchain();
 
-  // Обновим все проходы рендера
+  // Обновим данные всех проходов рендера
   reinitGeometry();
   reinitFullscreen();
   reinitInterface();
@@ -46,10 +46,7 @@ void Render::reloadSwapchain() {
 void Render::reloadShaders() {
   vkDeviceWaitIdle(core->device);
 
-  // Обновим все шейдеры
-  shaders->reload();
-
-  // Обновим все проходы рендера
+  // Перезагрузим все проходы рендера
   geometry->reload();
   fullscreen->reload();
   interface->reload();
