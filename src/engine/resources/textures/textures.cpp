@@ -7,11 +7,9 @@ Textures::Textures(Core::Manager core, Commands::Manager commands, Resources::Ma
   this->core = core;
   this->commands = commands;
   this->resources = resources;
-  commonSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_REPEAT);
 }
 
 Textures::~Textures() {
-  resources->destroyImageSampler(commonSampler);
   for (auto texture : handlers) {
     resources->destroyImageView(texture->view);
     resources->destroyImage(texture->image, texture->memory);
@@ -75,9 +73,6 @@ Textures::Instance Textures::createTexture(const std::string& name) {
       texture->image,
       VK_FORMAT_R8G8B8A8_SRGB,
       VK_IMAGE_ASPECT_COLOR_BIT);
-
-  // Закрепим подходящий сэмплер
-  texture->sampler = commonSampler;
 
   return texture;
 }
