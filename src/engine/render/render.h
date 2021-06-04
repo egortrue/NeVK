@@ -62,7 +62,6 @@ class Render {
       std::vector<VkImage> images;
       std::vector<VkDeviceMemory> memory;
     } data;
-
   } geometry;
 
   void initGeometry();
@@ -89,7 +88,6 @@ class Render {
 
   struct {
     GUI::Pass pass;
-
   } interface;
 
   void initInterface();
