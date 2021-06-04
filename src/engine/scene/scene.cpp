@@ -54,7 +54,7 @@ void Scene::initModels() {
   loadObject("misc/models/pine.obj", "misc/textures/grass.jpg");
   object = objects.back();
   object->setPosition({2, 0, 0});
-  object->setScale({0.01, 0.01, 0.01});
+  object->setScale({0.005, 0.005, 0.005});
   object->update();
 }
 

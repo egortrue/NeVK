@@ -12,13 +12,13 @@ Render::Render(Window::Manager window, Core::Manager core,
   initShaders();
   initFrames();
   initGeometry();
-  initFullscreen();
+  initPostProcess();
   initInterface();
 }
 
 Render::~Render() {
   destroyInterface();
-  destroyFullscreen();
+  destroyPostProcess();
   destroyGeometry();
   destroyFrames();
   destroyShaders();
@@ -34,7 +34,7 @@ void Render::reloadSwapchain() {
 
   // Обновим данные всех проходов рендера
   reinitGeometry();
-  reinitFullscreen();
+  reinitPostProcess();
   reinitInterface();
 
   // Обновим соотношение сторон для камеры
@@ -48,8 +48,12 @@ void Render::reloadShaders() {
 
   // Перезагрузим все проходы рендера
   geometry.pass->reload();
-  fullscreen.pass->reload();
+  postprocess.TAA->reload();
   interface.pass->reload();
+}
+
+GUI::Pass Render::getInterface() {
+  return interface.pass;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,67 +160,66 @@ void Render::destroyGeometryData() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Render::initFullscreen() {
-  fullscreen.pass = new Fullscreen();
-  createFullscreenData();
+void Render::initPostProcess() {
+  auto TAA = new Fullscreen();
+  postprocess.TAA = TAA;
+  {
+    // Основные параметры
+    TAA->core = core;
+    TAA->resources = resources;
+    TAA->commands = commands;
+    TAA->shader.manager = shaders;
+    TAA->shader.name = std::string("shaders/taa.hlsl");
 
-  // Основные параметры
-  fullscreen.pass->core = core;
-  fullscreen.pass->resources = resources;
-  fullscreen.pass->commands = commands;
-  fullscreen.pass->shader.manager = shaders;
-  fullscreen.pass->shader.name = std::string("shaders/fullscreen.hlsl");
+    // Дескрипторы прохода рендера
+    TAA->colorImageViews = geometry.data.views;
+    TAA->colorImageSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 
-  // Дескрипторы прохода рендера
-  fullscreen.pass->colorImageViews = geometry.data.views;
-  fullscreen.pass->colorImageSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+    // Указание изображений, в которые будет идти результат
+    TAA->target.width = core->swapchain.extent.width;
+    TAA->target.height = core->swapchain.extent.height;
+    TAA->target.format = core->swapchain.format;
+    TAA->target.views = resources->createImageViews(
+        core->swapchain.images,
+        core->swapchain.format,
+        VK_IMAGE_ASPECT_COLOR_BIT);
 
-  // Указание изображений, в которые будет идти результат
-  fullscreen.pass->target.width = fullscreen.data.width;
-  fullscreen.pass->target.height = fullscreen.data.height;
-  fullscreen.pass->target.format = fullscreen.data.format;
-  fullscreen.pass->target.views = fullscreen.data.views;
-
-  fullscreen.pass->init();
+    TAA->init();
+  }
 }
 
-void Render::destroyFullscreen() {
-  resources->destroyImageSampler(fullscreen.pass->colorImageSampler);
-  destroyFullscreenData();
-  fullscreen.pass->destroy();
-  delete fullscreen.pass;
+void Render::destroyPostProcess() {
+  auto TAA = postprocess.TAA;
+  {
+    resources->destroyImageSampler(TAA->colorImageSampler);
+    resources->destroyImageViews(TAA->target.views);
+    TAA->destroy();
+    delete TAA;
+  }
 }
 
-void Render::reinitFullscreen() {
-  destroyFullscreenData();
-  createFullscreenData();
-  fullscreen.pass->colorImageViews = geometry.data.views;
-  fullscreen.pass->target.width = fullscreen.data.width;
-  fullscreen.pass->target.height = fullscreen.data.height;
-  fullscreen.pass->target.format = fullscreen.data.format;
-  fullscreen.pass->target.views = fullscreen.data.views;
-  fullscreen.pass->resize();
-}
+void Render::reinitPostProcess() {
+  auto TAA = postprocess.TAA;
+  {
+    TAA->colorImageViews = geometry.data.views;
+    TAA->target.width = core->swapchain.extent.width;
+    TAA->target.height = core->swapchain.extent.height;
+    TAA->target.format = core->swapchain.format;
 
-void Render::createFullscreenData() {
-  fullscreen.data.format = core->swapchain.format;
-  fullscreen.data.width = core->swapchain.extent.width;
-  fullscreen.data.height = core->swapchain.extent.height;
-  fullscreen.data.views = resources->createImageViews(
-      core->swapchain.images,
-      core->swapchain.format,
-      VK_IMAGE_ASPECT_COLOR_BIT);
-}
+    resources->destroyImageViews(TAA->target.views);
+    TAA->target.views = resources->createImageViews(
+        core->swapchain.images,
+        core->swapchain.format,
+        VK_IMAGE_ASPECT_COLOR_BIT);
 
-void Render::destroyFullscreenData() {
-  resources->destroyImageViews(fullscreen.data.views);
+    TAA->resize();
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Render::initInterface() {
   interface.pass = new GUI();
-  createInterfaceData();
 
   // Основные параметры
   interface.pass->core = core;
@@ -226,46 +229,34 @@ void Render::initInterface() {
   interface.pass->scene = scene;
 
   // Цель вывода прохода рендера
-  interface.pass->target.width = interface.data.width;
-  interface.pass->target.height = interface.data.height;
-  interface.pass->target.format = interface.data.format;
-  interface.pass->target.views = interface.data.views;
+  interface.pass->target.width = core->swapchain.extent.width;
+  interface.pass->target.height = core->swapchain.extent.height;
+  interface.pass->target.format = core->swapchain.format;
+  interface.pass->target.views = resources->createImageViews(
+      core->swapchain.images,
+      core->swapchain.format,
+      VK_IMAGE_ASPECT_COLOR_BIT);
 
   interface.pass->init();
 }
 
 void Render::reinitInterface() {
-  destroyInterfaceData();
-  createInterfaceData();
-  interface.pass->target.width = interface.data.width;
-  interface.pass->target.height = interface.data.height;
-  interface.pass->target.format = interface.data.format;
-  interface.pass->target.views = interface.data.views;
+  interface.pass->target.width = core->swapchain.extent.width;
+  interface.pass->target.height = core->swapchain.extent.height;
+  interface.pass->target.format = core->swapchain.format;
+
+  resources->destroyImageViews(interface.pass->target.views);
+  interface.pass->target.views = resources->createImageViews(
+      core->swapchain.images,
+      core->swapchain.format,
+      VK_IMAGE_ASPECT_COLOR_BIT);
   interface.pass->resize();
 }
 
 void Render::destroyInterface() {
-  destroyInterfaceData();
+  resources->destroyImageViews(interface.pass->target.views);
   interface.pass->destroy();
   delete interface.pass;
-}
-
-void Render::createInterfaceData() {
-  interface.data.format = core->swapchain.format;
-  interface.data.width = core->swapchain.extent.width;
-  interface.data.height = core->swapchain.extent.height;
-  interface.data.views = resources->createImageViews(
-      core->swapchain.images,
-      core->swapchain.format,
-      VK_IMAGE_ASPECT_COLOR_BIT);
-}
-
-void Render::destroyInterfaceData() {
-  resources->destroyImageViews(interface.data.views);
-}
-
-GUI::Pass Render::getInterface() {
-  return interface.pass;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -341,7 +332,7 @@ void Render::draw() {
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-  fullscreen.pass->record(swapchainImageIndex, cmd);
+  postprocess.TAA->record(swapchainImageIndex, cmd);
   interface.pass->record(swapchainImageIndex, cmd);
 
   //=========================================================================
