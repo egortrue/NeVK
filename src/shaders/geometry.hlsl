@@ -18,7 +18,7 @@ struct constants_t {
 [[vk::push_constant]] ConstantBuffer<constants_t> instance;
 
 
-// Ресурсу, привязанные к конвейеру
+// Ресурсы, привязанные к конвейеру
 cbuffer ubo // VkBuffer
 {
     float4x4 cameraView;

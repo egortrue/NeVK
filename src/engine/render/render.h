@@ -54,14 +54,15 @@ class Render {
 
   struct {
     Geometry::Pass pass;
+
     struct {
       VkFormat format;
       uint32_t width, height;
       std::vector<VkImageView> views;
-
       std::vector<VkImage> images;
       std::vector<VkDeviceMemory> memory;
     } data;
+
   } geometry;
 
   void initGeometry();
@@ -72,40 +73,26 @@ class Render {
   void destroyGeometryData();
 
   //=========================================================================
-  // Проход полноэкранного треугольника - промежуточная стадия
+  // Постпроцессинг - улучшение изображения, добавление эффектов
 
   struct {
-    Fullscreen::Pass pass;
-    struct {
-      VkFormat format;
-      uint32_t width, height;
-      std::vector<VkImageView> views;
-    } data;
-  } fullscreen;
+    Fullscreen::Pass TAA;  // Temporal Anti-Aliasing
+    Fullscreen::Pass TM;   // Tone Maping
+  } postprocess;
 
-  void initFullscreen();
-  void reinitFullscreen();
-  void destroyFullscreen();
-
-  void createFullscreenData();
-  void destroyFullscreenData();
+  void initPostProcess();
+  void reinitPostProcess();
+  void destroyPostProcess();
 
   //=========================================================================
   // Проход интерфейса - отрисовка меню управления
 
   struct {
     GUI::Pass pass;
-    struct {
-      VkFormat format;
-      uint32_t width, height;
-      std::vector<VkImageView> views;
-    } data;
+
   } interface;
 
   void initInterface();
   void reinitInterface();
   void destroyInterface();
-
-  void createInterfaceData();
-  void destroyInterfaceData();
 };

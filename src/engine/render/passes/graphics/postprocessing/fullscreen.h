@@ -21,7 +21,7 @@ class Fullscreen : public GraphicsPass {
   //=========================================================================
   // Обработчики конвейера и прохода рендера
 
- private:
+ protected:
   void createRenderPass() override;
 
   VkVertexInputBindingDescription getVertexBinding() override;
@@ -40,7 +40,7 @@ class Fullscreen : public GraphicsPass {
   std::vector<VkImageView> colorImageViews;  // ~ Texture2D
   VkSampler colorImageSampler;               // ~ SamplerState
 
- private:
+ protected:
   void createDescriptorLayouts() override;
   void createDescriptorSets() override;
   void updateDescriptorSets() override;
