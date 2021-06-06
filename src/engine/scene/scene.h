@@ -16,7 +16,7 @@ class Scene {
  public:
   typedef Scene* Manager;
 
-  Scene(Core::Manager);
+  explicit Scene(Core::Manager);
   ~Scene();
 
   uint32_t currentObject = 0;

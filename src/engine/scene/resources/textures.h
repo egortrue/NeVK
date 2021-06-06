@@ -31,7 +31,7 @@ class Textures {
   std::unordered_map<std::string, uint32_t> idList;
 
  public:
-  Textures(Core::Manager);
+  explicit Textures(Core::Manager);
   ~Textures();
 
   Instance load(const std::string& name);

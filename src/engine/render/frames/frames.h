@@ -32,7 +32,7 @@ class Frames {
   std::vector<VkSemaphore> semaphores;
 
  public:
-  Frames(Core::Manager);
+  explicit Frames(Core::Manager);
   ~Frames();
 
   uint32_t currentFrameIndex;
