@@ -208,7 +208,7 @@ void Fullscreen::createDescriptorLayouts() {
 void Fullscreen::createDescriptorSets() {
   descriptor.sets.resize(target.views.size());
   for (size_t i = 0; i < target.views.size(); ++i)
-    descriptor.sets[i] = resources->createDesciptorSet(descriptor.layouts[0]);
+    descriptor.sets[i] = core->resources->createDesciptorSet(descriptor.layouts[0]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -2,23 +2,21 @@
 
 // Внутренние библиотеки
 #include "core.h"
-#include "resources.h"
+#include "resources/resources.h"
+
+class Core;
 
 class Commands {
  public:
-  typedef Commands* Manager;
-
- private:
   Core::Manager core;
-  Resources::Manager resources;
 
- public:
-  Commands(Core::Manager, Resources::Manager);
+  explicit Commands(Core::Manager);
   ~Commands();
 
   //=========================================================================
   // Области выделения командных буферов
 
+ public:
   VkCommandPool createCommandBufferPool(bool shortLived = false);
   void resetCommandBufferPool(VkCommandPool);    // Сбросит все буферы, сохранит все ресурсы
   void freeCommandBufferPool(VkCommandPool);     // Сбросит все буферы, освободит все ресурсы (вернёт их системе)

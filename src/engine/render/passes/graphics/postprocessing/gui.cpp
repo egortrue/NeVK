@@ -48,15 +48,15 @@ void GUI::init() {
   imgui.init.QueueFamily = core->queueFamily.graphicsFamily.value();
   imgui.init.ImageCount = core->swapchain.count;
   imgui.init.MinImageCount = 2;
-  imgui.init.DescriptorPool = resources->descriptorPool;
+  imgui.init.DescriptorPool = core->resources->descriptorPool;
 
   ImGui_ImplGlfw_InitForVulkan(window->instance, true);
   ImGui_ImplVulkan_Init(&imgui.init, pipeline.pass);
 
   // Загрузка стандартных шрифтов
-  VkCommandBuffer cmd = commands->beginSingleTimeCommands();
+  VkCommandBuffer cmd = core->commands->beginSingleTimeCommands();
   ImGui_ImplVulkan_CreateFontsTexture(cmd);
-  commands->endSingleTimeCommands(cmd);
+  core->commands->endSingleTimeCommands(cmd);
   ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 

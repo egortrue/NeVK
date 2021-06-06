@@ -117,6 +117,7 @@ class Application {
     auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
     app->window->isResized = true;
 
+    // Если окно срёрнуто
     int width_ = 0, height_ = 0;
     do {
       glfwGetFramebufferSize(window, &width_, &height_);

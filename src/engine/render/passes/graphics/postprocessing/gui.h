@@ -1,9 +1,10 @@
 #pragma once
 
 // Внутренние библиотеки
-#include "graphics.h"
 #include "window.h"
 #include "scene.h"
+
+#include "passes/graphics/graphics.h"
 
 // Сторонние библиотеки
 #include "imgui.h"

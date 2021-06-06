@@ -2,14 +2,13 @@
 
 // Внутренние библиотеки
 #include "core.h"
-#include "resources.h"
-#include "commands.h"
-#include "shaders.h"
 #include "scene.h"
+
+#include "shaders/shaders.h"
 #include "frames/frames.h"
 #include "passes/graphics/geometry.h"
 #include "passes/graphics/postprocessing/fullscreen.h"
-#include "passes/graphics/gui.h"
+#include "passes/graphics/postprocessing/gui.h"
 
 // Стандартные библиотеки
 #include <chrono>
@@ -20,7 +19,7 @@ class Render {
  public:
   typedef Render* Manager;
 
-  Render(Window::Manager, Core::Manager, Resources::Manager, Commands::Manager, Scene::Manager);
+  Render(Window::Manager, Core::Manager, Scene::Manager);
   ~Render();
 
   void draw();
@@ -33,8 +32,6 @@ class Render {
  private:
   Window::Manager window;
   Core::Manager core;
-  Resources::Manager resources;
-  Commands::Manager commands;
   Scene::Manager scene;
 
   //=========================================================================

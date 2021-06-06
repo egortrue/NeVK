@@ -95,7 +95,7 @@ void Geometry::createUniformDescriptors() {
   uniformBuffersMemory.resize(count);
 
   for (uint32_t i = 0; i < count; ++i) {
-    resources->createBuffer(
+    core->resources->createBuffer(
         bufferSize,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -105,7 +105,7 @@ void Geometry::createUniformDescriptors() {
 
 void Geometry::destroyUniformDescriptors() {
   for (uint32_t i = 0; i < target.views.size(); ++i)
-    resources->destroyBuffer(uniformBuffers[i], uniformBuffersMemory[i]);
+    core->resources->destroyBuffer(uniformBuffers[i], uniformBuffersMemory[i]);
 }
 
 void Geometry::updateUniformDescriptors(uint32_t imageIndex) {
@@ -119,12 +119,12 @@ void Geometry::updateUniformDescriptors(uint32_t imageIndex) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Geometry::createDepthImage() {
-  depth.format = resources->findSupportedFormat(
+  depth.format = core->resources->findSupportedFormat(
       {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
       VK_IMAGE_TILING_OPTIMAL,
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
-  resources->createImage(
+  core->resources->createImage(
       core->swapchain.extent.width,
       core->swapchain.extent.height,
       depth.format,
@@ -133,15 +133,15 @@ void Geometry::createDepthImage() {
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
       depth.image, depth.memory);
 
-  depth.view = resources->createImageView(
+  depth.view = core->resources->createImageView(
       depth.image,
       depth.format,
       VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 void Geometry::destroyDepthImage() {
-  resources->destroyImageView(depth.view);
-  resources->destroyImage(depth.image, depth.memory);
+  core->resources->destroyImageView(depth.view);
+  core->resources->destroyImage(depth.image, depth.memory);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -336,7 +336,7 @@ void Geometry::createDescriptorLayouts() {
 void Geometry::createDescriptorSets() {
   descriptor.sets.resize(target.views.size());
   for (size_t i = 0; i < target.views.size(); ++i)
-    descriptor.sets[i] = resources->createDesciptorSet(descriptor.layouts[0]);
+    descriptor.sets[i] = core->resources->createDesciptorSet(descriptor.layouts[0]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////

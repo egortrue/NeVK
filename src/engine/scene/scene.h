@@ -2,10 +2,10 @@
 
 // Внутренние библиотеки
 #include "core.h"
-#include "commands.h"
-#include "resources.h"
-#include "object.h"
-#include "camera.h"
+#include "objects/object.h"
+#include "objects/camera.h"
+#include "resources/textures.h"
+#include "resources/models.h"
 
 // Стандартные библиотеки
 #include <list>
@@ -16,7 +16,7 @@ class Scene {
  public:
   typedef Scene* Manager;
 
-  Scene(Core::Manager, Commands::Manager, Resources::Manager);
+  Scene(Core::Manager);
   ~Scene();
 
   uint32_t currentObject = 0;
@@ -29,8 +29,10 @@ class Scene {
 
  private:
   Core::Manager core;
-  Commands::Manager commands;
-  Resources::Manager resources;
+
+  Camera::Manager camera;
+  void initCamera();
+  void destroyCamera();
 
   Textures::Manager textures;
   void initTextures();
@@ -39,8 +41,4 @@ class Scene {
   Models::Manager models;
   void initModels();
   void destroyModels();
-
-  Camera::Manager camera;
-  void initCamera();
-  void destroyCamera();
 };

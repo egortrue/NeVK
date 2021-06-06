@@ -1,8 +1,8 @@
 #pragma once
 
 // Внутренние библиотеки
-#include "models.h"
-#include "textures.h"
+#include "resources/textures.h"
+#include "resources/models.h"
 
 class Object {
  public:
@@ -28,7 +28,6 @@ class Object {
 class PhysicalObject : public Object {
  public:
   typedef PhysicalObject* Instance;
-
-  Models::Instance model;
   Textures::Instance textures;
+  Models::Instance model;
 };

@@ -4,16 +4,16 @@
 #include "core.h"
 
 // Стандартные библиотеки
+#include <stdexcept>
 #include <vector>
 
+class Core;
+
 class Resources {
- private:
+ public:
   Core::Manager core;
 
- public:
-  typedef Resources* Manager;
-
-  explicit Resources(Core::Manager);
+  explicit Resources(Core::Manager core);
   ~Resources();
 
   //=========================================================================

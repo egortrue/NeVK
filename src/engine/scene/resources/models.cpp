@@ -5,16 +5,15 @@
 
 #include "models.h"
 
-Models::Models(Commands::Manager commands, Resources::Manager resources, Textures::Manager textures) {
-  this->commands = commands;
-  this->resources = resources;
+Models::Models(Core::Manager core, Textures::Manager textures) {
+  this->core = core;
   this->textures = textures;
 }
 
 Models::~Models() {
   for (auto model : handlers) {
     for (auto shape : model->shapes)
-      resources->destroyBuffer(shape->vertexBuffer, shape->vertexBufferMemory);
+      core->resources->destroyBuffer(shape->vertexBuffer, shape->vertexBufferMemory);
     delete model;
   }
 }
@@ -73,7 +72,7 @@ void Models::destroy(const std::string& name) {
 
   Instance model = handlers[el->second];
   for (auto shape : model->shapes)
-    resources->destroyBuffer(shape->vertexBuffer, shape->vertexBufferMemory);
+    core->resources->destroyBuffer(shape->vertexBuffer, shape->vertexBufferMemory);
   handlers.erase(handlers.begin() + el->second);
   delete model;
   idList.erase(el);
@@ -142,13 +141,13 @@ void Models::parseData(Instance model, tinyobj::ObjReader& reader) {
 
     // Отправка данных на устройство
     VkDeviceSize size = bufferData.size() * sizeof(float);
-    resources->createBuffer(
+    core->resources->createBuffer(
         size,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         shapeData->vertexBuffer, shapeData->vertexBufferMemory);
 
-    commands->copyDataToBuffer(
+    core->commands->copyDataToBuffer(
         bufferData.data(),
         shapeData->vertexBuffer,
         size);

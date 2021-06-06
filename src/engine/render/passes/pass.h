@@ -2,9 +2,7 @@
 
 // Внутренние библиотеки
 #include "core.h"
-#include "commands.h"
-#include "resources.h"
-#include "shaders.h"
+#include "shaders/shaders.h"
 
 // Стандартные библиотеки
 #include <array>
@@ -14,8 +12,6 @@
 class Pass {
  public:
   Core::Manager core;
-  Commands::Manager commands;
-  Resources::Manager resources;
 
   virtual void init();
   virtual void destroy();

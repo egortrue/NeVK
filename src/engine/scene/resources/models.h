@@ -5,9 +5,8 @@
 #include <glm/gtx/compatibility.hpp>
 
 // Внутренние библиотеки
-#include "commands.h"
-#include "resources.h"
-#include "textures.h"
+#include "core.h"
+#include "resources/textures.h"
 
 // Стандартные библиотеки
 #include <iostream>
@@ -44,15 +43,14 @@ class Models {
   } * Instance;
 
  private:
-  Commands::Manager commands;
-  Resources::Manager resources;
+  Core::Manager core;
   Textures::Manager textures;
 
   std::vector<Instance> handlers;
   std::unordered_map<std::string, uint32_t> idList;
 
  public:
-  Models(Commands::Manager, Resources::Manager, Textures::Manager);
+  Models(Core::Manager, Textures::Manager);
   ~Models();
 
   Instance load(const std::string& name);

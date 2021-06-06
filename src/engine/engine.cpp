@@ -2,8 +2,6 @@
 
 Engine::Engine(Window::Manager window) : window(window) {
   initCore();
-  initResources();
-  initCommands();
   initScene();
   initRender();
 }
@@ -12,8 +10,6 @@ Engine::~Engine() {
   vkDeviceWaitIdle(core->device);
   destroyRender();
   destroyScene();
-  destroyCommands();
-  destroyResources();
   destroyCore();
 }
 
@@ -21,32 +17,37 @@ Engine::~Engine() {
 
 void Engine::initCore() {
   core = new Core();
+  {
+    // Расширения экземпляра
+    uint32_t extensionsCount = 0;
+    std::vector<const char*> extensions;
+    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
+    for (uint32_t i = 0; i < extensionsCount; i++)
+      extensions.push_back(glfwExtensions[i]);
+    core->setInstanceExtensions(extensions);
+    core->init();
 
-  // Расширения экземпляра
-  uint32_t extensionsCount = 0;
-  std::vector<const char*> extensions;
-  const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
-  for (uint32_t i = 0; i < extensionsCount; i++)
-    extensions.push_back(glfwExtensions[i]);
+    // Поверхность вывода изображений
+    if (glfwCreateWindowSurface(core->instance, window->instance, nullptr, &core->surface.handler) != VK_SUCCESS)
+      throw std::runtime_error("ERROR: Failed to create window surface!");
+    int width, height;
+    glfwGetFramebufferSize(window->instance, &width, &height);
+    window->width = width;
+    window->height = height;
+    core->surface.width = width;
+    core->surface.height = height;
+    core->configure();
+  }
 
-  core->setInstanceExtensions(extensions);
-  core->init();
-
-  // Поверхность вывода изображений
-  if (glfwCreateWindowSurface(core->instance, window->instance, nullptr, &core->surface.handler) != VK_SUCCESS)
-    throw std::runtime_error("ERROR: Failed to create window surface!");
-  int width, height;
-  glfwGetFramebufferSize(window->instance, &width, &height);
-  window->width = width;
-  window->height = height;
-  core->surface.width = width;
-  core->surface.height = height;
-
-  core->configure();
+  // Ресурсы устройства и управление ими
+  core->resources = new Resources(core);
+  core->commands = new Commands(core);
 }
 
 void Engine::destroyCore() {
   if (core != nullptr) {
+    delete core->commands;
+    delete core->resources;
     core->destroy();
     delete core;
   }
@@ -54,30 +55,8 @@ void Engine::destroyCore() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Engine::initResources() {
-  resources = new Resources(core);
-}
-
-void Engine::destroyResources() {
-  if (resources != nullptr)
-    delete resources;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void Engine::initCommands() {
-  commands = new Commands(core, resources);
-}
-
-void Engine::destroyCommands() {
-  if (commands != nullptr)
-    delete commands;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 void Engine::initScene() {
-  scene = new Scene(core, commands, resources);
+  scene = new Scene(core);
 }
 
 void Engine::destroyScene() {
@@ -92,7 +71,7 @@ Scene::Manager Engine::getScene() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Engine::initRender() {
-  render = new Render(window, core, resources, commands, scene);
+  render = new Render(window, core, scene);
 }
 
 void Engine::destroyRender() {

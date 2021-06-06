@@ -104,14 +104,16 @@ set(LIBRARY_RENDER_SOURCES
 
     ${LIBRARY_RENDER_PATH}/passes/pass.h
     ${LIBRARY_RENDER_PATH}/passes/pass.cpp
+
     ${LIBRARY_RENDER_PATH}/passes/graphics/graphics.h
     ${LIBRARY_RENDER_PATH}/passes/graphics/graphics.cpp
     ${LIBRARY_RENDER_PATH}/passes/graphics/geometry.h
     ${LIBRARY_RENDER_PATH}/passes/graphics/geometry.cpp
+
     ${LIBRARY_RENDER_PATH}/passes/graphics/postprocessing/fullscreen.h
     ${LIBRARY_RENDER_PATH}/passes/graphics/postprocessing/fullscreen.cpp
-    ${LIBRARY_RENDER_PATH}/passes/graphics/gui.h
-    ${LIBRARY_RENDER_PATH}/passes/graphics/gui.cpp
+    ${LIBRARY_RENDER_PATH}/passes/graphics/postprocessing/gui.h
+    ${LIBRARY_RENDER_PATH}/passes/graphics/postprocessing/gui.cpp
 )
 add_library(${LIBRARY_RENDER_NAME} OBJECT ${LIBRARY_RENDER_SOURCES})
 target_include_directories(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_RENDER_PATH})
@@ -199,7 +201,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${LIBRARY_WINDOW_NAME}
     ${LIBRARY_CORE_NAME}
     ${LIBRARY_SCENE_NAME}
+    ${LIBRARY_SHADERS_NAME}
     ${LIBRARY_RENDER_NAME}
+    ${LIBRARY_ENGINE_NAME}
+
+    ${LIBRARY_IMGUI_NAME}
 )
 
 # Копирование шейдеров в рабочую директорию
