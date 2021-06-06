@@ -293,7 +293,7 @@ void Render::draw() {
 
   // Получим объекты сцены
   auto object = scene->objects[scene->currentObject];
-  //object->setRotation({object->transform.rotation.x, deltaGlobal * 100.0f, object->transform.rotation.z});
+  object->setRotation({object->transform.rotation.x, deltaGlobal * 100.0f, object->transform.rotation.z});
   object->update();
 
   auto camera = scene->getCamera();
