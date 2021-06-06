@@ -93,8 +93,7 @@ void Render::initGeometry() {
   geometry.pass->shader.name = std::string("shaders/geometry.hlsl");
 
   // Дескрипторы прохода рендера
-  for (auto object : scene->objects)
-    geometry.pass->textureImageViews.push_back(object->texture->view);
+  scene->getTextures()->getViews(geometry.pass->textureImageViews);
   geometry.pass->textureSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_REPEAT);
 
   // Цель вывода прохода рендера

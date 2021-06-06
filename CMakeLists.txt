@@ -120,6 +120,7 @@ target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC ${LIBRARY_MODELS_PATH})
 target_link_libraries(${LIBRARY_MODELS_NAME} PUBLIC
     ${LIBRARY_COMMANDS_NAME} 
     ${LIBRARY_RESOURCES_NAME}
+    ${LIBRARY_TEXTURES_NAME}
 )
 
 ###############

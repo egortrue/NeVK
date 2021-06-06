@@ -66,19 +66,21 @@ void Geometry::record(uint32_t index, VkCommandBuffer cmd) {
   vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.layout, 0, 1, &descriptor.sets[index], 0, nullptr);
 
   int i = 0;
+  auto textures = scene->getTextures();
   for (auto object : scene->objects) {
-    // Буферы вершин
-    VkBuffer vertexBuffers[] = {object->model->vertexBuffer};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(cmd, object->model->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
     instance.objectModel = object->modelMatrix;
-    instance.objectTexture = i++;
-    vkCmdPushConstants(cmd, pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(instance_t), &instance);
+    for (auto shape : object->model->shapes) {
+      // Буферы вершин
+      VkBuffer vertexBuffers[] = {shape->vertexBuffer};
+      VkDeviceSize offsets[] = {0};
+      vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
 
-    // Операция рендера
-    vkCmdDrawIndexed(cmd, object->model->verticesCount, 1, 0, 0, 0);
+      instance.objectTexture = shape->diffuseTextureID;
+      vkCmdPushConstants(cmd, pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(instance_t), &instance);
+
+      // Операция рендера
+      vkCmdDraw(cmd, shape->verticesCount, 1, 0, 0);
+    }
   }
 
   vkCmdEndRenderPass(cmd);

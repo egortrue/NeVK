@@ -55,10 +55,15 @@ float4 fragmentMain(PS_INPUT fragment) : SV_TARGET
     float4 currImageColor = currImage.Load(int3(currPos, 0));
     float4 prevImageColor = prevImage.Load(int3(currPos, 0));
 
-    float3 finalColor = float3(0, 0, 0);
+    float3 finalColor = currImageColor.rgb;
+
+    // Смешивание текущего и предыдущего кадров
+    // finalColor += prevImageColor.rgb;
+    // finalColor /= 2.0f;
+
     // Субпиксельное дрожание 
     {
-        const float step = 2.0f;
+        const float step = 1.2f;
         const float2 offset[8] = { 
             {-step, -step}, 
             {-step,  step},
@@ -79,16 +84,14 @@ float4 fragmentMain(PS_INPUT fragment) : SV_TARGET
 
             // Смотрим разницу
             float3 diffColor = abs(neighborColor - centerColor);
-            if (length(diffColor) < 0.35f)
+            if (length(diffColor.yz) < 0.35f) 
                 neighborColor = centerColor;
             finalColor += neighborColor;
         }
         finalColor /= 8.0f;
     }
-    
-    // Смешивание текущего и предыдущего кадров
-    finalColor += prevImageColor.rgb;
-    finalColor /= 2.0f;
+
 
     return float4(finalColor, 1.0f);
+    //return currImageColor;
 }

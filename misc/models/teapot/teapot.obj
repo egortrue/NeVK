@@ -2,7 +2,7 @@
 # teapot, extended to include tangents per vertex, specified by vx and vy
 #
 #
-mtllib teapot.605.mtl
+mtllib teapot.mtl
 v 0.067046 0.891365 0.899906
 v 1.7e-05 0.877831 0.894939
 v 0.000246 0.877585 0.715369

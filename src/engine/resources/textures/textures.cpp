@@ -19,14 +19,14 @@ Textures::~Textures() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Textures::Instance Textures::loadTexture(const std::string& name) {
+Textures::Instance Textures::load(const std::string& name) {
   // Найдем уже загруженную текстуру
   auto el = idList.find(name);
   if (el != idList.end())
     return handlers[el->second];
 
   // Запишем новую текстуру
-  texture_t* texture = createTexture(name);
+  texture_t* texture = create(name);
   uint32_t id = static_cast<uint32_t>(handlers.size());
   idList.insert(std::make_pair(name, id));
   handlers.push_back(texture);
@@ -35,16 +35,29 @@ Textures::Instance Textures::loadTexture(const std::string& name) {
   return handlers[id];
 }
 
-Textures::Instance Textures::getTexture(const std::string& name) {
+Textures::Instance Textures::get(const std::string& name) {
   auto el = idList.find(name);
   if (el == idList.end())
     throw std::runtime_error(std::string("ERROR: Failed to get texture: ") + name);
   return handlers[el->second];
 }
 
+void Textures::getViews(std::vector<VkImageView>& views) {
+  views.clear();
+  for (auto texture : handlers)
+    views.push_back(texture->view);
+}
+
+uint32_t Textures::getID(const std::string& name) {
+  auto el = idList.find(name);
+  if (el != idList.end())
+    return el->second;
+  throw std::runtime_error(std::string("ERROR: Failed to get texture: ") + name);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Textures::Instance Textures::createTexture(const std::string& name) {
+Textures::Instance Textures::create(const std::string& name) {
   Instance texture = new texture_t;
 
   // Получим изображение в виде набора пикселов
@@ -77,7 +90,7 @@ Textures::Instance Textures::createTexture(const std::string& name) {
   return texture;
 }
 
-void Textures::destroyTexture(const std::string& name) {
+void Textures::destroy(const std::string& name) {
   auto el = idList.find(name);
   if (el == idList.end())
     throw std::runtime_error(std::string("ERROR: Failed to destroy texture: ") + name);
