@@ -41,87 +41,18 @@ target_include_directories(${LIBRARY_WINDOW_NAME} PUBLIC ${LIBRARY_WINDOW_PATH})
 set(LIBRARY_CORE_NAME core)
 set(LIBRARY_CORE_PATH src/engine/core)
 set(LIBRARY_CORE_SOURCES
-    ${LIBRARY_CORE_PATH}/validation.h
     ${LIBRARY_CORE_PATH}/core.h
     ${LIBRARY_CORE_PATH}/core.cpp
+    ${LIBRARY_CORE_PATH}/validation.h
+
+    ${LIBRARY_CORE_PATH}/resources/resources.h
+    ${LIBRARY_CORE_PATH}/resources/resources.cpp
+
+    ${LIBRARY_CORE_PATH}/commands/commands.h
+    ${LIBRARY_CORE_PATH}/commands/commands.cpp
 )
 add_library(${LIBRARY_CORE_NAME} OBJECT ${LIBRARY_CORE_SOURCES})
 target_include_directories(${LIBRARY_CORE_NAME} PUBLIC ${LIBRARY_CORE_PATH})
-
-###############
-# RESOURCES
-###############
-set(LIBRARY_RESOURCES_NAME resources)
-set(LIBRARY_RESOURCES_PATH src/engine/resources)
-set(LIBRARY_RESOURCES_SOURCES
-    ${LIBRARY_RESOURCES_PATH}/resources.h
-    ${LIBRARY_RESOURCES_PATH}/resources.cpp
-)
-add_library(${LIBRARY_RESOURCES_NAME} OBJECT ${LIBRARY_RESOURCES_SOURCES})
-target_include_directories(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_RESOURCES_PATH})
-target_link_libraries(${LIBRARY_RESOURCES_NAME} PUBLIC ${LIBRARY_CORE_NAME})
-
-###############
-# COMMANDS
-###############
-set(LIBRARY_COMMANDS_NAME commands)
-set(LIBRARY_COMMANDS_PATH src/engine/resources/commands)
-set(LIBRARY_COMMANDS_SOURCES
-    ${LIBRARY_COMMANDS_PATH}/commands.h
-    ${LIBRARY_COMMANDS_PATH}/commands.cpp
-)
-add_library(${LIBRARY_COMMANDS_NAME} OBJECT ${LIBRARY_COMMANDS_SOURCES})
-target_include_directories(${LIBRARY_COMMANDS_NAME} PUBLIC ${LIBRARY_COMMANDS_PATH})
-target_link_libraries(${LIBRARY_COMMANDS_NAME} PUBLIC 
-    ${LIBRARY_CORE_NAME}
-    ${LIBRARY_RESOURCES_NAME}
-)
-
-###############
-# SHADERS
-###############
-set(LIBRARY_SHADERS_NAME shaders)
-set(LIBRARY_SHADERS_PATH src/engine/resources/shaders)
-set(LIBRARY_SHADERS_SOURCES
-    ${LIBRARY_SHADERS_PATH}/shaders.h
-    ${LIBRARY_SHADERS_PATH}/shaders.cpp
-)
-add_library(${LIBRARY_SHADERS_NAME} OBJECT ${LIBRARY_SHADERS_SOURCES})
-target_include_directories(${LIBRARY_SHADERS_NAME} PUBLIC ${LIBRARY_SHADERS_PATH})
-target_link_libraries(${LIBRARY_SHADERS_NAME} PUBLIC ${LIBRARY_CORE_NAME})
-
-###############
-# TEXTURES
-###############
-set(LIBRARY_TEXTURES_NAME textures)
-set(LIBRARY_TEXTURES_PATH src/engine/resources/textures)
-set(LIBRARY_TEXTURES_SOURCES
-    ${LIBRARY_TEXTURES_PATH}/textures.h
-    ${LIBRARY_TEXTURES_PATH}/textures.cpp
-)
-add_library(${LIBRARY_TEXTURES_NAME} OBJECT ${LIBRARY_TEXTURES_SOURCES})
-target_include_directories(${LIBRARY_TEXTURES_NAME} PUBLIC ${LIBRARY_TEXTURES_PATH})
-target_link_libraries(${LIBRARY_TEXTURES_NAME} PUBLIC
-    ${LIBRARY_COMMANDS_NAME} 
-    ${LIBRARY_RESOURCES_NAME}
-)
-
-###############
-# MODELS
-###############
-set(LIBRARY_MODELS_NAME models)
-set(LIBRARY_MODELS_PATH src/engine/resources/models)
-set(LIBRARY_MODELS_SOURCES
-    ${LIBRARY_MODELS_PATH}/models.h
-    ${LIBRARY_MODELS_PATH}/models.cpp
-)
-add_library(${LIBRARY_MODELS_NAME} OBJECT ${LIBRARY_MODELS_SOURCES})
-target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC ${LIBRARY_MODELS_PATH})
-target_link_libraries(${LIBRARY_MODELS_NAME} PUBLIC
-    ${LIBRARY_COMMANDS_NAME} 
-    ${LIBRARY_RESOURCES_NAME}
-    ${LIBRARY_TEXTURES_NAME}
-)
 
 ###############
 # SCENE
@@ -129,23 +60,35 @@ target_link_libraries(${LIBRARY_MODELS_NAME} PUBLIC
 set(LIBRARY_SCENE_NAME scene)
 set(LIBRARY_SCENE_PATH src/engine/scene)
 set(LIBRARY_SCENE_SOURCES
-    ${LIBRARY_SCENE_PATH}/object.h
-    ${LIBRARY_SCENE_PATH}/object.cpp
-    ${LIBRARY_SCENE_PATH}/camera.h
-    ${LIBRARY_SCENE_PATH}/camera.cpp
     ${LIBRARY_SCENE_PATH}/scene.h
     ${LIBRARY_SCENE_PATH}/scene.cpp
+
+    ${LIBRARY_SCENE_PATH}/resources/textures.h
+    ${LIBRARY_SCENE_PATH}/resources/textures.cpp
+    ${LIBRARY_SCENE_PATH}/resources/models.h
+    ${LIBRARY_SCENE_PATH}/resources/models.cpp
+
+    ${LIBRARY_SCENE_PATH}/objects/object.h
+    ${LIBRARY_SCENE_PATH}/objects/object.cpp
+    ${LIBRARY_SCENE_PATH}/objects/camera.h
+    ${LIBRARY_SCENE_PATH}/objects/camera.cpp
 )
 add_library(${LIBRARY_SCENE_NAME} OBJECT ${LIBRARY_SCENE_SOURCES})
 target_include_directories(${LIBRARY_SCENE_NAME} PUBLIC ${LIBRARY_SCENE_PATH})
-target_link_libraries(${LIBRARY_SCENE_NAME} PUBLIC
-    ${LIBRARY_CORE_NAME}
-    ${LIBRARY_COMMANDS_NAME} 
-    ${LIBRARY_RESOURCES_NAME}
-    ${LIBRARY_SHADERS_NAME}
-    ${LIBRARY_TEXTURES_NAME}
-    ${LIBRARY_MODELS_NAME}
+target_link_libraries(${LIBRARY_SCENE_NAME} PUBLIC ${LIBRARY_CORE_NAME})
+
+###############
+# SHADERS
+###############
+set(LIBRARY_SHADERS_NAME shaders)
+set(LIBRARY_SHADERS_PATH src/engine/render/shaders)
+set(LIBRARY_SHADERS_SOURCES
+    ${LIBRARY_SHADERS_PATH}/shaders.h
+    ${LIBRARY_SHADERS_PATH}/shaders.cpp
 )
+add_library(${LIBRARY_SHADERS_NAME} OBJECT ${LIBRARY_SHADERS_SOURCES})
+target_include_directories(${LIBRARY_SHADERS_NAME} PUBLIC ${LIBRARY_SHADERS_PATH})
+target_link_libraries(${LIBRARY_SHADERS_NAME} PUBLIC ${LIBRARY_CORE_NAME})
 
 ###############
 # RENDER
@@ -173,14 +116,10 @@ set(LIBRARY_RENDER_SOURCES
 add_library(${LIBRARY_RENDER_NAME} OBJECT ${LIBRARY_RENDER_SOURCES})
 target_include_directories(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_RENDER_PATH})
 target_link_libraries(${LIBRARY_RENDER_NAME} PUBLIC 
-    ${LIBRARY_CORE_NAME}
-    ${LIBRARY_COMMANDS_NAME} 
-    ${LIBRARY_RESOURCES_NAME}
-    ${LIBRARY_SHADERS_NAME}
-    ${LIBRARY_TEXTURES_NAME}
-    ${LIBRARY_MODELS_NAME}
-    ${LIBRARY_SCENE_NAME}
     ${LIBRARY_WINDOW_NAME}
+    ${LIBRARY_CORE_NAME}
+    ${LIBRARY_SCENE_NAME}
+    ${LIBRARY_SHADERS_NAME}
 )
 
 ###############
@@ -195,15 +134,10 @@ set(LIBRARY_ENGINE_SOURCES
 add_library(${LIBRARY_ENGINE_NAME} OBJECT ${LIBRARY_ENGINE_SOURCES})
 target_include_directories(${LIBRARY_ENGINE_NAME} PUBLIC ${LIBRARY_ENGINE_PATH})
 target_link_libraries(${LIBRARY_ENGINE_NAME} PUBLIC 
+    ${LIBRARY_WINDOW_NAME}
     ${LIBRARY_CORE_NAME}
-    ${LIBRARY_COMMANDS_NAME} 
-    ${LIBRARY_RESOURCES_NAME}
-    ${LIBRARY_SHADERS_NAME}
-    ${LIBRARY_TEXTURES_NAME}
-    ${LIBRARY_MODELS_NAME}
     ${LIBRARY_SCENE_NAME}
     ${LIBRARY_RENDER_NAME}
-    ${LIBRARY_WINDOW_NAME}
 )
 
 #===============================================================================================
@@ -228,13 +162,13 @@ target_include_directories(${LIBRARY_SHADERS_NAME} PUBLIC external/slang/include
 target_link_libraries(${LIBRARY_SHADERS_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/slang.lib")
 
 # STB (Загрузка изображений)
-target_include_directories(${LIBRARY_TEXTURES_NAME} PUBLIC external/stb)
+target_include_directories(${LIBRARY_SCENE_NAME} PUBLIC external/stb)
 
 # TOL (Загрузка объектов)
-target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/tol)
+target_include_directories(${LIBRARY_SCENE_NAME} PUBLIC external/tol)
 
 # GLM (Работа с матрицами)
-target_include_directories(${LIBRARY_MODELS_NAME} PUBLIC external/glm)
+target_include_directories(${LIBRARY_SCENE_NAME} PUBLIC external/glm)
 
 # ImGUI (Пользовательский интерфейс)
 set(LIBRARY_IMGUI_NAME imgui)
@@ -262,17 +196,10 @@ target_link_libraries(${LIBRARY_RENDER_NAME} PUBLIC ${LIBRARY_IMGUI_NAME})
 add_executable(${PROJECT_NAME} src/app/app.cpp)
 target_include_directories(${PROJECT_NAME} PUBLIC src/)
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-    ${LIBRARY_CORE_NAME}
-    ${LIBRARY_COMMANDS_NAME} 
-    ${LIBRARY_RESOURCES_NAME}
-    ${LIBRARY_SHADERS_NAME}
-    ${LIBRARY_TEXTURES_NAME}
-    ${LIBRARY_MODELS_NAME}
-    ${LIBRARY_SCENE_NAME}
-    ${LIBRARY_RENDER_NAME}    
-    ${LIBRARY_ENGINE_NAME}
     ${LIBRARY_WINDOW_NAME}
-    ${LIBRARY_IMGUI_NAME}
+    ${LIBRARY_CORE_NAME}
+    ${LIBRARY_SCENE_NAME}
+    ${LIBRARY_RENDER_NAME}
 )
 
 # Копирование шейдеров в рабочую директорию
@@ -282,7 +209,7 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
     "${OUTPUT_DIRECTORY}/shaders"
 )
 
-# Копирование текстур в рабочую директорию
+# Копирование моделей и текстур в рабочую директорию
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E create_symlink
     "${CMAKE_SOURCE_DIR}/misc"
