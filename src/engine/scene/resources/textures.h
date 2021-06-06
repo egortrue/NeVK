@@ -5,8 +5,6 @@
 
 // Внутренние библиотеки
 #include "core.h"
-#include "commands.h"
-#include "resources.h"
 
 // Стандартные библиотеки
 #include <list>
@@ -28,14 +26,12 @@ class Textures {
 
  private:
   Core::Manager core;
-  Commands::Manager commands;
-  Resources::Manager resources;
 
   std::vector<Instance> handlers;
   std::unordered_map<std::string, uint32_t> idList;
 
  public:
-  Textures(Core::Manager, Commands::Manager, Resources::Manager);
+  explicit Textures(Core::Manager);
   ~Textures();
 
   Instance load(const std::string& name);

@@ -2,7 +2,6 @@
 
 // Внутренние библиотеки
 #include "core.h"
-#include "commands.h"
 
 // Стандартные библиотеки
 #include <vector>
@@ -27,14 +26,13 @@ class Frames {
 
  private:
   Core::Manager core;
-  Commands::Manager commands;
 
   std::vector<Instance> handlers;
   std::vector<VkFence> fences;
   std::vector<VkSemaphore> semaphores;
 
  public:
-  Frames(Core::Manager, Commands::Manager);
+  explicit Frames(Core::Manager);
   ~Frames();
 
   uint32_t currentFrameIndex;

@@ -3,16 +3,14 @@
 
 #include "textures.h"
 
-Textures::Textures(Core::Manager core, Commands::Manager commands, Resources::Manager resources) {
+Textures::Textures(Core::Manager core) {
   this->core = core;
-  this->commands = commands;
-  this->resources = resources;
 }
 
 Textures::~Textures() {
   for (auto texture : handlers) {
-    resources->destroyImageView(texture->view);
-    resources->destroyImage(texture->image, texture->memory);
+    core->resources->destroyImageView(texture->view);
+    core->resources->destroyImage(texture->image, texture->memory);
     delete texture;
   }
 }
@@ -67,7 +65,7 @@ Textures::Instance Textures::create(const std::string& name) {
     throw std::runtime_error(std::string("ERROR: Failed to load texture image: ") + name);
 
   // Создание изображения для хранения текстуры
-  resources->createImage(
+  core->resources->createImage(
       texture->width, texture->height,
       VK_FORMAT_R8G8B8A8_SRGB,
       VK_IMAGE_TILING_OPTIMAL,
@@ -76,13 +74,13 @@ Textures::Instance Textures::create(const std::string& name) {
       texture->image, texture->memory);
 
   // Заполнение изображения данными
-  commands->copyDataToImage(pixels, texture->image, texture->size, texture->width, texture->height);
+  core->commands->copyDataToImage(pixels, texture->image, texture->size, texture->width, texture->height);
 
   // Удалим сырые данные
   stbi_image_free(pixels);
 
   // Создание вида изображения
-  texture->view = resources->createImageView(
+  texture->view = core->resources->createImageView(
       texture->image,
       VK_FORMAT_R8G8B8A8_SRGB,
       VK_IMAGE_ASPECT_COLOR_BIT);
@@ -95,8 +93,8 @@ void Textures::destroy(const std::string& name) {
   if (el == idList.end())
     throw std::runtime_error(std::string("ERROR: Failed to destroy texture: ") + name);
   auto texture = handlers[el->second];
-  resources->destroyImageView(texture->view);
-  resources->destroyImage(texture->image, texture->memory);
+  core->resources->destroyImageView(texture->view);
+  core->resources->destroyImage(texture->image, texture->memory);
   handlers.erase(handlers.begin() + el->second);
   idList.erase(el);
   delete texture;

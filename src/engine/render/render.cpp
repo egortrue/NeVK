@@ -1,12 +1,8 @@
 #include "render.h"
 
-Render::Render(Window::Manager window, Core::Manager core,
-               Resources::Manager resources, Commands::Manager commands,
-               Scene::Manager scene) {
+Render::Render(Window::Manager window, Core::Manager core, Scene::Manager scene) {
   this->window = window;
   this->core = core;
-  this->resources = resources;
-  this->commands = commands;
   this->scene = scene;
 
   initShaders();
@@ -70,7 +66,7 @@ void Render::destroyShaders() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Render::initFrames() {
-  frames = new Frames(core, commands);
+  frames = new Frames(core);
 }
 
 void Render::destroyFrames() {
@@ -86,15 +82,13 @@ void Render::initGeometry() {
 
   // Основные параметры
   geometry.pass->core = core;
-  geometry.pass->resources = resources;
-  geometry.pass->commands = commands;
   geometry.pass->scene = scene;
   geometry.pass->shader.manager = shaders;
   geometry.pass->shader.name = std::string("shaders/geometry.hlsl");
 
   // Дескрипторы прохода рендера
   scene->getTextures()->getViews(geometry.pass->textureImageViews);
-  geometry.pass->textureSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_REPEAT);
+  geometry.pass->textureSampler = core->resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_REPEAT);
 
   // Цель вывода прохода рендера
   geometry.pass->target.format = geometry.data.format;
@@ -116,7 +110,7 @@ void Render::reinitGeometry() {
 }
 
 void Render::destroyGeometry() {
-  resources->destroyImageSampler(geometry.pass->textureSampler);
+  core->resources->destroyImageSampler(geometry.pass->textureSampler);
   destroyGeometryData();
   geometry.pass->destroy();
   delete geometry.pass;
@@ -132,17 +126,17 @@ void Render::createGeometryData() {
   geometry.data.memory.resize(count);
   geometry.data.views.resize(count);
   for (uint32_t i = 0; i < count; ++i) {
-    resources->createImage(
+    core->resources->createImage(
         geometry.data.width, geometry.data.height, geometry.data.format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         geometry.data.images[i], geometry.data.memory[i]);
-    geometry.data.views[i] = resources->createImageView(
+    geometry.data.views[i] = core->resources->createImageView(
         geometry.data.images[i],
         core->swapchain.format,
         VK_IMAGE_ASPECT_COLOR_BIT);
-    commands->changeImageLayout(
+    core->commands->changeImageLayout(
         nullptr,
         geometry.data.images[i],
         VK_IMAGE_LAYOUT_UNDEFINED,
@@ -152,66 +146,84 @@ void Render::createGeometryData() {
 
 void Render::destroyGeometryData() {
   for (uint32_t i = 0; i < geometry.data.images.size(); ++i) {
-    resources->destroyImageView(geometry.data.views[i]);
-    resources->destroyImage(geometry.data.images[i], geometry.data.memory[i]);
+    core->resources->destroyImageView(geometry.data.views[i]);
+    core->resources->destroyImage(geometry.data.images[i], geometry.data.memory[i]);
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Render::initPostProcess() {
+  auto origin = new Fullscreen();
   auto TAA = new Fullscreen();
+
+  postprocess.origin = origin;
   postprocess.TAA = TAA;
-  {
+
+  std::array<Fullscreen::Pass, 2> passes = {
+      postprocess.origin,
+      postprocess.TAA,
+  };
+
+  for (auto& pass : passes) {
     // Основные параметры
-    TAA->core = core;
-    TAA->resources = resources;
-    TAA->commands = commands;
-    TAA->shader.manager = shaders;
-    TAA->shader.name = std::string("shaders/taa.hlsl");
+    pass->core = core;
+    pass->shader.manager = shaders;
 
     // Дескрипторы прохода рендера
-    TAA->colorImageViews = geometry.data.views;
-    TAA->colorImageSampler = resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+    pass->colorImageViews = geometry.data.views;
+    pass->colorImageSampler = core->resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 
     // Указание изображений, в которые будет идти результат
-    TAA->target.width = core->swapchain.extent.width;
-    TAA->target.height = core->swapchain.extent.height;
-    TAA->target.format = core->swapchain.format;
-    TAA->target.views = resources->createImageViews(
+    pass->target.width = core->swapchain.extent.width;
+    pass->target.height = core->swapchain.extent.height;
+    pass->target.format = core->swapchain.format;
+    pass->target.views = core->resources->createImageViews(
         core->swapchain.images,
         core->swapchain.format,
         VK_IMAGE_ASPECT_COLOR_BIT);
-
-    TAA->init();
   }
+
+  origin->shader.name = std::string("shaders/fullscreen.hlsl");
+  origin->init();
+
+  TAA->shader.name = std::string("shaders/taa.hlsl");
+  TAA->init();
 }
 
 void Render::destroyPostProcess() {
-  auto TAA = postprocess.TAA;
-  {
-    resources->destroyImageSampler(TAA->colorImageSampler);
-    resources->destroyImageViews(TAA->target.views);
-    TAA->destroy();
-    delete TAA;
+  std::array<Fullscreen::Pass, 2> passes = {
+      postprocess.origin,
+      postprocess.TAA,
+  };
+
+  for (auto pass : passes) {
+    core->resources->destroyImageSampler(pass->colorImageSampler);
+    core->resources->destroyImageViews(pass->target.views);
+    pass->destroy();
+    delete pass;
   }
 }
 
 void Render::reinitPostProcess() {
-  auto TAA = postprocess.TAA;
-  {
-    TAA->colorImageViews = geometry.data.views;
-    TAA->target.width = core->swapchain.extent.width;
-    TAA->target.height = core->swapchain.extent.height;
-    TAA->target.format = core->swapchain.format;
+  std::array<Fullscreen::Pass, 2> passes = {
+      postprocess.origin,
+      postprocess.TAA,
+  };
 
-    resources->destroyImageViews(TAA->target.views);
-    TAA->target.views = resources->createImageViews(
+  for (auto pass : passes) {
+    pass->colorImageViews = geometry.data.views;
+    pass->target.width = core->swapchain.extent.width;
+    pass->target.height = core->swapchain.extent.height;
+    pass->target.format = core->swapchain.format;
+
+    core->resources->destroyImageViews(pass->target.views);
+    pass->target.views = core->resources->createImageViews(
         core->swapchain.images,
         core->swapchain.format,
         VK_IMAGE_ASPECT_COLOR_BIT);
 
-    TAA->resize();
+    pass->resize();
   }
 }
 
@@ -222,8 +234,6 @@ void Render::initInterface() {
 
   // Основные параметры
   interface.pass->core = core;
-  interface.pass->resources = resources;
-  interface.pass->commands = commands;
   interface.pass->window = window;
   interface.pass->scene = scene;
 
@@ -231,7 +241,7 @@ void Render::initInterface() {
   interface.pass->target.width = core->swapchain.extent.width;
   interface.pass->target.height = core->swapchain.extent.height;
   interface.pass->target.format = core->swapchain.format;
-  interface.pass->target.views = resources->createImageViews(
+  interface.pass->target.views = core->resources->createImageViews(
       core->swapchain.images,
       core->swapchain.format,
       VK_IMAGE_ASPECT_COLOR_BIT);
@@ -244,8 +254,8 @@ void Render::reinitInterface() {
   interface.pass->target.height = core->swapchain.extent.height;
   interface.pass->target.format = core->swapchain.format;
 
-  resources->destroyImageViews(interface.pass->target.views);
-  interface.pass->target.views = resources->createImageViews(
+  core->resources->destroyImageViews(interface.pass->target.views);
+  interface.pass->target.views = core->resources->createImageViews(
       core->swapchain.images,
       core->swapchain.format,
       VK_IMAGE_ASPECT_COLOR_BIT);
@@ -253,7 +263,7 @@ void Render::reinitInterface() {
 }
 
 void Render::destroyInterface() {
-  resources->destroyImageViews(interface.pass->target.views);
+  core->resources->destroyImageViews(interface.pass->target.views);
   interface.pass->destroy();
   delete interface.pass;
 }
@@ -310,7 +320,7 @@ void Render::draw() {
   // Подготовка буфера команд
 
   VkCommandBuffer cmd = targetFrame->cmdBuffer;
-  commands->resetCommandBuffer(cmd);
+  core->commands->resetCommandBuffer(cmd);
 
   VkCommandBufferBeginInfo cmdBeginInfo = {};
   cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -325,13 +335,16 @@ void Render::draw() {
 
   geometry.pass->record(swapchainImageIndex, cmd);
 
-  commands->changeImageLayout(
+  core->commands->changeImageLayout(
       cmd,
       geometry.data.images[swapchainImageIndex],
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-  postprocess.TAA->record(swapchainImageIndex, cmd);
+  if (!interface.pass->options.taaON)
+    postprocess.origin->record(swapchainImageIndex, cmd);
+  else
+    postprocess.TAA->record(swapchainImageIndex, cmd);
   interface.pass->record(swapchainImageIndex, cmd);
 
   //=========================================================================

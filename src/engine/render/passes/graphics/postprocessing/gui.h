@@ -1,9 +1,10 @@
 #pragma once
 
 // Внутренние библиотеки
-#include "graphics.h"
 #include "window.h"
 #include "scene.h"
+
+#include "passes/graphics/graphics.h"
 
 // Сторонние библиотеки
 #include "imgui.h"
@@ -35,12 +36,16 @@ class GUI : public GraphicsPass {
 
  public:
   struct {
+    bool menuHovered;
+    bool taaON;
+  } options;
+
+ private:
+  struct {
     ImGuiIO io;
     ImGuiData data;
     ImGuiInit init;
     ImGuiStyle style;
-
-    bool menuHovered;
   } imgui;
 
   enum {
@@ -50,7 +55,6 @@ class GUI : public GraphicsPass {
     WINDOW_AUTOSIZE = ImGuiWindowFlags_AlwaysAutoResize,
   };
 
- private:
   void updateUI();
 
   //=========================================================================

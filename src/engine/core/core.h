@@ -17,9 +17,14 @@
 #include <optional>
 #include <set>
 
+class Resources;
+class Commands;
+
 class Core {
  public:
   typedef Core* Manager;
+  Resources* resources;  // Менеджер ресурсов - выделение и уничтожение буферов, изображений
+  Commands* commands;    // Менеджер команд - генерация и хранение базовых команд устройства
 
   void init();
   void configure();
@@ -129,3 +134,7 @@ class Core {
   };
   SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice);
 };
+
+// Внутренние библиотеки
+#include "resources/resources.h"
+#include "commands/commands.h"

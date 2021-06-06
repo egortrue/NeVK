@@ -58,8 +58,8 @@ float4 fragmentMain(PS_INPUT fragment) : SV_TARGET
     float3 finalColor = currImageColor.rgb;
 
     // Смешивание текущего и предыдущего кадров
-    // finalColor += prevImageColor.rgb;
-    // finalColor /= 2.0f;
+    finalColor += prevImageColor.rgb;
+    finalColor /= 2.0f;
 
     // Субпиксельное дрожание 
     {
@@ -88,9 +88,8 @@ float4 fragmentMain(PS_INPUT fragment) : SV_TARGET
                 neighborColor = centerColor;
             finalColor += neighborColor;
         }
-        finalColor /= 8.0f;
+        finalColor /= 9.0f;
     }
-
 
     return float4(finalColor, 1.0f);
     //return currImageColor;

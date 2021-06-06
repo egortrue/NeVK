@@ -1,8 +1,7 @@
 #include "commands.h"
 
-Commands::Commands(Core::Manager core, Resources::Manager resources) {
+Commands::Commands(Core::Manager core) {
   this->core = core;
-  this->resources = resources;
   this->singleTimeCommandBufferPool = createCommandBufferPool(true);
 }
 
@@ -210,7 +209,7 @@ void Commands::copyDataToImage(void* src, VkImage dst, VkDeviceSize size, uint32
   // Создание временного буфера на устройстве
   VkBuffer tmpBuffer;
   VkDeviceMemory tmpBufferMemory;
-  resources->createBuffer(
+  core->resources->createBuffer(
       size,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -234,14 +233,14 @@ void Commands::copyDataToImage(void* src, VkImage dst, VkDeviceSize size, uint32
   this->endSingleTimeCommands(cmd);
 
   // Уничтожим временный буфер
-  resources->destroyBuffer(tmpBuffer, tmpBufferMemory);
+  core->resources->destroyBuffer(tmpBuffer, tmpBufferMemory);
 }
 
 void Commands::copyDataToBuffer(void* src, VkBuffer dst, VkDeviceSize size) {
   // Создание временного буфера на устройстве
   VkBuffer tmpBuffer;
   VkDeviceMemory tmpBufferMemory;
-  resources->createBuffer(
+  core->resources->createBuffer(
       size,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -263,7 +262,7 @@ void Commands::copyDataToBuffer(void* src, VkBuffer dst, VkDeviceSize size) {
   this->endSingleTimeCommands(cmd);
 
   // Уничтожим временный буфер
-  resources->destroyBuffer(tmpBuffer, tmpBufferMemory);
+  core->resources->destroyBuffer(tmpBuffer, tmpBufferMemory);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
