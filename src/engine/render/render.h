@@ -72,8 +72,9 @@ class Render {
   // Постпроцессинг - улучшение изображения, добавление эффектов
 
   struct {
-    Fullscreen::Pass TAA;  // Temporal Anti-Aliasing
-    Fullscreen::Pass TM;   // Tone Maping
+    Fullscreen::Pass origin;  // Перевод в список показа
+    Fullscreen::Pass TAA;     // Temporal Anti-Aliasing
+    Fullscreen::Pass TM;      // Tone Maping
   } postprocess;
 
   void initPostProcess();

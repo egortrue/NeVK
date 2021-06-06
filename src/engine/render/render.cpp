@@ -154,56 +154,76 @@ void Render::destroyGeometryData() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Render::initPostProcess() {
+  auto origin = new Fullscreen();
   auto TAA = new Fullscreen();
+
+  postprocess.origin = origin;
   postprocess.TAA = TAA;
-  {
+
+  std::array<Fullscreen::Pass, 2> passes = {
+      postprocess.origin,
+      postprocess.TAA,
+  };
+
+  for (auto& pass : passes) {
     // Основные параметры
-    TAA->core = core;
-    TAA->shader.manager = shaders;
-    TAA->shader.name = std::string("shaders/taa.hlsl");
+    pass->core = core;
+    pass->shader.manager = shaders;
 
     // Дескрипторы прохода рендера
-    TAA->colorImageViews = geometry.data.views;
-    TAA->colorImageSampler = core->resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+    pass->colorImageViews = geometry.data.views;
+    pass->colorImageSampler = core->resources->createImageSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 
     // Указание изображений, в которые будет идти результат
-    TAA->target.width = core->swapchain.extent.width;
-    TAA->target.height = core->swapchain.extent.height;
-    TAA->target.format = core->swapchain.format;
-    TAA->target.views = core->resources->createImageViews(
+    pass->target.width = core->swapchain.extent.width;
+    pass->target.height = core->swapchain.extent.height;
+    pass->target.format = core->swapchain.format;
+    pass->target.views = core->resources->createImageViews(
         core->swapchain.images,
         core->swapchain.format,
         VK_IMAGE_ASPECT_COLOR_BIT);
-
-    TAA->init();
   }
+
+  origin->shader.name = std::string("shaders/fullscreen.hlsl");
+  origin->init();
+
+  TAA->shader.name = std::string("shaders/taa.hlsl");
+  TAA->init();
 }
 
 void Render::destroyPostProcess() {
-  auto TAA = postprocess.TAA;
-  {
-    core->resources->destroyImageSampler(TAA->colorImageSampler);
-    core->resources->destroyImageViews(TAA->target.views);
-    TAA->destroy();
-    delete TAA;
+  std::array<Fullscreen::Pass, 2> passes = {
+      postprocess.origin,
+      postprocess.TAA,
+  };
+
+  for (auto pass : passes) {
+    core->resources->destroyImageSampler(pass->colorImageSampler);
+    core->resources->destroyImageViews(pass->target.views);
+    pass->destroy();
+    delete pass;
   }
 }
 
 void Render::reinitPostProcess() {
-  auto TAA = postprocess.TAA;
-  {
-    TAA->colorImageViews = geometry.data.views;
-    TAA->target.width = core->swapchain.extent.width;
-    TAA->target.height = core->swapchain.extent.height;
-    TAA->target.format = core->swapchain.format;
+  std::array<Fullscreen::Pass, 2> passes = {
+      postprocess.origin,
+      postprocess.TAA,
+  };
 
-    core->resources->destroyImageViews(TAA->target.views);
-    TAA->target.views = core->resources->createImageViews(
+  for (auto pass : passes) {
+    pass->colorImageViews = geometry.data.views;
+    pass->target.width = core->swapchain.extent.width;
+    pass->target.height = core->swapchain.extent.height;
+    pass->target.format = core->swapchain.format;
+
+    core->resources->destroyImageViews(pass->target.views);
+    pass->target.views = core->resources->createImageViews(
         core->swapchain.images,
         core->swapchain.format,
         VK_IMAGE_ASPECT_COLOR_BIT);
 
-    TAA->resize();
+    pass->resize();
   }
 }
 
@@ -321,6 +341,7 @@ void Render::draw() {
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
+  postprocess.origin->record(swapchainImageIndex, cmd);
   postprocess.TAA->record(swapchainImageIndex, cmd);
   interface.pass->record(swapchainImageIndex, cmd);
 
