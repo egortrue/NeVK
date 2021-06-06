@@ -36,12 +36,16 @@ class GUI : public GraphicsPass {
 
  public:
   struct {
+    bool menuHovered;
+    bool taaON;
+  } options;
+
+ private:
+  struct {
     ImGuiIO io;
     ImGuiData data;
     ImGuiInit init;
     ImGuiStyle style;
-
-    bool menuHovered;
   } imgui;
 
   enum {
@@ -51,7 +55,6 @@ class GUI : public GraphicsPass {
     WINDOW_AUTOSIZE = ImGuiWindowFlags_AlwaysAutoResize,
   };
 
- private:
   void updateUI();
 
   //=========================================================================

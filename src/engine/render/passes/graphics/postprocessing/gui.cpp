@@ -70,7 +70,7 @@ void GUI::updateUI() {
   ImGui::Begin("Menu", nullptr, WINDOW_NOMOVE | WINDOW_AUTOSIZE);
   {
     ImGui::SetWindowPos(ImVec2(window->width - ImGui::GetWindowWidth() - 10, 10));
-    imgui.menuHovered = ImGui::IsWindowHovered();
+    options.menuHovered = ImGui::IsWindowHovered();
 
     ImGui::Text("Window");
     ImGui::Text("   Title");
@@ -86,6 +86,14 @@ void GUI::updateUI() {
     float window_size[] = {static_cast<float>(window->width),
                            static_cast<float>(window->height)};
     ImGui::InputFloat2("###window_size", window_size);
+
+    ImGui::Separator();
+    //================================================
+
+    ImGui::Text("Options");
+    ImGui::Text("     TAA");
+    ImGui::SameLine();
+    ImGui::Checkbox("###taaON", &options.taaON);
 
     ImGui::Separator();
     //================================================

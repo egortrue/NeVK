@@ -64,7 +64,7 @@ class Application {
     // Использование меню отменяет передвижение камеры
     if (action != GLFW_RELEASE) {
       auto interface = app->engine->getRender()->getInterface();
-      if (interface->imgui.menuHovered)
+      if (interface->options.menuHovered)
         return;
     }
 

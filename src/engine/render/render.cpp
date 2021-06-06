@@ -341,8 +341,10 @@ void Render::draw() {
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-  postprocess.origin->record(swapchainImageIndex, cmd);
-  postprocess.TAA->record(swapchainImageIndex, cmd);
+  if (!interface.pass->options.taaON)
+    postprocess.origin->record(swapchainImageIndex, cmd);
+  else
+    postprocess.TAA->record(swapchainImageIndex, cmd);
   interface.pass->record(swapchainImageIndex, cmd);
 
   //=========================================================================
