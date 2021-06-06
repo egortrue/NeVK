@@ -7,11 +7,13 @@
 // Внутренние библиотеки
 #include "commands.h"
 #include "resources.h"
+#include "textures.h"
 
 // Стандартные библиотеки
 #include <iostream>
 #include <string>
 #include <vector>
+#include <set>
 #include <utility>
 #include <unordered_map>
 
@@ -27,37 +29,36 @@ class Models {
   typedef struct model_t {
     // Метаданные
     std::string name;
-    uint32_t verticesCount;
-    uint32_t poligonsCount;
+    std::string objPath;
+    std::string mtlPath;
 
-    // Вершины
-    std::vector<float> vertices;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
+    struct shape_t {
+      uint32_t verticesCount;
+      uint32_t diffuseTextureID;
 
-    // Индексы соответвующих вершин
-    std::vector<uint32_t> indices;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+      VkBuffer vertexBuffer;
+      VkDeviceMemory vertexBufferMemory;
+    };
+
+    std::vector<shape_t*> shapes;
   } * Instance;
 
  private:
   Commands::Manager commands;
   Resources::Manager resources;
+  Textures::Manager textures;
 
   std::vector<Instance> handlers;
   std::unordered_map<std::string, uint32_t> idList;
 
  public:
-  Models(Commands::Manager, Resources::Manager);
+  Models(Commands::Manager, Resources::Manager, Textures::Manager);
   ~Models();
 
-  Instance loadModel(const std::string& name);
-  Instance getModel(const std::string& name);
-  void destroyModel(const std::string& name);
+  Instance load(const std::string& name);
+  Instance get(const std::string& name);
+  void destroy(const std::string& name);
 
  private:
-  void parseModelData(Instance, tinyobj::ObjReader&);
-  void createModelBuffers(Instance);
-  void destroyModelBuffers(Instance);
+  void parseData(Instance, tinyobj::ObjReader&);
 };

@@ -19,14 +19,17 @@ Scene::~Scene() {
   destroyTextures();
 }
 
-void Scene::loadObject(const char* model, const char* texture) {
-  loadObject(std::string(model), std::string(texture));
+Textures::Manager Scene::getTextures() {
+  return textures;
 }
 
-void Scene::loadObject(const std::string& model, const std::string& texture) {
+void Scene::loadObject(const char* model) {
+  loadObject(std::string(model));
+}
+
+void Scene::loadObject(const std::string& model) {
   PhysicalObject::Instance object = new PhysicalObject();
-  object->model = models->loadModel(model);
-  object->texture = textures->loadTexture(texture);
+  object->model = models->load(model);
   objects.push_back(object);
 }
 
@@ -44,17 +47,20 @@ void Scene::destroyTextures() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Scene::initModels() {
-  models = new Models(commands, resources);
+  models = new Models(commands, resources, textures);
   PhysicalObject::Instance object;
-  loadObject("misc/models/cube.obj", "misc/textures/brickwall.png");
-  loadObject("misc/models/teapot.obj", "misc/textures/default.png");
+  loadObject("test");
+  loadObject("cube");
   object = objects.back();
-  object->setPosition({-2, 0, 0});
+  object->setPosition({5.0f, 0.0f, 0.0f});
   object->update();
-  loadObject("misc/models/pine.obj", "misc/textures/grass.jpg");
+  loadObject("teapot");
   object = objects.back();
-  object->setPosition({2, 0, 0});
-  object->setScale({0.005, 0.005, 0.005});
+  object->setPosition({-5.0f, 0.0f, 0.0f});
+  object->update();
+  loadObject("tree");
+  object = objects.back();
+  object->setPosition({0.0f, 0.0f, -5.0f});
   object->update();
 }
 
@@ -72,7 +78,7 @@ void Scene::initCamera() {
   camera->projection.near = 0.1f;
   camera->projection.far = 256.0f;
   camera->updateProjection();
-  camera->setPosition({0, 0, 3});
+  camera->setPosition({0, 0, 8});
   camera->updateView();
 }
 

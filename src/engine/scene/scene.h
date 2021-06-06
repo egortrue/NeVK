@@ -21,10 +21,11 @@ class Scene {
 
   uint32_t currentObject = 0;
   std::vector<PhysicalObject::Instance> objects;
-  void loadObject(const char* model, const char* texture);
-  void loadObject(const std::string& model, const std::string& texture);
+  void loadObject(const char* model);
+  void loadObject(const std::string& model);
 
   Camera::Manager getCamera();
+  Textures::Manager getTextures();
 
  private:
   Core::Manager core;

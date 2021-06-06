@@ -30,5 +30,5 @@ class PhysicalObject : public Object {
   typedef PhysicalObject* Instance;
 
   Models::Instance model;
-  Textures::Instance texture;
+  Textures::Instance textures;
 };

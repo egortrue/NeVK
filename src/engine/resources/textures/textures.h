@@ -38,10 +38,13 @@ class Textures {
   Textures(Core::Manager, Commands::Manager, Resources::Manager);
   ~Textures();
 
-  Instance loadTexture(const std::string& name);
-  Instance getTexture(const std::string& name);
-  void destroyTexture(const std::string& name);
+  Instance load(const std::string& name);
+  void destroy(const std::string& name);
+
+  Instance get(const std::string& name);
+  uint32_t getID(const std::string& name);
+  void getViews(std::vector<VkImageView>&);
 
  private:
-  Instance createTexture(const std::string& name);
+  Instance create(const std::string& name);
 };
